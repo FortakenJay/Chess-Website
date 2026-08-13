@@ -1,32 +1,34 @@
-# Chess Analyzer
+# leak
 
-A client-side chess analysis engine powered by Stockfish WASM. Analyze your games from Chess.com, Lichess, or raw PGN/FEN — no server required.
+Engine-verified chess error analysis for a Chess.com account: where rating is lost (phase, motif, color, clock), a browsable list of flagged positions, and a drill board that does not reveal the answer until you move.
 
-## Features
+## Stack
 
-- **Game Import** — Look up any Chess.com or Lichess user, browse their game history, and pull games directly for analysis
-- **Chess Analyzer** — Full Stockfish WASM engine running in-browser. Get move-by-move evaluation, best lines, blunder detection, and accuracy scores
-- **FEN/PGN Input** — Paste any FEN position or PGN game for instant analysis
-- **Puzzles** — Practice tactical puzzles to sharpen your play
-- **Opening Tree** — Explore your personal opening repertoire built from all your played games. See win/loss/draw rates per line
+TanStack Start, TanStack Query, Supabase (Postgres + magic-link auth), Stockfish 18 WASM, chess.js, react-chessboard, Recharts. Vercel hosts the app; a Node function at `/api/sync-user` runs the daily incremental sync.
 
-## Tech Stack
+Heavy backfill and "Sync now" run Stockfish **in the browser**. The cron only analyzes games since `sync_state.last_game_end_time`.
 
-- **Next.js** — React framework with SSR and API routes
-- **Stockfish WASM** — Chess engine running client-side in the browser
-- **chess.js** — Move validation, PGN/FEN parsing, game logic
-- **react-chessboard** — Interactive board UI
-- **Tailwind CSS** — Styling
+## Setup
 
-## Getting Started
+1. Copy `.env.example` to `.env.local`.
+2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+3. For the daily cron, also set `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` (same values in the Vercel project).
+4. In the Supabase dashboard: Authentication → URL configuration, add `http://localhost:3000/auth/callback` and the production callback.
+5. Apply `supabase/migrations/20260813000000_init_chess_analysis.sql` if this is a new project.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Deployment
+## Routes
 
-Hosted on [Vercel](https://vercel.com) (free tier). Since the engine runs entirely in the browser, no server-side compute is needed.
+- `/` — preview any public Chess.com username, or sign in
+- `/analyze/$username` — client-side backfill / incremental sync
+- `/results/$username` — dashboard
+- `/positions/$username` — flagged-move table
+- `/drill/$username` — guess-before-reveal board
+
+Daily cron (Vercel Hobby allows once per day): `0 6 * * *` → `/api/sync-user` with `Authorization: Bearer $CRON_SECRET`.
