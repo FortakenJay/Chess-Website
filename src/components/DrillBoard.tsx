@@ -4,6 +4,7 @@ import { Chessboard } from 'react-chessboard'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 import { evaluateFen } from '@/lib/analyzeClient'
 import type { Classification } from '@/lib/analysis/types'
+import { legalMovesFrom, legalMoveStyles } from '@/lib/legalMoves'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
 import { useAuth } from '@/lib/auth'
 import { getBrowserClient } from '@/lib/supabase/browser'
@@ -30,21 +31,17 @@ export function DrillBoard({
   const [reveal, setReveal] = useState<Reveal | null>(null)
   const [thinking, setThinking] = useState(false)
   const [score, setScore] = useState({ correct: 0, total: 0 })
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
 
   const position = positions[index]
-  const orientation = position?.color === 'black' ? 'black' : 'white'
+  const sideToMove = position?.fen_before.split(' ')[1] === 'b' ? 'Black' : 'White'
+  const orientation = sideToMove === 'Black' ? 'black' : 'white'
 
   if (!position) {
     return <p className="text-sm text-muted">No positions in this set.</p>
   }
 
-  function onDrop({
-    sourceSquare,
-    targetSquare,
-  }: {
-    sourceSquare: string
-    targetSquare: string | null
-  }) {
+  function makeMove(sourceSquare: string, targetSquare: string | null) {
     if (!targetSquare || reveal || thinking) return false
     const board = new Chess(position.fen_before)
     const attempt = board.move({
@@ -53,10 +50,19 @@ export function DrillBoard({
       promotion: 'q',
     })
     if (!attempt) return false
+    setSelectedSquare(null)
     setFen(board.fen())
     setThinking(true)
     void revealAttempt(attempt.san, attempt.lan)
     return true
+  }
+
+  function onSquareClick(square: string) {
+    if (reveal || thinking) return
+    if (selectedSquare && makeMove(selectedSquare, square)) return
+    setSelectedSquare(
+      legalMovesFrom(position.fen_before, square).length > 0 ? square : null,
+    )
   }
 
   async function revealAttempt(attemptSan: string, attemptLan: string) {
@@ -105,9 +111,17 @@ export function DrillBoard({
     setIndex(nextIndex)
     setFen(nextPos.fen_before)
     setReveal(null)
+    setSelectedSquare(null)
   }
 
-  const squareStyles: Record<string, CSSProperties> = {}
+  function retry() {
+    setFen(position.fen_before)
+    setReveal(null)
+    setSelectedSquare(null)
+  }
+
+  const squareStyles: Record<string, CSSProperties> =
+    reveal || thinking ? {} : legalMoveStyles(position.fen_before, selectedSquare)
   if (reveal) {
     try {
       const hist = new Chess(position.fen_before)
@@ -123,23 +137,38 @@ export function DrillBoard({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="w-full">
-        <Chessboard
-          options={{
-            position: fen,
-            boardOrientation: orientation,
-            allowDragging: !reveal && !thinking,
-            onPieceDrop: onDrop,
-            squareStyles,
-            darkSquareStyle: { backgroundColor: '#3d4450' },
-            lightSquareStyle: { backgroundColor: '#9aa0a8' },
-            boardStyle: { width: '100%' },
-          }}
-        />
+      <div className="w-full border border-line bg-surface">
+        <div className="border-b border-line px-3 py-2 font-mono text-sm font-medium">
+          {sideToMove} to move
+        </div>
+        <div className="p-3">
+          <Chessboard
+            options={{
+              position: fen,
+              boardOrientation: orientation,
+              allowDragging: !reveal && !thinking,
+              onPieceDrag: ({ square }) => {
+                if (square && !reveal && !thinking) setSelectedSquare(square)
+              },
+              onPieceDrop: ({ sourceSquare, targetSquare }) =>
+                makeMove(sourceSquare, targetSquare),
+              onSquareClick: ({ square }) => onSquareClick(square),
+              squareStyles,
+              darkSquareStyle: { backgroundColor: '#3d4450' },
+              lightSquareStyle: { backgroundColor: '#9aa0a8' },
+              boardStyle: { width: '100%' },
+            }}
+          />
+        </div>
       </div>
       <aside className="flex flex-col gap-4">
         <div className="border border-line bg-surface p-4">
-          <div className="font-mono text-xs uppercase tracking-wider text-muted">Session</div>
+          <div className="flex items-center justify-between gap-3 font-mono text-xs uppercase tracking-wider text-muted">
+            <span>Session</span>
+            <span>
+              Position {index + 1} of {positions.length}
+            </span>
+          </div>
           <div className="mt-2 font-mono text-2xl tabular">
             {score.correct}/{score.total}
           </div>
@@ -183,14 +212,24 @@ export function DrillBoard({
             </dl>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={next}
-          disabled={!reveal}
-          className="border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas disabled:opacity-40"
-        >
-          Next position
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={retry}
+            disabled={!reveal}
+            className="border border-line px-3 py-2 text-sm hover:bg-surface-2 disabled:opacity-40"
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            disabled={!reveal || positions.length < 2}
+            className="border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas disabled:opacity-40"
+          >
+            Next position
+          </button>
+        </div>
       </aside>
     </div>
   )

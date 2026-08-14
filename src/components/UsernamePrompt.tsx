@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { lookupPlayer } from '@/lib/chesscom.functions'
 import { useAuth } from '@/lib/auth'
 import { getBrowserClient } from '@/lib/supabase/browser'
@@ -6,6 +7,7 @@ import { isLikelyUsername, normalizeUsername } from '@/lib/username'
 
 export function UsernamePrompt() {
   const { user, refreshProfile } = useAuth()
+  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -21,12 +23,14 @@ export function UsernamePrompt() {
     setError(null)
     try {
       const player = await lookupPlayer({ data: { username } })
+      const handle = normalizeUsername(player.username)
       const { error: writeError } = await getBrowserClient().from('profiles').upsert({
         user_id: user.id,
-        chess_com_username: normalizeUsername(player.username),
+        chess_com_username: handle,
       })
       if (writeError) throw writeError
       await refreshProfile()
+      await navigate({ to: '/analyze/$username', params: { username: handle } })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not link that username')
     } finally {
@@ -38,23 +42,34 @@ export function UsernamePrompt() {
     <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-3 border border-line bg-surface p-5">
       <h2 className="text-sm uppercase tracking-wider text-muted">Chess.com username</h2>
       <p className="text-sm text-muted">
-        Linked once. After this, any device with this account opens your history.
+        We will verify the username, download your games, and save the analysis in batches.
       </p>
+      <label htmlFor="link-username" className="sr-only">
+        Chess.com username
+      </label>
       <input
+        id="link-username"
+        name="username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        className="border border-line bg-canvas px-3 py-2 font-mono text-sm outline-none focus:border-ink"
-        placeholder="hikaru"
+        className="border border-line bg-canvas px-3 py-2 font-mono text-sm"
+        placeholder="hikaru…"
         autoCapitalize="off"
         autoCorrect="off"
+        autoComplete="off"
+        spellCheck={false}
       />
-      {error ? <p className="text-sm text-blunder">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-blunder" role="alert">
+          {error}
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={pending}
         className="border border-ink bg-ink px-3 py-2 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
       >
-        {pending ? 'Checking…' : 'Link account'}
+        {pending ? 'Checking…' : 'Link and import games'}
       </button>
     </form>
   )

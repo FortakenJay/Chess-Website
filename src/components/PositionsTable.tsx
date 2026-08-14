@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 import type { Classification, Motif, Phase, Side } from '@/lib/analysis/types'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
@@ -19,6 +20,8 @@ export const EMPTY_FILTERS: PositionFilters = {
   classification: '',
   sort: 'worst',
 }
+
+const PAGE_SIZE = 25
 
 export function filterPositions(
   rows: Tables<'flagged_positions'>[],
@@ -48,50 +51,105 @@ export function PositionsTable({
   filters: PositionFilters
   onChange: (next: PositionFilters) => void
 }) {
-  const ids = rows.map((r) => r.id).join(',')
+  const [page, setPage] = useState(1)
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pageCount)
+  const start = (currentPage - 1) * PAGE_SIZE
+  const pageRows = rows.slice(start, start + PAGE_SIZE)
+  const rangeStart = rows.length === 0 ? 0 : start + 1
+  const rangeEnd = Math.min(start + PAGE_SIZE, rows.length)
+
+  function updateFilters(next: PositionFilters) {
+    setPage(1)
+    onChange(next)
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <Select
           label="Phase"
           value={filters.phase}
-          onChange={(phase) => onChange({ ...filters, phase: phase as PositionFilters['phase'] })}
+          onChange={(phase) =>
+            updateFilters({ ...filters, phase: phase as PositionFilters['phase'] })
+          }
           options={['', 'opening', 'middlegame', 'endgame']}
         />
         <Select
           label="Motif"
           value={filters.motif}
-          onChange={(motif) => onChange({ ...filters, motif: motif as PositionFilters['motif'] })}
+          onChange={(motif) =>
+            updateFilters({ ...filters, motif: motif as PositionFilters['motif'] })
+          }
           options={['', 'hanging_piece', 'fork', 'pin', 'skewer', 'discovered_attack', 'back_rank', 'missed_mate']}
         />
         <Select
           label="Color"
           value={filters.color}
-          onChange={(color) => onChange({ ...filters, color: color as PositionFilters['color'] })}
+          onChange={(color) =>
+            updateFilters({ ...filters, color: color as PositionFilters['color'] })
+          }
           options={['', 'white', 'black']}
         />
         <Select
           label="Severity"
           value={filters.classification}
           onChange={(classification) =>
-            onChange({ ...filters, classification: classification as PositionFilters['classification'] })
+            updateFilters({
+              ...filters,
+              classification: classification as PositionFilters['classification'],
+            })
           }
           options={['', 'blunder', 'mistake', 'inaccuracy']}
         />
         <Select
           label="Sort"
           value={filters.sort}
-          onChange={(sort) => onChange({ ...filters, sort: sort as PositionFilters['sort'] })}
+          onChange={(sort) =>
+            updateFilters({ ...filters, sort: sort as PositionFilters['sort'] })
+          }
           options={['worst', 'chrono']}
         />
         <Link
           to="/drill/$username"
           params={{ username }}
-          search={{ ids, order: filters.sort }}
+          search={{
+            phase: filters.phase || undefined,
+            motif: filters.motif || undefined,
+            color: filters.color || undefined,
+            classification: filters.classification || undefined,
+            order: filters.sort,
+          }}
           className="ml-auto border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas"
         >
           Drill these ({rows.length})
         </Link>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-muted">
+        <span>
+          Showing {rangeStart}–{rangeEnd} of {rows.length}
+        </span>
+        <nav aria-label="Positions pagination" className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="border border-line px-3 py-1.5 hover:bg-surface-2 hover:text-ink disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="min-w-20 text-center">
+            Page {currentPage} of {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(Math.min(pageCount, currentPage + 1))}
+            disabled={currentPage === pageCount}
+            className="border border-line px-3 py-1.5 hover:bg-surface-2 hover:text-ink disabled:opacity-40"
+          >
+            Next
+          </button>
+        </nav>
       </div>
       <div className="overflow-x-auto border border-line">
         <table className="w-full min-w-[720px] text-left text-sm">
@@ -109,7 +167,7 @@ export function PositionsTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {pageRows.map((row) => (
               <tr key={row.id} className="border-t border-line">
                 <td className="px-3 py-2 font-mono text-xs">{row.played_on}</td>
                 <td className="px-3 py-2">{row.opponent}</td>

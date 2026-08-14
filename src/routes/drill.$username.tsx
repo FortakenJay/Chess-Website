@@ -34,9 +34,7 @@ export const Route = createFileRoute('/drill/$username')({
 
 function selectPositions(all: Tables<'flagged_positions'>[], search: DrillSearch) {
   let rows = all
-  if (search.position) {
-    rows = rows.filter((r) => r.id === search.position)
-  } else if (search.ids) {
+  if (search.ids) {
     const set = new Set(search.ids.split(',').filter(Boolean))
     rows = rows.filter((r) => set.has(r.id))
   }
@@ -51,6 +49,12 @@ function selectPositions(all: Tables<'flagged_positions'>[], search: DrillSearch
     rows = [...rows].sort(() => Math.random() - 0.5)
   } else {
     rows = [...rows].sort((a, b) => b.loss - a.loss)
+  }
+
+  if (search.position) {
+    const start = rows.findIndex((row) => row.id === search.position)
+    if (start === -1) return []
+    rows = [...rows.slice(start), ...rows.slice(0, start)]
   }
   return rows
 }

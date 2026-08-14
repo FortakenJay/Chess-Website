@@ -56,6 +56,11 @@ export async function analyzeGame(
   game: RawGame,
   username: string,
   evaluate: (fen: string) => Promise<EngineEval>,
+  options?: {
+    signal?: AbortSignal
+    onPly?: (info: { ply: number; plyTotal: number }) => void
+    onFlagged?: (position: GameAnalysis['flagged'][number]) => void
+  },
 ): Promise<GameAnalysis | null> {
   const chess = new Chess()
   try {
@@ -86,17 +91,17 @@ export async function analyzeGame(
   let totalMoves = 0
 
   const replay = new Chess()
-  let evalBefore: EngineEval | null = null
 
-  for (const move of history) {
+  for (let i = 0; i < history.length; i++) {
+    if (options?.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    const move = history[i]!
     const fenBefore = move.before
     const mover: Side = move.color === 'w' ? 'white' : 'black'
-    if (!evalBefore) evalBefore = await evaluate(fenBefore)
-
-    replay.move(move)
-    const evalAfter = await evaluate(replay.fen())
 
     if (mover === color) {
+      const evalBefore = await evaluate(fenBefore)
+      replay.move(move)
+      const evalAfter = await evaluate(replay.fen())
       const loss = centipawnLoss(evalBefore, evalAfter, mover)
       const classification = classify(loss)
       const moveNumber = Number(fenBefore.split(' ')[5] ?? 1)
@@ -118,7 +123,7 @@ export async function analyzeGame(
       if (classification !== 'fine') {
         const mateForUser =
           evalBefore.mateForStm != null && evalBefore.mateForStm > 0
-        flagged.push({
+        const position = {
           username: user,
           playedOn: date,
           opponent,
@@ -139,11 +144,15 @@ export async function analyzeGame(
             punishUci: evalAfter.bestMove,
             mateForUser,
           }),
-        })
+        }
+        flagged.push(position)
+        options?.onFlagged?.(position)
       }
+    } else {
+      replay.move(move)
     }
 
-    evalBefore = evalAfter
+    options?.onPly?.({ ply: i + 1, plyTotal: history.length })
   }
 
   return {

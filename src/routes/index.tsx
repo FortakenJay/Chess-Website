@@ -1,10 +1,9 @@
-import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
 import { AppShell } from '@/components/AppShell'
-import { SignInForm } from '@/components/SignInForm'
+import { HeroPosition } from '@/components/HeroPosition'
+import { ShellSkeleton } from '@/components/ShellSkeleton'
 import { UsernamePrompt } from '@/components/UsernamePrompt'
 import { useAuth } from '@/lib/auth'
-import { isLikelyUsername, normalizeUsername } from '@/lib/username'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -12,13 +11,11 @@ export const Route = createFileRoute('/')({
 
 function HomePage() {
   const { ready, user, profile } = useAuth()
-  const navigate = useNavigate()
-  const [username, setUsername] = useState('')
 
   if (!ready) {
     return (
       <AppShell>
-        <p className="font-mono text-xs text-muted">Loading session…</p>
+        <ShellSkeleton />
       </AppShell>
     )
   }
@@ -27,58 +24,65 @@ function HomePage() {
     return <Navigate to="/results/$username" params={{ username: profile.chess_com_username }} />
   }
 
+  if (user && !profile) {
+    return (
+      <AppShell>
+        <div className="mx-auto max-w-md">
+          <UsernamePrompt />
+        </div>
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
-      <div className="grid gap-10 lg:grid-cols-2">
-        <section className="max-w-lg">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">Personal analysis</p>
-          <h1 className="mt-3 text-3xl font-medium tracking-tight">
+      <section className="grid items-center gap-10 pt-2 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(260px,400px)]">
+        <div className="max-w-xl">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
+            Chess error analysis
+          </p>
+          <h1 className="mt-4 text-4xl font-medium tracking-tight text-pretty sm:text-5xl">
             Where you lose rating, verified by the engine.
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-6 text-muted">
-            Phase, motif, clock, color. Then drill the positions you actually played — not a random puzzle
-            set. History follows the account, not the browser.
+          <p className="mt-5 max-w-[65ch] text-base leading-7 text-muted">
+            Stockfish tags the mistakes that cost rating. Then you drill those positions.
           </p>
-          <form
-            className="mt-8 flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (!isLikelyUsername(username)) return
-              navigate({
-                to: '/results/$username',
-                params: { username: normalizeUsername(username) },
-              })
-            }}
-          >
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Chess.com username"
-              className="min-w-0 flex-1 border border-line bg-surface px-3 py-2 font-mono text-sm outline-none focus:border-ink"
-            />
-            <button
-              type="submit"
-              className="border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas"
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              to="/signup"
+              className="control border border-ink bg-ink px-4 py-2.5 text-sm text-canvas hover:bg-transparent hover:text-ink"
             >
-              Preview
-            </button>
-          </form>
-          <p className="mt-2 text-xs text-muted">Read-only if that username has been synced before.</p>
-        </section>
-        <section className="border border-line bg-surface p-5">
-          {user && !profile ? (
-            <UsernamePrompt />
-          ) : (
-            <>
-              <h2 className="text-xs uppercase tracking-wider text-muted">Sign in</h2>
-              <p className="mt-2 mb-4 text-sm text-muted">
-                Magic link. Saves history and turns on the daily incremental sync.
-              </p>
-              <SignInForm />
-            </>
-          )}
-        </section>
-      </div>
+              Sign up
+            </Link>
+            <Link to="/preview" className="text-sm text-muted hover:text-ink">
+              Preview Hikaru
+            </Link>
+          </div>
+        </div>
+        <HeroPosition />
+      </section>
+
+      <section className="grid gap-10 border-t border-line pt-12 md:grid-cols-2">
+        <div>
+          <h2 className="text-2xl font-medium tracking-tight">Phase, motif, clock, color.</h2>
+          <p className="mt-3 max-w-[65ch] text-sm leading-6 text-muted">
+            Every flagged move is checked by Stockfish 18 in the browser. The drill uses games you
+            actually played.
+          </p>
+          <ul className="mt-5 space-y-2 font-mono text-xs">
+            <li className="text-blunder">Blunder</li>
+            <li className="text-mistake">Mistake</li>
+            <li className="text-inaccuracy">Inaccuracy</li>
+          </ul>
+        </div>
+        <div>
+          <h2 className="text-2xl font-medium tracking-tight">History follows the account.</h2>
+          <p className="mt-3 max-w-[65ch] text-sm leading-6 text-muted">
+            Link a Chess.com username once. Incremental games land overnight. Open the same history
+            on any device.
+          </p>
+        </div>
+      </section>
     </AppShell>
   )
 }

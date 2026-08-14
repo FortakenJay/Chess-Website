@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
 import { AuthProvider } from '@/lib/auth'
+import { BackgroundSyncProvider } from '@/lib/backgroundSync'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -14,7 +15,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'leak — chess error analysis' },
+      { title: 'leak - chess error analysis' },
       {
         name: 'description',
         content: 'Engine-verified breakdown of where you lose rating, drilled on your own mistakes.',
@@ -48,7 +49,9 @@ function RootComponent() {
   return (
     <AuthProvider>
       <RootDocument>
-        <Outlet />
+        <BackgroundSyncProvider>
+          <Outlet />
+        </BackgroundSyncProvider>
       </RootDocument>
     </AuthProvider>
   )
@@ -56,7 +59,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="bg-canvas">
       <head>
         <HeadContent />
       </head>

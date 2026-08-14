@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { listRecentGames } from '@/lib/chesscom.functions'
 import { fetchAllRows } from '@/lib/persist'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { normalizeUsername } from '@/lib/username'
@@ -42,5 +43,14 @@ export function usePlayerData(username: string) {
         sync: sync.data,
       }
     },
+  })
+}
+
+export function useRecentGames(username: string, limit = 5) {
+  const name = normalizeUsername(username)
+  return useQuery({
+    queryKey: ['recent-games', name, limit],
+    queryFn: () => listRecentGames({ data: { username: name, limit } }),
+    staleTime: 5 * 60 * 1000,
   })
 }

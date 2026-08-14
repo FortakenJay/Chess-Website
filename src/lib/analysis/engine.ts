@@ -7,23 +7,80 @@ export type EnginePort = {
   quit: () => void
 }
 
-const ENGINE_URL = '/engine/stockfish-18-lite-single.js'
+const ENGINE_JS = '/engine/stockfish-18-lite-single.js'
+const ENGINE_WASM = '/engine/stockfish-18-lite-single.wasm'
+const ENGINE_ASM = '/engine/stockfish-18-asm.js'
+const ENGINE_ASM_STUB = '/engine/asm-stub.txt'
+const ENGINE_ERROR = '__engine_error__:'
+const SKIP_WASM_KEY = 'leak:skip-wasm-engine'
 
-export function createBrowserPort(): EnginePort {
-  const worker = new Worker(ENGINE_URL)
+function absoluteUrl(path: string) {
+  const origin = self.location.origin
+  return origin && origin !== 'null' ? `${origin}${path}` : path
+}
+
+function wasmWorkerUrl() {
+  return `${absoluteUrl(ENGINE_JS)}#${encodeURIComponent(absoluteUrl(ENGINE_WASM))}`
+}
+
+function asmWorkerUrl() {
+  return `${absoluteUrl(ENGINE_ASM)}#${encodeURIComponent(absoluteUrl(ENGINE_ASM_STUB))}`
+}
+
+function shouldSkipWasm() {
+  try {
+    return localStorage.getItem(SKIP_WASM_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function rememberWasmFailed() {
+  try {
+    localStorage.setItem(SKIP_WASM_KEY, '1')
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function emit(listeners: Set<(line: string) => void>, line: string) {
+  for (const listener of listeners) listener(line)
+}
+
+function createWorkerPort(url: string): EnginePort {
+  const worker = new Worker(url)
   const listeners = new Set<(line: string) => void>()
-  worker.addEventListener('message', (event: MessageEvent<string>) => {
-    const line = typeof event.data === 'string' ? event.data : String(event.data)
-    for (const listener of listeners) listener(line)
+  let lastError: string | null = null
+
+  function fail(message: string) {
+    lastError = `${ENGINE_ERROR}${message}`
+    emit(listeners, lastError)
+  }
+
+  worker.addEventListener('message', (event: MessageEvent<unknown>) => {
+    const line = typeof event.data === 'string' ? event.data.trim() : String(event.data)
+    emit(listeners, line)
   })
+  worker.addEventListener('error', (event) => {
+    fail(event.message || 'Stockfish failed to load')
+  })
+  worker.addEventListener('messageerror', () => {
+    fail('Stockfish sent a malformed message')
+  })
+
   return {
     send: (cmd) => worker.postMessage(cmd),
     subscribe: (cb) => {
       listeners.add(cb)
+      if (lastError) cb(lastError)
       return () => listeners.delete(cb)
     },
     quit: () => worker.terminate(),
   }
+}
+
+export function createBrowserPort(): EnginePort {
+  return createWorkerPort(shouldSkipWasm() ? asmWorkerUrl() : wasmWorkerUrl())
 }
 
 export class UciEngine {
@@ -34,15 +91,20 @@ export class UciEngine {
 
   async init(): Promise<void> {
     if (this.ready) return
-    await this.waitFor('uci', (line) => line === 'uciok')
+    await this.waitFor('uci', (line) => line === 'uciok', 30_000)
     await this.waitFor('isready', (line) => line === 'readyok')
     this.ready = true
+  }
+
+  async newGame(): Promise<void> {
+    await this.init()
+    this.port.send('ucinewgame')
+    await this.waitFor('isready', (line) => line === 'readyok')
   }
 
   evaluate(fen: string, movetimeMs = 80): Promise<EngineEval> {
     const run = async () => {
       await this.init()
-      this.port.send('ucinewgame')
       this.port.send(`position fen ${fen}`)
       let last: { cp?: number; mate?: number } = {}
       let bestMove = '0000'
@@ -82,6 +144,16 @@ export class UciEngine {
         reject(new Error(`Engine timeout after "${cmd}"`))
       }, timeoutMs)
       const unsub = this.port.subscribe((line) => {
+        if (line.startsWith(ENGINE_ERROR) || line.startsWith('Aborted(')) {
+          clearTimeout(timer)
+          unsub()
+          reject(
+            new Error(
+              line.startsWith(ENGINE_ERROR) ? line.slice(ENGINE_ERROR.length) : line,
+            ),
+          )
+          return
+        }
         if (!done(line)) return
         clearTimeout(timer)
         unsub()
@@ -93,7 +165,18 @@ export class UciEngine {
 }
 
 export async function createBrowserEngine(): Promise<UciEngine> {
-  const engine = new UciEngine(createBrowserPort())
-  await engine.init()
-  return engine
+  if (!shouldSkipWasm()) {
+    const wasmEngine = new UciEngine(createWorkerPort(wasmWorkerUrl()))
+    try {
+      await wasmEngine.init()
+      return wasmEngine
+    } catch {
+      wasmEngine.quit()
+      rememberWasmFailed()
+    }
+  }
+
+  const asmEngine = new UciEngine(createWorkerPort(asmWorkerUrl()))
+  await asmEngine.init()
+  return asmEngine
 }

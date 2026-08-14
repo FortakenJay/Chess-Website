@@ -1,40 +1,43 @@
+import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
+import { createInterface } from 'node:readline'
 import { UciEngine, type EnginePort } from './engine'
 
-type StockfishFactory = () => (opts: {
-  locateFile?: (file: string, prefix: string) => string
-  listener?: (line: string) => void
-}) => Promise<{ processCommand: (cmd: string) => void; terminate?: () => void }>
-
-function resolveLiteSingle() {
+function resolveAsmEngine() {
   const require = createRequire(import.meta.url)
   try {
-    return require.resolve('stockfish/bin/stockfish-18-lite-single.js')
+    return require.resolve('stockfish/bin/stockfish-18-asm.js')
   } catch {
-    return join(process.cwd(), 'node_modules/stockfish/bin/stockfish-18-lite-single.js')
+    return join(process.cwd(), 'node_modules/stockfish/bin/stockfish-18-asm.js')
   }
 }
 
 export async function createNodePort(): Promise<EnginePort> {
-  const require = createRequire(import.meta.url)
-  const jsPath = resolveLiteSingle()
-  const wasmPath = join(dirname(jsPath), 'stockfish-18-lite-single.wasm')
-  const factory = require(jsPath) as StockfishFactory
-  const listeners = new Set<(line: string) => void>()
-  const engine = await factory()({
-    locateFile: (file) => (file.includes('.wasm') ? wasmPath : jsPath),
-    listener: (line) => {
-      for (const listener of listeners) listener(line)
-    },
+  const child = spawn(process.execPath, [resolveAsmEngine()], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    windowsHide: true,
   })
+  const listeners = new Set<(line: string) => void>()
+  const output = createInterface({ input: child.stdout })
+  output.on('line', (line) => {
+    for (const listener of listeners) listener(line.trim())
+  })
+  child.stderr.on('data', (chunk) => {
+    const line = String(chunk).trim()
+    if (line) for (const listener of listeners) listener(line)
+  })
+
   return {
-    send: (cmd) => engine.processCommand(cmd),
+    send: (cmd) => child.stdin.write(`${cmd}\n`),
     subscribe: (cb) => {
       listeners.add(cb)
       return () => listeners.delete(cb)
     },
-    quit: () => engine.terminate?.(),
+    quit: () => {
+      child.stdin.write('quit\n')
+      output.close()
+    },
   }
 }
 

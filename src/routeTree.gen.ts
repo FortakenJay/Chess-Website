@@ -10,6 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AnalyzeUsernameRouteImport } from './routes/analyze.$username'
 import { Route as ApiSyncUserRouteImport } from './routes/api/sync-user'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -20,6 +23,21 @@ import { Route as ResultsUsernameRouteImport } from './routes/results.$username'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyzeUsernameRoute = AnalyzeUsernameRouteImport.update({
@@ -55,6 +73,9 @@ const ResultsUsernameRoute = ResultsUsernameRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
+  '/signup': typeof SignupRoute
   '/analyze/$username': typeof AnalyzeUsernameRoute
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -64,6 +85,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
+  '/signup': typeof SignupRoute
   '/analyze/$username': typeof AnalyzeUsernameRoute
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -74,6 +98,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
+  '/signup': typeof SignupRoute
   '/analyze/$username': typeof AnalyzeUsernameRoute
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -85,6 +112,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
+    | '/preview'
+    | '/signup'
     | '/analyze/$username'
     | '/api/sync-user'
     | '/auth/callback'
@@ -94,6 +124,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
+    | '/preview'
+    | '/signup'
     | '/analyze/$username'
     | '/api/sync-user'
     | '/auth/callback'
@@ -103,6 +136,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
+    | '/preview'
+    | '/signup'
     | '/analyze/$username'
     | '/api/sync-user'
     | '/auth/callback'
@@ -113,6 +149,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  PreviewRoute: typeof PreviewRoute
+  SignupRoute: typeof SignupRoute
   AnalyzeUsernameRoute: typeof AnalyzeUsernameRoute
   ApiSyncUserRoute: typeof ApiSyncUserRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -128,6 +167,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analyze/$username': {
@@ -177,6 +237,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  PreviewRoute: PreviewRoute,
+  SignupRoute: SignupRoute,
   AnalyzeUsernameRoute: AnalyzeUsernameRoute,
   ApiSyncUserRoute: ApiSyncUserRoute,
   AuthCallbackRoute: AuthCallbackRoute,

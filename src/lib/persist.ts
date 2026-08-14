@@ -17,6 +17,7 @@ async function chunked<T>(
 export async function persistGames(
   client: SupabaseClient<Database>,
   analyses: GameAnalysis[],
+  options: { updateSyncState?: boolean } = {},
 ) {
   if (analyses.length === 0) return
 
@@ -47,7 +48,7 @@ export async function persistGames(
       loss: pos.loss,
       classification: pos.classification,
       phase: pos.phase,
-      clock_left: pos.clockLeft,
+      clock_left: pos.clockLeft == null ? null : Math.round(pos.clockLeft),
       fen_before: pos.fenBefore,
       game_link: pos.gameLink,
       motif: pos.motif,
@@ -71,13 +72,23 @@ export async function persistGames(
   const months = new Set(analyses.map((g) => monthBounds(g.playedOn).start))
   await recomputePeriods(client, username, [...months])
 
-  const maxEnd = Math.max(...analyses.map((g) => g.endTime))
+  if (options.updateSyncState !== false) {
+    const maxEnd = Math.max(...analyses.map((g) => g.endTime))
+    await markSyncState(client, username, maxEnd)
+  }
+}
+
+export async function markSyncState(
+  client: SupabaseClient<Database>,
+  username: string,
+  endTime = 0,
+) {
   const { data: existing } = await client
     .from('sync_state')
     .select('last_game_end_time')
     .eq('username', username)
     .maybeSingle()
-  const last = Math.max(existing?.last_game_end_time ?? 0, maxEnd)
+  const last = Math.max(existing?.last_game_end_time ?? 0, endTime)
   const { error: syncError } = await client.from('sync_state').upsert({
     username,
     last_synced_at: new Date().toISOString(),

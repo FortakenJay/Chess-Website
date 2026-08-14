@@ -144,15 +144,19 @@ export function ClockChart({ stats }: { stats: ClockStats }) {
   )
 }
 
-export function TrendChart({ periods }: { periods: Tables<'period_summary'>[] }) {
-  const data = periods.map((p) => ({
-    name: p.period_start.slice(0, 7),
-    error: Math.round((Number(p.blunder_pct) + Number(p.mistake_pct)) * 10) / 10,
+export function TrendChart({
+  points,
+}: {
+  points: Array<{ date: string; errorPct: number }>
+}) {
+  const data = points.map((point) => ({
+    name: point.date.length === 10 ? point.date.slice(5) : point.date,
+    error: point.errorPct,
   }))
   if (data.length < 2) {
     return (
       <Frame title="Trend">
-        <p className="text-sm text-muted">Need at least two analyzed months to plot a trend.</p>
+        <p className="text-sm text-muted">Need games on at least two dates to plot a trend.</p>
       </Frame>
     )
   }

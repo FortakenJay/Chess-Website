@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { fetchArchives, fetchMonthGames, fetchPlayer } from './chesscom'
+import { fetchArchives, fetchMonthGames, fetchPlayer, fetchRecentGames } from './chesscom'
 import { isLikelyUsername, normalizeUsername } from './username'
 
 export const lookupPlayer = createServerFn({ method: 'GET' })
@@ -23,3 +23,10 @@ export const listMonthGames = createServerFn({ method: 'GET' })
   .handler(async ({ data }) =>
     fetchMonthGames(data.username, data.year, data.month, data.since),
   )
+
+export const listRecentGames = createServerFn({ method: 'GET' })
+  .validator((data: { username: string; limit?: number }) => ({
+    username: normalizeUsername(data.username),
+    limit: Math.min(Math.max(data.limit ?? 5, 1), 10),
+  }))
+  .handler(async ({ data }) => fetchRecentGames(data.username, data.limit))

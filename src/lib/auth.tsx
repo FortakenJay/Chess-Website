@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session, User } from '@supabase/supabase-js'
 import { getBrowserClient } from './supabase/browser'
 import type { Tables } from './supabase/database.types'
+import { isLikelyUsername, normalizeUsername } from './username'
 
 type Profile = Tables<'profiles'>
 
@@ -32,7 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
-    setProfile(data)
+    if (data) {
+      setProfile(data)
+      return
+    }
+    const handle = user.user_metadata?.chess_com_username
+    if (typeof handle === 'string' && isLikelyUsername(handle)) {
+      const { data: created } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          chess_com_username: normalizeUsername(handle),
+        })
+        .select('*')
+        .maybeSingle()
+      setProfile(created)
+      return
+    }
+    setProfile(null)
   }
 
   useEffect(() => {

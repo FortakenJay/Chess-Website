@@ -8,6 +8,9 @@ export type ChessComGame = {
   black: string
   whiteResult: string
   blackResult: string
+  whiteRating?: number
+  blackRating?: number
+  timeClass?: string
 }
 
 export type ArchiveMonth = { year: number; month: number }
@@ -70,8 +73,9 @@ type ChessComMonthResponse = {
     pgn?: string
     end_time: number
     rules?: string
-    white: { username: string; result: string }
-    black: { username: string; result: string }
+    time_class?: string
+    white: { username: string; result: string; rating?: number }
+    black: { username: string; result: string; rating?: number }
   }>
 }
 
@@ -97,5 +101,24 @@ export async function fetchMonthGames(
       black: game.black.username,
       whiteResult: game.white.result,
       blackResult: game.black.result,
+      whiteRating: game.white.rating,
+      blackRating: game.black.rating,
+      timeClass: game.time_class,
     }))
+}
+
+export async function fetchRecentGames(
+  username: string,
+  limit = 5,
+): Promise<ChessComGame[]> {
+  const archives = await fetchArchives(username)
+  const months = [...archives].sort((a, b) => b.year - a.year || b.month - a.month)
+  const collected: ChessComGame[] = []
+  for (const month of months) {
+    const batch = await fetchMonthGames(username, month.year, month.month)
+    collected.push(...batch)
+    collected.sort((a, b) => b.endTime - a.endTime)
+    if (collected.length >= limit) break
+  }
+  return collected.slice(0, limit)
 }

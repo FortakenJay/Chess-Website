@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,17 +24,20 @@ function findFile(dir, match) {
 
 const js = findFile(pkgDir, (name) => name === 'stockfish-18-lite-single.js')
 const wasm = findFile(pkgDir, (name) => name === 'stockfish-18-lite-single.wasm')
+const asm = findFile(pkgDir, (name) => name === 'stockfish-18-asm.js')
 
-if (!js || !wasm) {
-  console.error('Could not find stockfish-18-lite-single.{js,wasm} under', pkgDir)
+if (!js || !wasm || !asm) {
+  console.error('Could not find Stockfish engine files under', pkgDir)
   process.exit(1)
 }
 
 copyFileSync(js, join(destDir, 'stockfish-18-lite-single.js'))
 copyFileSync(wasm, join(destDir, 'stockfish-18-lite-single.wasm'))
+copyFileSync(asm, join(destDir, 'stockfish-18-asm.js'))
+writeFileSync(join(destDir, 'asm-stub.txt'), 'ok\n')
 
-if (!existsSync(join(destDir, 'stockfish-18-lite-single.wasm'))) {
+if (!existsSync(join(destDir, 'stockfish-18-asm.js'))) {
   process.exit(1)
 }
 
-console.log('Copied Stockfish 18 lite-single to public/engine')
+console.log('Copied Stockfish 18 lite-single and asm engines to public/engine')
