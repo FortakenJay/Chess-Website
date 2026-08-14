@@ -225,7 +225,7 @@ export function DrillBoard({
             type="button"
             onClick={next}
             disabled={!reveal || positions.length < 2}
-            className="border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas disabled:opacity-40"
+            className="border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink disabled:opacity-40"
           >
             Next position
           </button>

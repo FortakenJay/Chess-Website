@@ -31,11 +31,12 @@ export function inTimeframe(date: string, timeframe: Timeframe, now = new Date()
 
 export function gameTrend(games: Tables<'games'>[], timeframe: Timeframe) {
   const daily = timeframe === 'week' || timeframe === 'month'
-  const buckets = new Map<string, { errors: number; moves: number }>()
+  const buckets = new Map<string, { errors: number; blunders: number; moves: number }>()
   for (const game of games) {
     const key = daily ? game.played_on : game.played_on.slice(0, 7)
-    const current = buckets.get(key) ?? { errors: 0, moves: 0 }
+    const current = buckets.get(key) ?? { errors: 0, blunders: 0, moves: 0 }
     current.errors += game.blunder_count + game.mistake_count
+    current.blunders += game.blunder_count
     current.moves += game.total_moves
     buckets.set(key, current)
   }
@@ -44,6 +45,7 @@ export function gameTrend(games: Tables<'games'>[], timeframe: Timeframe) {
     .map(([date, value]) => ({
       date,
       errorPct: pct(value.errors, value.moves),
+      blunderPct: pct(value.blunders, value.moves),
     }))
 }
 

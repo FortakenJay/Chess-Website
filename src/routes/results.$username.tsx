@@ -85,7 +85,7 @@ function ResultsPage() {
           <Link
             to="/analyze/$username"
             params={{ username: name }}
-            className="border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas"
+            className="border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink"
           >
             Sync now
           </Link>

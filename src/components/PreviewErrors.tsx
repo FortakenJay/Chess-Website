@@ -178,7 +178,7 @@ export function PreviewErrors({ rows }: { rows: PreviewPosition[] }) {
                 <button
                   type="button"
                   onClick={nextPosition}
-                  className="border border-ink px-3 py-1.5 text-sm hover:bg-ink hover:text-canvas"
+                  className="border border-ink px-3 py-1.5 text-sm hover:bg-surface-2 hover:text-ink"
                 >
                   Next error
                 </button>

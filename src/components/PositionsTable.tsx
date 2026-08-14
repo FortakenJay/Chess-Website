@@ -120,7 +120,7 @@ export function PositionsTable({
             classification: filters.classification || undefined,
             order: filters.sort,
           }}
-          className="ml-auto border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas"
+          className="ml-auto border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink"
         >
           Drill these ({rows.length})
         </Link>

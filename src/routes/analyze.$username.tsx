@@ -61,7 +61,7 @@ function AnalyzePage() {
             <button
               type="button"
               onClick={sync.retry}
-              className="mt-3 border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas"
+              className="mt-3 border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink"
             >
               Try again
             </button>
@@ -70,7 +70,7 @@ function AnalyzePage() {
         <Link
           to="/results/$username"
           params={{ username: name }}
-          className="mt-6 inline-block border border-ink px-3 py-2 text-sm hover:bg-ink hover:text-canvas"
+          className="mt-6 inline-block border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink"
         >
           {sync.phase === 'complete' ? 'Open results' : 'Continue to results'}
         </Link>
