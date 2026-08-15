@@ -1,5 +1,6 @@
 import { Chess, type PieceSymbol } from 'chess.js'
 import type { Phase } from './types'
+import thresholds from './phaseThresholds.json'
 
 const NON_PAWN: Record<Exclude<PieceSymbol, 'p' | 'k'>, number> = {
   q: 9,
@@ -21,7 +22,7 @@ export function nonPawnMaterial(fen: string): number {
 }
 
 export function phaseOf(moveNumber: number, fen: string): Phase {
-  if (moveNumber <= 10) return 'opening'
-  if (nonPawnMaterial(fen) <= 13) return 'endgame'
+  if (moveNumber <= thresholds.openingMoveMax) return 'opening'
+  if (nonPawnMaterial(fen) <= thresholds.endgameNonPawnMax) return 'endgame'
   return 'middlegame'
 }

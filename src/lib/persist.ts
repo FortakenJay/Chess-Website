@@ -1,6 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { monthBounds, rollupGames } from './analysis/summarize'
-import type { ClockStats, GameAnalysis, PhaseStats } from './analysis/types'
+import type { ClockStats, GameAnalysis, PhaseStats, QualityStats } from './analysis/types'
+import {
+  emptyEndgameStats,
+  emptyPhaseAcpl,
+  emptyQualityStats,
+} from './analysis/types'
+import { GAME_RETENTION_YEARS } from '@/lib/sync/plan'
 import type { Database, Json } from './supabase/database.types'
 
 const CHUNK = 200
@@ -34,6 +40,20 @@ export async function persistGames(
     total_moves: game.totalMoves,
     phase_stats: game.phaseStats as unknown as Json,
     clock_stats: game.clockStats as unknown as Json,
+    quality_stats: game.qualityStats as unknown as Json,
+    move_ep_losses: game.epLosses as unknown as Json,
+    analysis_budget: (game.analysisBudget ?? null) as unknown as Json,
+    acpl: game.acpl,
+    accuracy_pct: game.accuracyPct,
+    phase_acpl: game.phaseAcpl as unknown as Json,
+    endgame_stats: game.endgameStats as unknown as Json,
+    endgame_conversion: game.endgameConversion as unknown as Json,
+    recovery_stats: game.recoveryStats as unknown as Json,
+    opening_eco: game.openingEco,
+    opening_name: game.openingName,
+    time_class: game.timeClass,
+    opponent_rating: game.opponentRating,
+    user_rating: game.userRating,
     game_link: game.gameLink,
   }))
 
@@ -47,11 +67,15 @@ export async function persistGames(
       san: pos.san,
       loss: pos.loss,
       classification: pos.classification,
+      quality: pos.quality,
       phase: pos.phase,
+      endgame_type: pos.endgameType,
       clock_left: pos.clockLeft == null ? null : Math.round(pos.clockLeft),
       fen_before: pos.fenBefore,
       game_link: pos.gameLink,
       motif: pos.motif,
+      motif_kind: pos.motifKind,
+      time_class: pos.timeClass,
     })),
   )
 
@@ -97,6 +121,17 @@ export async function markSyncState(
   if (syncError) throw syncError
 }
 
+/** Drop games / positions / periods older than the retention window (DB RPC). */
+export async function purgeExpiredGames(
+  client: SupabaseClient<Database>,
+  retentionYears = GAME_RETENTION_YEARS,
+) {
+  const { error } = await client.rpc('purge_expired_games', {
+    retention_years: retentionYears,
+  })
+  if (error) throw error
+}
+
 async function recomputePeriods(
   client: SupabaseClient<Database>,
   username: string,
@@ -123,6 +158,29 @@ async function recomputePeriods(
       totalMoves: row.total_moves,
       phaseStats: row.phase_stats as unknown as PhaseStats,
       clockStats: row.clock_stats as unknown as ClockStats,
+      qualityStats: {
+        ...emptyQualityStats(),
+        ...((row.quality_stats as unknown as QualityStats) ?? {}),
+      },
+      epLosses: (row.move_ep_losses as number[] | null) ?? [],
+      analysisBudget:
+        (row.analysis_budget as GameAnalysis['analysisBudget'] | null) ?? undefined,
+      acpl: Number(row.acpl) || 0,
+      accuracyPct: Number(row.accuracy_pct) || 0,
+      phaseAcpl: (row.phase_acpl as GameAnalysis['phaseAcpl']) ?? emptyPhaseAcpl(),
+      endgameStats: (row.endgame_stats as GameAnalysis['endgameStats']) ?? emptyEndgameStats(),
+      endgameConversion:
+        (row.endgame_conversion as GameAnalysis['endgameConversion']) ?? {
+          opportunities: 0,
+          conversions: 0,
+        },
+      recoveryStats:
+        (row.recovery_stats as GameAnalysis['recoveryStats']) ?? { moves: 0, errors: 0 },
+      openingEco: row.opening_eco,
+      openingName: row.opening_name,
+      timeClass: row.time_class,
+      opponentRating: row.opponent_rating,
+      userRating: row.user_rating,
       gameLink: row.game_link,
       endTime: 0,
       flagged: [],

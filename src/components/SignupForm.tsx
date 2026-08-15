@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { lookupPlayer } from '@/lib/chesscom.functions'
 import { useAuth } from '@/lib/auth'
+import { linkChessUsername } from '@/lib/profile'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
 
@@ -151,11 +152,7 @@ export function SignupForm() {
         setNeedsEmail(true)
         return
       }
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        user_id: data.session.user.id,
-        chess_com_username: handle,
-      })
-      if (profileError) throw profileError
+      await linkChessUsername(handle)
       await refreshProfile()
       await navigate({ to: '/analyze/$username', params: { username: handle } })
     } catch (err) {
@@ -190,7 +187,6 @@ export function SignupForm() {
             if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }))
           }}
           className={fieldClass}
-          placeholder="Jane Doe"
           aria-invalid={Boolean(fieldErrors.name)}
           aria-describedby={fieldErrors.name ? 'signup-name-error' : undefined}
         />
@@ -208,7 +204,6 @@ export function SignupForm() {
             if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }))
           }}
           className={fieldClass}
-          placeholder="you@example.com"
           autoComplete="email"
           inputMode="email"
           autoCapitalize="off"
@@ -235,7 +230,6 @@ export function SignupForm() {
             if (fieldErrors.username) setFieldErrors((prev) => ({ ...prev, username: undefined }))
           }}
           className={`${fieldClass} font-mono`}
-          placeholder="hikaru"
           autoCapitalize="off"
           autoCorrect="off"
           autoComplete="off"

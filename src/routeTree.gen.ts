@@ -12,13 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as ReviewRouteImport } from './routes/review'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AnalyzeUsernameRouteImport } from './routes/analyze.$username'
 import { Route as ApiSyncUserRouteImport } from './routes/api/sync-user'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DrillUsernameRouteImport } from './routes/drill.$username'
 import { Route as PositionsUsernameRouteImport } from './routes/positions.$username'
+import { Route as PuzzlesUsernameRouteImport } from './routes/puzzles.$username'
 import { Route as ResultsUsernameRouteImport } from './routes/results.$username'
+import { Route as ReviewIndexRouteImport } from './routes/review.index'
+import { Route as ReviewUsernameRouteImport } from './routes/review.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,6 +37,11 @@ const LoginRoute = LoginRouteImport.update({
 const PreviewRoute = PreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -65,23 +74,42 @@ const PositionsUsernameRoute = PositionsUsernameRouteImport.update({
   path: '/positions/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PuzzlesUsernameRoute = PuzzlesUsernameRouteImport.update({
+  id: '/puzzles/$username',
+  path: '/puzzles/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultsUsernameRoute = ResultsUsernameRouteImport.update({
   id: '/results/$username',
   path: '/results/$username',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewIndexRoute = ReviewIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReviewRoute,
+} as any)
+const ReviewUsernameRoute = ReviewUsernameRouteImport.update({
+  id: '/$username',
+  path: '/$username',
+  getParentRoute: () => ReviewRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/preview': typeof PreviewRoute
+  '/review': typeof ReviewRouteWithChildren
   '/signup': typeof SignupRoute
   '/analyze/$username': typeof AnalyzeUsernameRoute
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/drill/$username': typeof DrillUsernameRoute
   '/positions/$username': typeof PositionsUsernameRoute
+  '/puzzles/$username': typeof PuzzlesUsernameRoute
   '/results/$username': typeof ResultsUsernameRoute
+  '/review/$username': typeof ReviewUsernameRoute
+  '/review/': typeof ReviewIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,20 +121,27 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/drill/$username': typeof DrillUsernameRoute
   '/positions/$username': typeof PositionsUsernameRoute
+  '/puzzles/$username': typeof PuzzlesUsernameRoute
   '/results/$username': typeof ResultsUsernameRoute
+  '/review/$username': typeof ReviewUsernameRoute
+  '/review': typeof ReviewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/preview': typeof PreviewRoute
+  '/review': typeof ReviewRouteWithChildren
   '/signup': typeof SignupRoute
   '/analyze/$username': typeof AnalyzeUsernameRoute
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/drill/$username': typeof DrillUsernameRoute
   '/positions/$username': typeof PositionsUsernameRoute
+  '/puzzles/$username': typeof PuzzlesUsernameRoute
   '/results/$username': typeof ResultsUsernameRoute
+  '/review/$username': typeof ReviewUsernameRoute
+  '/review/': typeof ReviewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,13 +149,17 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/preview'
+    | '/review'
     | '/signup'
     | '/analyze/$username'
     | '/api/sync-user'
     | '/auth/callback'
     | '/drill/$username'
     | '/positions/$username'
+    | '/puzzles/$username'
     | '/results/$username'
+    | '/review/$username'
+    | '/review/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,31 +171,40 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/drill/$username'
     | '/positions/$username'
+    | '/puzzles/$username'
     | '/results/$username'
+    | '/review/$username'
+    | '/review'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/preview'
+    | '/review'
     | '/signup'
     | '/analyze/$username'
     | '/api/sync-user'
     | '/auth/callback'
     | '/drill/$username'
     | '/positions/$username'
+    | '/puzzles/$username'
     | '/results/$username'
+    | '/review/$username'
+    | '/review/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   PreviewRoute: typeof PreviewRoute
+  ReviewRoute: typeof ReviewRouteWithChildren
   SignupRoute: typeof SignupRoute
   AnalyzeUsernameRoute: typeof AnalyzeUsernameRoute
   ApiSyncUserRoute: typeof ApiSyncUserRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   DrillUsernameRoute: typeof DrillUsernameRoute
   PositionsUsernameRoute: typeof PositionsUsernameRoute
+  PuzzlesUsernameRoute: typeof PuzzlesUsernameRoute
   ResultsUsernameRoute: typeof ResultsUsernameRoute
 }
 
@@ -181,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: '/preview'
       fullPath: '/preview'
       preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -225,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PositionsUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/puzzles/$username': {
+      id: '/puzzles/$username'
+      path: '/puzzles/$username'
+      fullPath: '/puzzles/$username'
+      preLoaderRoute: typeof PuzzlesUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/results/$username': {
       id: '/results/$username'
       path: '/results/$username'
@@ -232,19 +294,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResultsUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/review/': {
+      id: '/review/'
+      path: '/'
+      fullPath: '/review/'
+      preLoaderRoute: typeof ReviewIndexRouteImport
+      parentRoute: typeof ReviewRoute
+    }
+    '/review/$username': {
+      id: '/review/$username'
+      path: '/$username'
+      fullPath: '/review/$username'
+      preLoaderRoute: typeof ReviewUsernameRouteImport
+      parentRoute: typeof ReviewRoute
+    }
   }
 }
+
+interface ReviewRouteChildren {
+  ReviewUsernameRoute: typeof ReviewUsernameRoute
+  ReviewIndexRoute: typeof ReviewIndexRoute
+}
+
+const ReviewRouteChildren: ReviewRouteChildren = {
+  ReviewUsernameRoute: ReviewUsernameRoute,
+  ReviewIndexRoute: ReviewIndexRoute,
+}
+
+const ReviewRouteWithChildren =
+  ReviewRoute._addFileChildren(ReviewRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   PreviewRoute: PreviewRoute,
+  ReviewRoute: ReviewRouteWithChildren,
   SignupRoute: SignupRoute,
   AnalyzeUsernameRoute: AnalyzeUsernameRoute,
   ApiSyncUserRoute: ApiSyncUserRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   DrillUsernameRoute: DrillUsernameRoute,
   PositionsUsernameRoute: PositionsUsernameRoute,
+  PuzzlesUsernameRoute: PuzzlesUsernameRoute,
   ResultsUsernameRoute: ResultsUsernameRoute,
 }
 export const routeTree = rootRouteImport

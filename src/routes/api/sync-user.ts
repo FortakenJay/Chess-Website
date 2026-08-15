@@ -1,9 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { analyzeGame } from '@/lib/analysis/analyzeGame'
+import { DEFAULT_ANALYSIS_BUDGET } from '@/lib/analysis/engine'
 import { createNodeEngine } from '@/lib/analysis/engine.node'
 import { fetchArchives, fetchMonthGames } from '@/lib/chesscom'
-import { persistGames } from '@/lib/persist'
+import { errorMessage } from '@/lib/errorMessage'
+import { fetchAllRows, markSyncState, persistGames, purgeExpiredGames } from '@/lib/persist'
 import { getServiceClient } from '@/lib/supabase/admin'
+import { runUserSync } from '@/lib/sync/runSync'
 import { normalizeUsername } from '@/lib/username'
 
 export const Route = createFileRoute('/api/sync-user')({
@@ -34,30 +37,67 @@ export const Route = createFileRoute('/api/sync-user')({
           for (const state of states ?? []) {
             if (Date.now() - started > budget) break
             const username = state.username
-            const since = state.last_game_end_time ?? undefined
-            const archives = await fetchArchives(username)
-            const months = since
-              ? archives.filter((a) => {
-                  const stamp = Date.UTC(a.year, a.month - 1, 1) / 1000
-                  return stamp + 32 * 86400 >= since
-                })
-              : archives.slice(-2)
-
-            const games = []
-            for (const month of months) {
-              if (Date.now() - started > budget) break
-              const batch = await fetchMonthGames(username, month.year, month.month, since)
-              games.push(...batch)
-            }
-
-            const analyses = []
-            for (const game of games) {
-              if (Date.now() - started > budget) break
-              const analysis = await analyzeGame(game, username, (fen) => engine.evaluate(fen, 80))
-              if (analysis) analyses.push(analysis)
-            }
-            if (analyses.length) await persistGames(supabase, analyses)
-            results.push({ username, games: analyses.length })
+            const result = await runUserSync(username, {
+              shouldStop: () => Date.now() - started > budget,
+              maxMonthsWithoutSince: 2,
+              history: 'incremental',
+              listArchives: fetchArchives,
+              listMonthGames: fetchMonthGames,
+              getSavedGameLinks: async (name) => {
+                const rows = await fetchAllRows((from, to) =>
+                  supabase
+                    .from('games')
+                    .select('game_link')
+                    .eq('username', name)
+                    .range(from, to),
+                )
+                return new Set(rows.map((row) => row.game_link))
+              },
+              getSinceEndTime: async () => state.last_game_end_time ?? 0,
+              analyzeBatch: async (games, name, options) => {
+                for (let i = 0; i < games.length; i++) {
+                  if (options.signal?.aborted || Date.now() - started > budget) {
+                    throw new DOMException('Aborted', 'AbortError')
+                  }
+                  const game = games[i]!
+                  options.onProgress?.({
+                    phase: 'game',
+                    gamesDone: i,
+                    gamesTotal: games.length,
+                    ply: 0,
+                    plyTotal: 0,
+                  })
+                  await engine.newGame()
+                  const analysis = await analyzeGame(
+                    game,
+                    name,
+                    (fen) => engine.evaluate(fen, options.movetime),
+                    {
+                      analysisBudget: DEFAULT_ANALYSIS_BUDGET,
+                      evaluateLines: (fen) =>
+                        engine.evaluateLines(
+                          fen,
+                          DEFAULT_ANALYSIS_BUDGET,
+                          DEFAULT_ANALYSIS_BUDGET.multipv,
+                        ),
+                    },
+                  )
+                  if (analysis) await options.onGame?.(analysis)
+                }
+              },
+              persistBatch: (analyses) =>
+                persistGames(supabase, analyses, { updateSyncState: false }),
+              markSync: (name, maxEndTime) => markSyncState(supabase, name, maxEndTime),
+              purgeExpired: () => purgeExpiredGames(supabase),
+            })
+            results.push({ username, games: result.saved })
+          }
+        } catch (error) {
+          if (!(error instanceof DOMException && error.name === 'AbortError')) {
+            return Response.json(
+              { error: errorMessage(error) },
+              { status: 500 },
+            )
           }
         } finally {
           engine.quit()

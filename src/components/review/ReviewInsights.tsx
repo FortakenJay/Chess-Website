@@ -1,0 +1,185 @@
+import { useMemo } from 'react'
+import type { GameAnalysis, Phase } from '@/lib/analysis/types'
+import {
+  insightCopy,
+  peerPercentile,
+  percentileLabel,
+  phaseAccuracy,
+  phaseAccuracyFromPlies,
+} from '@/lib/analysis/reportStats'
+import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
+import { cn } from '@/lib/cn'
+
+function StandBar({
+  label,
+  percentile,
+  warn,
+}: {
+  label: string
+  percentile: number
+  warn?: boolean
+}) {
+  const left = Math.max(4, Math.min(96, percentile))
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-sm">{label}</span>
+        <span className={cn('font-mono text-xs', warn ? 'text-blunder' : 'text-[#e8c547]')}>
+          {percentileLabel(percentile)}
+        </span>
+      </div>
+      <div className="relative h-2 bg-surface-2">
+        <div
+          className={cn('absolute inset-y-0 left-0', warn ? 'bg-blunder/50' : 'bg-[#e8c547]/30')}
+          style={{ width: `${left}%` }}
+        />
+        <span
+          className={cn(
+            'absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full',
+            warn ? 'bg-blunder' : 'bg-[#e8c547]',
+          )}
+          style={{ left: `calc(${left}% - 5px)` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function AccuracyChart({ analysis }: { analysis: GameAnalysis }) {
+  const plies = analysis.plies ?? []
+  const userPlies = plies.filter((p) => p.isUserMove && p.loss != null)
+  const oppPlies = plies.filter((p) => !p.isUserMove && p.loss != null)
+  if (userPlies.length < 2) return null
+
+  const w = 360
+  const h = 120
+  const maxLoss = Math.max(50, ...userPlies.map((p) => p.loss ?? 0), ...oppPlies.map((p) => p.loss ?? 0))
+
+  function points(
+    rows: typeof userPlies,
+  ): string {
+    return rows
+      .map((ply, i) => {
+        const x = (i / Math.max(1, rows.length - 1)) * w
+        const loss = ply.loss ?? 0
+        // Higher on chart = better (lower loss)
+        const y = 8 + ((loss / maxLoss) * (h - 16))
+        return `${x},${y}`
+      })
+      .join(' ')
+  }
+
+  return (
+    <div className="border border-line bg-surface-2 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-4 font-mono text-[11px]">
+        <span className="text-[#e8c547]">
+          {analysis.username} · {analysis.accuracyPct.toFixed(1)}
+        </span>
+        <span className="text-muted">
+          {analysis.opponent} · {(analysis.opponentAccuracyPct ?? 0).toFixed(1)}
+        </span>
+        <span className="text-blunder">blunders</span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-28 w-full" role="img" aria-label="Accuracy per move">
+        <polyline fill="none" stroke="#6b6e76" strokeWidth="1.5" points={points(oppPlies)} />
+        <polyline fill="none" stroke="#e8c547" strokeWidth="1.8" points={points(userPlies)} />
+        {userPlies.map((ply, i) => {
+          if (ply.quality !== 'blunder') return null
+          const x = (i / Math.max(1, userPlies.length - 1)) * w
+          const y = 8 + (((ply.loss ?? 0) / maxLoss) * (h - 16))
+          return <circle key={ply.ply} cx={x} cy={y} r="4" fill={QUALITY_COLOR.blunder} />
+        })}
+      </svg>
+    </div>
+  )
+}
+
+export function ReviewInsights({ analysis }: { analysis: GameAnalysis }) {
+  const bandLow = Math.floor(((analysis.userRating ?? 1200) - 100) / 100) * 100
+  const bandHigh = bandLow + 199
+  const accPct = peerPercentile(analysis.accuracyPct)
+
+  const openingAcc =
+    phaseAccuracyFromPlies(analysis.plies, 'opening', true) ??
+    phaseAccuracy(analysis.phaseAcpl, 'opening')
+  const middleAcc =
+    phaseAccuracyFromPlies(analysis.plies, 'middlegame', true) ??
+    phaseAccuracy(analysis.phaseAcpl, 'middlegame')
+  const openingPct = openingAcc != null ? peerPercentile(openingAcc) : 50
+  const middlePct = middleAcc != null ? peerPercentile(middleAcc) : 50
+  const blunderPct = Math.max(
+    5,
+    Math.min(95, 100 - analysis.blunderCount * 18 - analysis.mistakeCount * 8),
+  )
+
+  const phaseNote = useMemo(() => insightCopy(analysis), [analysis])
+
+  return (
+    <div className="mx-auto max-w-lg space-y-6">
+      <div className="flex gap-3 border border-line bg-surface p-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-line bg-surface-2 font-mono text-xs text-muted">
+          AI
+        </div>
+        <p className="text-sm leading-6 text-ink">{phaseNote}</p>
+      </div>
+
+      <section>
+        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted">
+          Where you stand this game
+        </h3>
+        <p className="mt-1 text-sm text-muted">
+          VS {bandLow}–{bandHigh}
+        </p>
+        <div className="mt-4 space-y-4 border border-line bg-surface p-4">
+          <StandBar label="Accuracy" percentile={accPct} warn={accPct < 40} />
+          <StandBar label="Opening" percentile={openingPct} warn={openingPct < 25} />
+          <StandBar label="Middlegame" percentile={middlePct} warn={middlePct < 25} />
+          <StandBar label="Blunders" percentile={blunderPct} warn={blunderPct < 30} />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted">
+          Accuracy per move
+        </h3>
+        <p className="mt-1 text-sm text-muted">Lower on the chart means more centipawn loss.</p>
+        <div className="mt-3">
+          <AccuracyChart analysis={analysis} />
+        </div>
+      </section>
+
+      <section className="border border-line bg-surface p-4">
+        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Engine stats</h3>
+        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <dt className="text-muted">Your ACPL</dt>
+            <dd className="font-mono text-lg tabular">{analysis.acpl}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Opp ACPL</dt>
+            <dd className="font-mono text-lg tabular">{analysis.opponentAcpl ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Moves</dt>
+            <dd className="font-mono text-lg tabular">{analysis.totalMoves}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Flagged</dt>
+            <dd className="font-mono text-lg tabular">{analysis.flagged.length}</dd>
+          </div>
+          {(Object.keys(analysis.phaseStats) as Phase[]).map((phase) => (
+            <div key={phase}>
+              <dt className="capitalize text-muted">{phase} errors</dt>
+              <dd className="font-mono text-lg tabular">
+                {analysis.phaseStats[phase].blunder +
+                  analysis.phaseStats[phase].mistake +
+                  analysis.phaseStats[phase].inaccuracy}
+                <span className="text-muted">/{analysis.phaseStats[phase].total}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    </div>
+  )
+}

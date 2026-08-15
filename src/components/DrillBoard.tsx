@@ -2,9 +2,10 @@ import { Chess } from 'chess.js'
 import { useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
+import { Button, Panel } from '@/components/ui'
 import { evaluateFen } from '@/lib/analyzeClient'
 import type { Classification } from '@/lib/analysis/types'
-import { legalMovesFrom, legalMoveStyles } from '@/lib/legalMoves'
+import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
 import { useAuth } from '@/lib/auth'
 import { getBrowserClient } from '@/lib/supabase/browser'
@@ -59,10 +60,12 @@ export function DrillBoard({
 
   function onSquareClick(square: string) {
     if (reveal || thinking) return
-    if (selectedSquare && makeMove(selectedSquare, square)) return
-    setSelectedSquare(
-      legalMovesFrom(position.fen_before, square).length > 0 ? square : null,
-    )
+    const next = nextSelectedSquare(position.fen_before, selectedSquare, square)
+    if (next.action === 'select') {
+      setSelectedSquare(next.square)
+      return
+    }
+    makeMove(next.from, next.to)
   }
 
   async function revealAttempt(attemptSan: string, attemptLan: string) {
@@ -136,33 +139,35 @@ export function DrillBoard({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="w-full border border-line bg-surface">
-        <div className="border-b border-line px-3 py-2 font-mono text-sm font-medium">
+    <div className="grid h-[calc(100dvh-5.5rem)] min-h-[24rem] gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
+      <div className="flex min-h-0 min-w-0 flex-col border border-line bg-surface">
+        <div className="shrink-0 border-b border-line px-3 py-1.5 font-mono text-sm font-medium">
           {sideToMove} to move
         </div>
-        <div className="p-3">
-          <Chessboard
-            options={{
-              position: fen,
-              boardOrientation: orientation,
-              allowDragging: !reveal && !thinking,
-              onPieceDrag: ({ square }) => {
-                if (square && !reveal && !thinking) setSelectedSquare(square)
-              },
-              onPieceDrop: ({ sourceSquare, targetSquare }) =>
-                makeMove(sourceSquare, targetSquare),
-              onSquareClick: ({ square }) => onSquareClick(square),
-              squareStyles,
-              darkSquareStyle: { backgroundColor: '#3d4450' },
-              lightSquareStyle: { backgroundColor: '#9aa0a8' },
-              boardStyle: { width: '100%' },
-            }}
-          />
+        <div className="flex min-h-0 flex-1 items-center justify-center p-2">
+          <div className="aspect-square h-auto max-h-full w-full max-w-[min(100%,calc(100dvh-8rem))]">
+            <Chessboard
+              options={{
+                position: fen,
+                boardOrientation: orientation,
+                allowDragging: !reveal && !thinking,
+                onPieceDrag: ({ square }) => {
+                  if (square && !reveal && !thinking) setSelectedSquare(square)
+                },
+                onPieceDrop: ({ sourceSquare, targetSquare }) =>
+                  makeMove(sourceSquare, targetSquare),
+                onSquareClick: ({ square }) => onSquareClick(square),
+                squareStyles,
+                darkSquareStyle: { backgroundColor: '#3d4450' },
+                lightSquareStyle: { backgroundColor: '#9aa0a8' },
+                boardStyle: { width: '100%' },
+              }}
+            />
+          </div>
         </div>
       </div>
-      <aside className="flex flex-col gap-4">
-        <div className="border border-line bg-surface p-4">
+      <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:max-h-full">
+        <Panel className="shrink-0">
           <div className="flex items-center justify-between gap-3 font-mono text-xs uppercase tracking-wider text-muted">
             <span>Session</span>
             <span>
@@ -173,20 +178,25 @@ export function DrillBoard({
             {score.correct}/{score.total}
           </div>
           <div className="mt-4 text-sm text-muted">
-            {position.played_on} · {position.color} vs {position.opponent} · move {position.move_number}
+            {position.played_on} · {position.color} vs {position.opponent} · move{' '}
+            {position.move_number}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <ClassificationBadge value={position.classification as Exclude<Classification, 'fine'>} />
-            <span className="font-mono text-xs text-muted">{PHASE_LABEL[position.phase as keyof typeof PHASE_LABEL]}</span>
+            <span className="font-mono text-xs text-muted">
+              {PHASE_LABEL[position.phase as keyof typeof PHASE_LABEL]}
+            </span>
             {position.motif ? (
               <span className="font-mono text-xs text-muted">
                 {MOTIF_LABEL[position.motif as keyof typeof MOTIF_LABEL]}
               </span>
             ) : null}
           </div>
-        </div>
-        <div className="border border-line bg-surface p-4 text-sm">
-          {!reveal && !thinking ? <p className="text-muted">Play a move. Nothing is shown until you do.</p> : null}
+        </Panel>
+        <Panel className="shrink-0 text-sm">
+          {!reveal && !thinking ? (
+            <p className="text-muted">Play a move. Nothing is shown until you do.</p>
+          ) : null}
           {thinking ? <p className="font-mono text-xs text-muted">Engine…</p> : null}
           {reveal ? (
             <dl className="space-y-2 font-mono text-xs">
@@ -211,24 +221,14 @@ export function DrillBoard({
               </div>
             </dl>
           ) : null}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={retry}
-            disabled={!reveal}
-            className="border border-line px-3 py-2 text-sm hover:bg-surface-2 disabled:opacity-40"
-          >
+        </Panel>
+        <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">
+          <Button variant="ghost" onClick={retry} disabled={!reveal}>
             Try again
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            disabled={!reveal || positions.length < 2}
-            className="border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink disabled:opacity-40"
-          >
+          </Button>
+          <Button onClick={next} disabled={!reveal || positions.length < 2}>
             Next position
-          </button>
+          </Button>
         </div>
       </aside>
     </div>

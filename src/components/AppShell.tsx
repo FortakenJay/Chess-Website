@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { BrandLogo } from '@/components/BrandLogo'
 import { useAuth } from '@/lib/auth'
 import { useBackgroundSync } from '@/lib/backgroundSync'
 import { getBrowserClient } from '@/lib/supabase/browser'
@@ -39,6 +40,22 @@ function AnalysisNav({
       >
         Drill
       </Link>
+      <Link
+        to="/puzzles/$username"
+        params={{ username }}
+        className="hover:text-ink"
+        activeProps={{ className: 'text-ink' }}
+      >
+        Puzzles
+      </Link>
+      <Link
+        to="/review/$username"
+        params={{ username }}
+        className="hover:text-ink"
+        activeProps={{ className: 'text-ink' }}
+      >
+        Review
+      </Link>
       {owner ? (
         <Link
           to="/analyze/$username"
@@ -56,10 +73,13 @@ function AnalysisNav({
 export function AppShell({
   username,
   hideSignup,
+  dense,
   children,
 }: {
   username?: string
   hideSignup?: boolean
+  /** Tighter chrome for board play pages (less scroll). */
+  dense?: boolean
   children: ReactNode
 }) {
   const { ready, user, profile } = useAuth()
@@ -74,7 +94,11 @@ export function AppShell({
     (sync.phase === 'checking' || sync.phase === 'syncing')
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-canvas text-ink">
+    <div
+      className={`flex flex-col bg-canvas text-ink ${
+        dense ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
+      }`}
+    >
       <a
         href="#main"
         className="skip-link"
@@ -87,13 +111,11 @@ export function AppShell({
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-line bg-canvas/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 items-center gap-6">
-            <Link to="/" className="font-mono text-sm tracking-[0.2em] text-ink">
-              LEAK
-            </Link>
-            {user && username ? (
+            <BrandLogo />
+            {username ? (
               <AnalysisNav
                 username={username}
                 owner={owner}
@@ -129,9 +151,10 @@ export function AppShell({
                 type="button"
                 className="border border-line px-3 py-1.5 text-sm text-ink hover:bg-surface-2"
                 onClick={() => {
-                  void getBrowserClient()
-                    .auth.signOut()
-                    .then(() => navigate({ to: '/' }))
+                  void (async () => {
+                    await getBrowserClient().auth.signOut()
+                    await navigate({ to: '/' })
+                  })()
                 }}
               >
                 Sign out
@@ -158,7 +181,7 @@ export function AppShell({
             )}
           </div>
         </div>
-        {user && username ? (
+        {username ? (
           <AnalysisNav
             username={username}
             owner={owner}
@@ -166,18 +189,28 @@ export function AppShell({
           />
         ) : null}
       </header>
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main
+        id="main"
+        tabIndex={-1}
+        className={`mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-4 ${
+          dense ? 'overflow-hidden py-2' : 'py-8'
+        }`}
+      >
         {children}
       </main>
+      {dense ? null : (
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
           <div>
-            <p className="font-mono text-xs tracking-[0.2em]">LEAK</p>
+            <BrandLogo size="sm" />
             <p className="mt-1 text-xs text-muted">Find the pattern. Fix the move.</p>
           </div>
           <nav aria-label="Footer" className="flex items-center gap-4 text-sm text-muted">
             <Link to="/" className="hover:text-ink">
               Home
+            </Link>
+            <Link to="/review" className="hover:text-ink">
+              Free review
             </Link>
             <Link to="/preview" className="hover:text-ink">
               Preview
@@ -194,6 +227,7 @@ export function AppShell({
           </nav>
         </div>
       </footer>
+      )}
     </div>
   )
 }

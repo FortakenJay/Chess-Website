@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { linkChessUsername } from './profile'
 import { getBrowserClient } from './supabase/browser'
 import type { Tables } from './supabase/database.types'
-import { isLikelyUsername, normalizeUsername } from './username'
+import { isLikelyUsername } from './username'
 
 type Profile = Tables<'profiles'>
 
@@ -39,15 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const handle = user.user_metadata?.chess_com_username
     if (typeof handle === 'string' && isLikelyUsername(handle)) {
-      const { data: created } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          chess_com_username: normalizeUsername(handle),
-        })
-        .select('*')
-        .maybeSingle()
-      setProfile(created)
+      try {
+        const created = await linkChessUsername(handle)
+        setProfile(created)
+      } catch {
+        setProfile(null)
+      }
       return
     }
     setProfile(null)

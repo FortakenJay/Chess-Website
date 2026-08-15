@@ -28,6 +28,7 @@ yarn-error.log*
 
 .vercel
 *.tsbuildinfo
+tmp
 
 public/engine/*.js
 public/engine/*.wasm

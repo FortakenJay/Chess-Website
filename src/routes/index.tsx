@@ -41,9 +41,20 @@ function HomePage() {
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
             Chess error analysis
           </p>
-          <h1 className="mt-4 text-4xl font-medium tracking-tight text-pretty sm:text-5xl">
-            Where you lose rating, verified by the engine.
+          <h1 className="mt-4 flex items-center gap-3 text-4xl font-medium tracking-tight text-pretty sm:text-5xl">
+            <img
+              src="/leek-logo.png"
+              alt=""
+              width={56}
+              height={56}
+              className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
+              decoding="async"
+            />
+            <span className="font-mono tracking-[0.12em]">LEAK</span>
           </h1>
+          <p className="mt-4 text-2xl font-medium tracking-tight text-pretty text-ink sm:text-3xl">
+            Where you lose rating, verified by the engine.
+          </p>
           <p className="mt-5 max-w-[65ch] text-base leading-7 text-muted">
             Stockfish tags the mistakes that cost rating. Then you drill those positions.
           </p>
@@ -53,6 +64,9 @@ function HomePage() {
               className="control border border-ink bg-ink px-4 py-2.5 text-sm text-canvas hover:bg-transparent hover:text-ink"
             >
               Sign up
+            </Link>
+            <Link to="/review" className="text-sm text-muted hover:text-ink">
+              Free game review
             </Link>
             <Link to="/preview" className="text-sm text-muted hover:text-ink">
               Preview Hikaru

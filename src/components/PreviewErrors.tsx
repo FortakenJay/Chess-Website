@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 import type { FlaggedPosition } from '@/lib/analysis/types'
-import { legalMovesFrom, legalMoveStyles } from '@/lib/legalMoves'
+import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { PREVIEW_BEST_MOVES } from '@/lib/previewAnswers'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
 
@@ -86,10 +86,12 @@ export function PreviewErrors({ rows }: { rows: PreviewPosition[] }) {
 
   function onSquareClick(square: string) {
     if (!selected || reveal) return
-    if (selectedSquare && makeMove(selectedSquare, square)) return
-    setSelectedSquare(
-      legalMovesFrom(selected.fenBefore, square).length > 0 ? square : null,
-    )
+    const next = nextSelectedSquare(selected.fenBefore, selectedSquare, square)
+    if (next.action === 'select') {
+      setSelectedSquare(next.square)
+      return
+    }
+    makeMove(next.from, next.to)
   }
 
   function retry() {

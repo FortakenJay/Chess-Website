@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { AppShell } from '@/components/AppShell'
 import { PreviewErrors } from '@/components/PreviewErrors'
 import type { PreviewPosition } from '@/components/PreviewErrors'
+import { ErrorText, PageHeader, PreviewListSkeleton } from '@/components/ui'
 import type { FlaggedPosition } from '@/lib/analysis/types'
 import { usePlayerData } from '@/lib/queries'
 
@@ -15,7 +16,7 @@ const PREVIEW_DISPLAY_NAME = 'Hikaru Nakamura'
 
 function PreviewPage() {
   const query = usePlayerData(PREVIEW_USERNAME)
-  const games = query.data?.games ?? []
+  const games = query.data?.games
   const [selectedGameLink, setSelectedGameLink] = useState<string | null>(null)
   const flagged = useMemo<PreviewPosition[]>(
     () =>
@@ -29,16 +30,23 @@ function PreviewPage() {
         san: row.san,
         loss: row.loss,
         classification: row.classification as FlaggedPosition['classification'],
+        quality: (row.quality as FlaggedPosition['quality']) ?? row.classification as FlaggedPosition['quality'],
         phase: row.phase as FlaggedPosition['phase'],
+        endgameType: (row.endgame_type as FlaggedPosition['endgameType']) ?? null,
         clockLeft: row.clock_left,
         fenBefore: row.fen_before,
         gameLink: row.game_link,
         motif: row.motif as FlaggedPosition['motif'],
+        motifKind: (row.motif_kind as FlaggedPosition['motifKind']) ?? null,
+        timeClass: row.time_class,
       })),
     [query.data?.positions],
   )
   const sortedGames = useMemo(
-    () => [...games].sort((a, b) => b.played_on.localeCompare(a.played_on)),
+    () =>
+      [...(games ?? [])].sort((a, b) =>
+        a.played_on < b.played_on ? 1 : a.played_on > b.played_on ? -1 : 0,
+      ),
     [games],
   )
   const selectedGame =
@@ -50,23 +58,15 @@ function PreviewPage() {
 
   return (
     <AppShell hideSignup>
-      <div>
-        <h1 className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Preview</h1>
-        <p className="mt-2 font-mono text-2xl">{PREVIEW_DISPLAY_NAME}</p>
-        <p className="mt-1 font-mono text-xs text-muted">
-          Choose a game, then play through its engine-verified mistakes. No account required.
-        </p>
-      </div>
+      <PageHeader
+        title="Preview"
+        username={PREVIEW_DISPLAY_NAME}
+        description="Choose a game, then play through its engine-verified mistakes. No account required."
+      />
 
-      {query.isLoading ? (
-        <p className="mt-8 font-mono text-xs text-muted">Loading saved preview…</p>
-      ) : null}
+      {query.isLoading ? <PreviewListSkeleton /> : null}
 
-      {query.isError ? (
-        <p className="mt-8 text-sm text-blunder" role="alert">
-          Could not load the saved preview.
-        </p>
-      ) : null}
+      {query.isError ? <ErrorText>Could not load the saved preview.</ErrorText> : null}
 
       {sortedGames.length > 0 && !selectedGame ? (
         <section className="mt-8" aria-labelledby="preview-games-heading">

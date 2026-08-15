@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { lookupPlayer } from '@/lib/chesscom.functions'
 import { useAuth } from '@/lib/auth'
-import { getBrowserClient } from '@/lib/supabase/browser'
+import { linkChessUsername } from '@/lib/profile'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
 
 export function UsernamePrompt() {
@@ -24,11 +24,7 @@ export function UsernamePrompt() {
     try {
       const player = await lookupPlayer({ data: { username } })
       const handle = normalizeUsername(player.username)
-      const { error: writeError } = await getBrowserClient().from('profiles').upsert({
-        user_id: user.id,
-        chess_com_username: handle,
-      })
-      if (writeError) throw writeError
+      await linkChessUsername(handle)
       await refreshProfile()
       await navigate({ to: '/analyze/$username', params: { username: handle } })
     } catch (err) {
@@ -53,7 +49,6 @@ export function UsernamePrompt() {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         className="border border-line bg-canvas px-3 py-2 font-mono text-sm"
-        placeholder="hikaru…"
         autoCapitalize="off"
         autoCorrect="off"
         autoComplete="off"

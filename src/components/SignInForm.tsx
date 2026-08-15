@@ -13,12 +13,15 @@ export function SignInForm() {
     event.preventDefault()
     setPending(true)
     setError(null)
-    const { error: authError } = await getBrowserClient().auth.signInWithPassword({
-      email,
-      password,
-    })
-    setPending(false)
-    if (authError) setError(authError.message)
+    try {
+      const { error: authError } = await getBrowserClient().auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (authError) setError(authError.message)
+    } finally {
+      setPending(false)
+    }
   }
 
   return (

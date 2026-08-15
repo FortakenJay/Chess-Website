@@ -41,6 +41,19 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.skeleton-bone {
+  animation: skeleton-pulse 1.4s var(--ease-out) infinite alternate;
+}
+
+@keyframes skeleton-pulse {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -112,6 +125,12 @@ button:active:not(:disabled) {
   transform: scale(0.97);
 }
 
+/* Dense / list controls: press scale feels glitchy on small hit targets. */
+button.quiet:active:not(:disabled),
+button.no-press:active:not(:disabled) {
+  transform: none;
+}
+
 a.control:active {
   transform: scale(0.97);
 }
@@ -126,8 +145,14 @@ a.control:active {
   }
 
   button:active:not(:disabled),
+  button.quiet:active:not(:disabled),
+  button.no-press:active:not(:disabled),
   a.control:active {
     transform: none;
+  }
+
+  .skeleton-bone {
+    animation: none;
   }
 }
 

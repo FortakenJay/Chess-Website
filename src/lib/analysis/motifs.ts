@@ -1,4 +1,5 @@
 import { Chess, SQUARES, type Color, type Square } from 'chess.js'
+import { INACCURACY_CP } from './classify'
 import type { Motif } from './types'
 
 const VALUE: Record<string, number> = {
@@ -91,12 +92,17 @@ function findPins(chess: Chess, victim: Color): Pin[] {
       if (VALUE[behind.type] < 5 && behind.type !== 'k') continue
       const between = rayBetween(sq, target)
       if (between.length === 0) continue
-      const occupants = between
-        .map((s) => ({ s, p: chess.get(s) }))
-        .filter((x) => x.p)
-      if (occupants.length !== 1) continue
-      const mid = occupants[0]!
-      if (!mid.p || mid.p.color !== victim) continue
+      let mid: { s: Square; p: NonNullable<ReturnType<Chess['get']>> } | null = null
+      let occupantCount = 0
+      for (const s of between) {
+        const p = chess.get(s)
+        if (!p) continue
+        occupantCount += 1
+        if (occupantCount > 1) break
+        mid = { s, p }
+      }
+      if (occupantCount !== 1 || !mid) continue
+      if (mid.p.color !== victim) continue
       if (VALUE[behind.type] <= VALUE[mid.p.type]) continue
       pins.push({ pinned: mid.s, behind: target, attacker: sq })
     }
@@ -218,34 +224,14 @@ function isBackRank(beforePunish: Chess, afterPunish: Chess, victim: Color): boo
   return true
 }
 
-export function detectMotif(args: {
-  fenBefore: string
-  userFrom: Square
-  userTo: Square
-  userSan: string
+function commissionMotifFromPunish(args: {
+  fenAfterUser: string
   punishUci: string
-  mateForUser: boolean
+  userFrom: Square
 }): Motif | null {
-  if (args.mateForUser) return 'missed_mate'
-
-  const before = new Chess(args.fenBefore)
-  const userColor = before.turn()
-  const attacker = opp(userColor)
-
-  try {
-    before.move({
-      from: args.userFrom,
-      to: args.userTo,
-      promotion: 'q',
-    })
-  } catch {
-    try {
-      before.move(args.userSan)
-    } catch {
-      return null
-    }
-  }
-
+  const before = new Chess(args.fenAfterUser)
+  const userColor = opp(before.turn())
+  const attacker = before.turn()
   const punish = parseUci(args.punishUci)
   if (!punish) return null
 
@@ -270,4 +256,89 @@ export function detectMotif(args: {
   if (discovered) return 'discovered_attack'
   if (backRank) return 'back_rank'
   return null
+}
+
+/** Motif of a tactic the user could have played (best move). */
+function tacticMotifForMove(fenBefore: string, uci: string): Motif | null {
+  const parsed = parseUci(uci)
+  if (!parsed) return null
+  const before = new Chess(fenBefore)
+  const attacker = before.turn()
+  const after = new Chess(fenBefore)
+  if (!tryMove(after, uci)) return null
+
+  if (after.isCheckmate()) return 'missed_mate'
+
+  const victim = opp(attacker)
+  const hanging = (() => {
+    const captured = before.get(parsed.to)
+    if (!captured || captured.color === attacker) return false
+    const attackers = after.attackers(parsed.to, attacker)
+    // After capture, piece sits on `to` — treat as hanging win if under-defended before.
+    const defenders = before.attackers(parsed.to, captured.color)
+    return before.attackers(parsed.to, attacker).length > defenders.length || attackers.length > 0
+  })()
+
+  if (isFork(after, parsed.to, attacker)) return 'fork'
+  if (isSkewer(after, parsed.from, parsed.to, attacker)) return 'skewer'
+  if (isDiscoveredAttack(before, parsed.from, parsed.to, attacker)) return 'discovered_attack'
+  if (isBackRank(before, after, victim)) return 'back_rank'
+
+  const pins = findPins(after, victim)
+  if (pins.some((p) => p.attacker === parsed.to || p.pinned === parsed.to)) return 'pin'
+  if (hanging) return 'hanging_piece'
+  return null
+}
+
+const TO_MISSED: Partial<Record<Motif, Motif>> = {
+  fork: 'missed_fork',
+  pin: 'missed_pin',
+  skewer: 'missed_skewer',
+  discovered_attack: 'missed_discovered_attack',
+  hanging_piece: 'missed_hanging_piece',
+  back_rank: 'missed_back_rank',
+  missed_mate: 'missed_mate',
+}
+
+export function detectMotif(args: {
+  fenBefore: string
+  userFrom: Square
+  userTo: Square
+  userSan: string
+  punishUci: string
+  mateForUser: boolean
+  bestUci: string
+  loss: number
+  deliveredMate?: boolean
+}): Motif | null {
+  // Delivering mate (or matching the engine mate) is never an omission.
+  if (args.deliveredMate) return null
+
+  // Omission: a decisive shot was on the board and wasn't taken.
+  if (args.mateForUser) return 'missed_mate'
+  if (args.loss >= INACCURACY_CP) {
+    const shot = tacticMotifForMove(args.fenBefore, args.bestUci)
+    if (shot) return TO_MISSED[shot] ?? (shot === 'missed_mate' ? 'missed_mate' : null)
+  }
+
+  const before = new Chess(args.fenBefore)
+  try {
+    before.move({
+      from: args.userFrom,
+      to: args.userTo,
+      promotion: 'q',
+    })
+  } catch {
+    try {
+      before.move(args.userSan)
+    } catch {
+      return null
+    }
+  }
+
+  return commissionMotifFromPunish({
+    fenAfterUser: before.fen(),
+    punishUci: args.punishUci,
+    userFrom: args.userFrom,
+  })
 }

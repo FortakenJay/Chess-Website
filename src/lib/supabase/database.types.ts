@@ -52,96 +52,150 @@ export type Database = {
           classification: string
           clock_left: number | null
           color: string
+          endgame_type: string | null
           fen_before: string
           game_link: string
           id: string
           loss: number
           motif: string | null
+          motif_kind: string | null
           move_number: number
           opponent: string
           phase: string
           played_on: string
+          quality: string | null
           san: string
+          time_class: string | null
           username: string
         }
         Insert: {
           classification: string
           clock_left?: number | null
           color: string
+          endgame_type?: string | null
           fen_before: string
           game_link: string
           id?: string
           loss: number
           motif?: string | null
+          motif_kind?: string | null
           move_number: number
           opponent: string
           phase: string
           played_on: string
+          quality?: string | null
           san: string
+          time_class?: string | null
           username: string
         }
         Update: {
           classification?: string
           clock_left?: number | null
           color?: string
+          endgame_type?: string | null
           fen_before?: string
           game_link?: string
           id?: string
           loss?: number
           motif?: string | null
+          motif_kind?: string | null
           move_number?: number
           opponent?: string
           phase?: string
           played_on?: string
+          quality?: string | null
           san?: string
+          time_class?: string | null
           username?: string
         }
         Relationships: []
       }
       games: {
         Row: {
+          accuracy_pct: number
+          acpl: number
+          analysis_budget: Json | null
           blunder_count: number
           clock_stats: Json
           color: string
+          endgame_conversion: Json
+          endgame_stats: Json
           game_link: string
           id: string
           inaccuracy_count: number
           mistake_count: number
+          move_ep_losses: Json
+          opening_eco: string | null
+          opening_name: string | null
           opponent: string
+          opponent_rating: number | null
+          phase_acpl: Json
           phase_stats: Json
           played_on: string
+          quality_stats: Json
+          recovery_stats: Json
           result: string
+          time_class: string | null
           total_moves: number
+          user_rating: number | null
           username: string
         }
         Insert: {
+          accuracy_pct?: number
+          acpl?: number
+          analysis_budget?: Json | null
           blunder_count?: number
           clock_stats?: Json
           color: string
+          endgame_conversion?: Json
+          endgame_stats?: Json
           game_link: string
           id?: string
           inaccuracy_count?: number
           mistake_count?: number
+          move_ep_losses?: Json
+          opening_eco?: string | null
+          opening_name?: string | null
           opponent: string
+          opponent_rating?: number | null
+          phase_acpl?: Json
           phase_stats?: Json
           played_on: string
+          quality_stats?: Json
+          recovery_stats?: Json
           result: string
+          time_class?: string | null
           total_moves?: number
+          user_rating?: number | null
           username: string
         }
         Update: {
+          accuracy_pct?: number
+          acpl?: number
+          analysis_budget?: Json | null
           blunder_count?: number
           clock_stats?: Json
           color?: string
+          endgame_conversion?: Json
+          endgame_stats?: Json
           game_link?: string
           id?: string
           inaccuracy_count?: number
           mistake_count?: number
+          move_ep_losses?: Json
+          opening_eco?: string | null
+          opening_name?: string | null
           opponent?: string
+          opponent_rating?: number | null
+          phase_acpl?: Json
           phase_stats?: Json
           played_on?: string
+          quality_stats?: Json
+          recovery_stats?: Json
           result?: string
+          time_class?: string | null
           total_moves?: number
+          user_rating?: number | null
           username?: string
         }
         Relationships: []
@@ -200,6 +254,48 @@ export type Database = {
         }
         Relationships: []
       }
+      puzzles: {
+        Row: {
+          color: string
+          created_at: string
+          fen: string
+          id: string
+          motif: string | null
+          phase: string
+          rating: number | null
+          solution: Json
+          source: string
+          themes: string[]
+          url: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          fen: string
+          id: string
+          motif?: string | null
+          phase: string
+          rating?: number | null
+          solution?: Json
+          source: string
+          themes?: string[]
+          url: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          fen?: string
+          id?: string
+          motif?: string | null
+          phase?: string
+          rating?: number | null
+          solution?: Json
+          source?: string
+          themes?: string[]
+          url?: string
+        }
+        Relationships: []
+      }
       sync_state: {
         Row: {
           last_game_end_time: number | null
@@ -224,6 +320,14 @@ export type Database = {
     }
     Functions: {
       linked_username: { Args: never; Returns: string }
+      link_chess_username: {
+        Args: { p_username: string }
+        Returns: Database['public']['Tables']['profiles']['Row']
+      }
+      purge_expired_games: {
+        Args: { retention_years?: number }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

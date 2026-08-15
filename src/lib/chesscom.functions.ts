@@ -1,5 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
-import { fetchArchives, fetchMonthGames, fetchPlayer, fetchRecentGames } from './chesscom'
+import {
+  fetchArchives,
+  fetchGameByUrl,
+  fetchMonthGames,
+  fetchPlayer,
+  fetchPlayerRatings,
+  fetchRecentGames,
+} from './chesscom'
 import { isLikelyUsername, normalizeUsername } from './username'
 
 export const lookupPlayer = createServerFn({ method: 'GET' })
@@ -11,6 +18,12 @@ export const lookupPlayer = createServerFn({ method: 'GET' })
     const player = await fetchPlayer(data.username)
     return { username: normalizeUsername(player.username) }
   })
+
+export const getPlayerRatings = createServerFn({ method: 'GET' })
+  .validator((data: { username: string }) => ({
+    username: normalizeUsername(data.username),
+  }))
+  .handler(async ({ data }) => fetchPlayerRatings(data.username))
 
 export const listArchives = createServerFn({ method: 'GET' })
   .validator((data: { username: string }) => ({
@@ -27,6 +40,13 @@ export const listMonthGames = createServerFn({ method: 'GET' })
 export const listRecentGames = createServerFn({ method: 'GET' })
   .validator((data: { username: string; limit?: number }) => ({
     username: normalizeUsername(data.username),
-    limit: Math.min(Math.max(data.limit ?? 5, 1), 10),
+    limit: Math.min(Math.max(data.limit ?? 20, 1), 50),
   }))
   .handler(async ({ data }) => fetchRecentGames(data.username, data.limit))
+
+export const findGameByUrl = createServerFn({ method: 'GET' })
+  .validator((data: { username: string; url: string }) => ({
+    username: normalizeUsername(data.username),
+    url: data.url.trim(),
+  }))
+  .handler(async ({ data }) => fetchGameByUrl(data.username, data.url))

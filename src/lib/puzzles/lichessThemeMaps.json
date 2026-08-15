@@ -1,0 +1,40 @@
+{
+  "angles": [
+    "opening",
+    "middlegame",
+    "endgame",
+    "fork",
+    "pin",
+    "skewer",
+    "hangingPiece",
+    "discoveredAttack",
+    "backRankMate",
+    "mate"
+  ],
+  "importThemes": [
+    "hangingPiece",
+    "fork",
+    "pin",
+    "skewer",
+    "discoveredAttack",
+    "backRankMate",
+    "mate",
+    "opening",
+    "middlegame",
+    "endgame"
+  ],
+  "toMotif": {
+    "hangingPiece": "hanging_piece",
+    "fork": "fork",
+    "pin": "pin",
+    "skewer": "skewer",
+    "discoveredAttack": "discovered_attack",
+    "backRankMate": "back_rank",
+    "mate": "missed_mate",
+    "mateIn1": "missed_mate",
+    "mateIn2": "missed_mate",
+    "mateIn3": "missed_mate",
+    "mateIn4": "missed_mate",
+    "mateIn5": "missed_mate"
+  }
+}

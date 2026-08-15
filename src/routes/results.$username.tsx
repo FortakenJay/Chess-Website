@@ -1,32 +1,35 @@
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { AppShell } from '@/components/AppShell'
 import {
-  ClockChart,
-  ColorChart,
-  DrillTrendChart,
-  MotifChart,
-  MoveHistogram,
-  PhaseChart,
-  TrendChart,
-  WinRateChart,
-} from '@/components/charts'
+  ButtonLink,
+  EmptyState,
+  PageHeader,
+  ResultsSkeleton,
+  SegmentedControl,
+} from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { usePlayerData } from '@/lib/queries'
-import {
-  drillWeekly,
-  gameTrend,
-  headlineFrom,
-  inTimeframe,
-  sumClockStats,
-  sumColorStats,
-  sumPhaseStats,
-  TIMEFRAME_LABEL,
-  winRateByBlunders,
-  PHASE_LABEL,
-  type Timeframe,
-} from '@/lib/stats'
+import { useResultsModel } from '@/lib/resultsModel'
+import { TIMEFRAME_LABEL, type Timeframe } from '@/lib/stats'
 import { normalizeUsername } from '@/lib/username'
+
+const ResultsCharts = lazy(() =>
+  import('@/components/ResultsCharts').then((mod) => ({ default: mod.ResultsCharts })),
+)
+
+/** ISO timestamps from Supabase are already UTC; avoid Intl during render. */
+function formatUtcStamp(iso: string) {
+  const normalized = iso.endsWith('Z') ? iso : `${iso}Z`
+  const date = new Date(normalized)
+  if (Number.isNaN(date.getTime())) return iso
+  const y = date.getUTCFullYear()
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(date.getUTCDate()).padStart(2, '0')
+  const hh = String(date.getUTCHours()).padStart(2, '0')
+  const mm = String(date.getUTCMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${hh}:${mm}`
+}
 
 export const Route = createFileRoute('/results/$username')({
   component: ResultsPage,
@@ -43,20 +46,9 @@ function ResultsPage() {
   const games = query.data?.games ?? []
   const positions = query.data?.positions ?? []
   const attempts = query.data?.attempts ?? []
-  const filteredGames = useMemo(
-    () => games.filter((game) => inTimeframe(game.played_on, timeframe)),
-    [games, timeframe],
-  )
-  const filteredPositions = useMemo(
-    () => positions.filter((position) => inTimeframe(position.played_on, timeframe)),
-    [positions, timeframe],
-  )
-  const filteredAttempts = useMemo(
-    () => attempts.filter((attempt) => inTimeframe(attempt.attempted_at, timeframe)),
-    [attempts, timeframe],
-  )
-  const byPhase = sumPhaseStats(filteredGames)
-  const headline = headlineFrom(byPhase, filteredPositions)
+  const model = useResultsModel(games, positions, attempts, timeframe)
+  const lastSyncedAt = query.data?.sync?.last_synced_at ?? null
+  const lastSyncLabel = lastSyncedAt ? formatUtcStamp(lastSyncedAt) : null
 
   if (
     owner &&
@@ -71,119 +63,59 @@ function ResultsPage() {
 
   return (
     <AppShell username={name}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Results</h1>
-          <p className="mt-2 font-mono text-2xl">{name}</p>
-          {query.data?.sync?.last_synced_at ? (
-            <p className="mt-1 font-mono text-xs text-muted">
-              last sync {new Date(query.data.sync.last_synced_at).toISOString().replace('T', ' ').slice(0, 16)} UTC
-            </p>
-          ) : null}
-        </div>
-        {owner ? (
-          <Link
-            to="/analyze/$username"
-            params={{ username: name }}
-            className="border border-ink px-3 py-2 text-sm hover:bg-surface-2 hover:text-ink"
-          >
-            Sync now
-          </Link>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Results"
+        username={name}
+        meta={
+          lastSyncLabel ? (
+            <p className="font-mono text-xs text-muted">Last sync {lastSyncLabel} UTC</p>
+          ) : null
+        }
+        actions={
+          owner ? (
+            <ButtonLink to="/analyze/$username" params={{ username: name }} variant="secondary">
+              Sync now
+            </ButtonLink>
+          ) : null
+        }
+      />
 
-      {query.isLoading ? (
-        <p className="mt-8 font-mono text-xs text-muted">Loading stored analysis…</p>
-      ) : null}
+      {query.isLoading ? <ResultsSkeleton /> : null}
 
       {!query.isLoading && games.length === 0 ? (
-        <div className="mt-10 max-w-lg border border-line bg-surface p-5 text-sm text-muted">
+        <EmptyState className="mt-10 max-w-lg">
           No stored analysis for this username.
           {owner ? (
-            <p className="mt-3">
+            <p className="mt-3 text-pretty">
               <Link to="/analyze/$username" params={{ username: name }} className="text-ink underline">
                 Run the first backfill
               </Link>{' '}
               — Stockfish runs in this browser.
             </p>
           ) : (
-            <p className="mt-3">
-              Sign in and link this Chess.com username to analyze it. Preview only shows data that already exists.
+            <p className="mt-3 text-pretty">
+              Sign in and link this Chess.com username to analyze it. Preview only shows data that
+              already exists.
             </p>
           )}
-        </div>
+        </EmptyState>
       ) : null}
 
       {games.length > 0 ? (
         <>
-          <div
-            className="mt-10 flex flex-wrap gap-1 border-b border-line pb-3"
-            role="group"
-            aria-label="Results timeframe"
-          >
-            {(Object.keys(TIMEFRAME_LABEL) as Timeframe[]).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={timeframe === value}
-                onClick={() => setTimeframe(value)}
-                className={`px-3 py-1.5 font-mono text-xs ${
-                  timeframe === value
-                    ? 'bg-ink text-canvas'
-                    : 'text-muted hover:bg-surface-2 hover:text-ink'
-                }`}
-              >
-                {TIMEFRAME_LABEL[value]}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Results timeframe"
+            value={timeframe}
+            onChange={setTimeframe}
+            options={(Object.keys(TIMEFRAME_LABEL) as Timeframe[]).map((value) => ({
+              value,
+              label: TIMEFRAME_LABEL[value],
+            }))}
+          />
 
-          {filteredGames.length > 0 ? (
-            <>
-              <section className="mt-6 border border-line bg-surface p-5">
-                {headline ? (
-                  <>
-                    <p className="text-xs uppercase tracking-wider text-muted">
-                      Primary leak · {TIMEFRAME_LABEL[timeframe]}
-                    </p>
-                    <p className="mt-2 text-2xl">
-                      {PHASE_LABEL[headline.phase]} ·{' '}
-                      <span className="font-mono tabular">{headline.errorPct}%</span> of moves are
-                      blunders or mistakes
-                    </p>
-                    {headline.topMotif ? (
-                      <p className="mt-2 text-sm text-muted">
-                        Among tagged blunders, {headline.topMotif.replace('_', ' ')} is{' '}
-                        <span className="font-mono text-ink">{headline.motifShare}%</span>
-                      </p>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted">Not enough moves yet for a phase leak.</p>
-                )}
-                <p className="mt-4 font-mono text-xs text-muted">
-                  {filteredGames.length} games · {filteredPositions.length} flagged positions
-                </p>
-              </section>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <PhaseChart stats={byPhase} />
-                <MotifChart positions={filteredPositions} />
-                <ColorChart stats={sumColorStats(filteredGames)} />
-                <ClockChart stats={sumClockStats(filteredGames)} />
-                <TrendChart points={gameTrend(filteredGames, timeframe)} />
-                <MoveHistogram positions={filteredPositions} />
-                <WinRateChart buckets={winRateByBlunders(filteredGames)} />
-                <DrillTrendChart weeks={drillWeekly(filteredAttempts)} />
-              </div>
-            </>
-          ) : (
-            <div className="mt-6 border border-line bg-surface p-5">
-              <p className="text-sm text-muted">
-                No analyzed games for {TIMEFRAME_LABEL[timeframe].toLowerCase()}.
-              </p>
-            </div>
-          )}
+          <Suspense fallback={<ResultsSkeleton className="mt-6" />}>
+            <ResultsCharts model={model} timeframe={timeframe} />
+          </Suspense>
         </>
       ) : null}
     </AppShell>
