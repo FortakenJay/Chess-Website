@@ -130,12 +130,12 @@ export function ReviewGamesList({
             Pick games to analyze. Engine runs in your browser — nothing is saved.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
             onClick={() => onFilterChange('all')}
             className={cn(
-              'px-3 py-1.5 font-mono text-xs uppercase tracking-wider',
+              'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs uppercase tracking-wider',
               filter === 'all' ? chipActive : chipIdle,
             )}
           >
@@ -145,7 +145,7 @@ export function ReviewGamesList({
             type="button"
             onClick={() => onFilterChange('underperforming')}
             className={cn(
-              'px-3 py-1.5 font-mono text-xs uppercase tracking-wider',
+              'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs uppercase tracking-wider',
               filter === 'underperforming' ? chipActive : chipIdle,
             )}
           >
@@ -211,71 +211,92 @@ export function ReviewGamesList({
                   onClick={() => onSelect(row.meta.gameLink)}
                   className={cn(
                     rowButton,
-                    'grid gap-3 px-4 py-4 sm:items-center sm:gap-3',
+                    'px-4 py-3.5 sm:grid sm:items-center sm:gap-3 sm:py-4',
                     selectable
                       ? 'sm:grid-cols-[64px_48px_72px_minmax(0,1.4fr)_minmax(120px,1fr)_72px_24px]'
                       : 'sm:grid-cols-[64px_48px_72px_minmax(0,1.4fr)_minmax(120px,1fr)_72px_24px]',
                   )}
                 >
-                  <span className={cn('font-mono text-sm font-medium', resultClass(row.meta.result))}>
-                    {resultLabel(row.meta.result)}
-                  </span>
-                  <span className="flex items-center">
-                    {grade ? (
-                      <GradeBadge grade={grade} />
-                    ) : row.analyzing ? (
-                      <span className="font-mono text-[10px] text-muted">…</span>
-                    ) : (
-                      <span className="font-mono text-[10px] text-muted">—</span>
-                    )}
-                  </span>
-                  <span className="font-mono text-sm tabular">
-                    <span className="block text-base">{row.meta.userRating ?? '—'}</span>
-                    {row.analysis ? (
-                      <span className="text-[11px] text-muted">
-                        {Math.round(row.analysis.accuracyPct)}%
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="text-muted">vs</span>
-                      <span
-                        className={cn(
-                          'inline-block h-2.5 w-2.5 rounded-full border border-line',
-                          row.meta.color === 'white' ? 'bg-ink' : 'bg-canvas',
-                        )}
-                        title={row.meta.color === 'white' ? 'You played White' : 'You played Black'}
-                      />
-                      <span className="truncate font-medium" translate="no">
-                        {row.meta.opponent}
-                      </span>
-                      {row.meta.opponentRating != null ? (
-                        <span className="font-mono text-xs text-muted">{row.meta.opponentRating}</span>
-                      ) : null}
-                      {row.meta.timeClass ? (
-                        <span className="font-mono text-[10px] uppercase text-muted">
-                          {row.meta.timeClass}
+                  <div className="flex items-start gap-3 sm:contents">
+                    <span className={cn('font-mono text-sm font-medium', resultClass(row.meta.result))}>
+                      {resultLabel(row.meta.result)}
+                    </span>
+                    <span className="flex items-center">
+                      {grade ? (
+                        <GradeBadge grade={grade} />
+                      ) : row.analyzing ? (
+                        <span className="font-mono text-[10px] text-muted">…</span>
+                      ) : (
+                        <span className="font-mono text-[10px] text-muted">—</span>
+                      )}
+                    </span>
+                    <span className="hidden font-mono text-sm tabular sm:block">
+                      <span className="block text-base">{row.meta.userRating ?? '—'}</span>
+                      {row.analysis ? (
+                        <span className="text-[11px] text-muted">
+                          {Math.round(row.analysis.accuracyPct)}%
                         </span>
                       ) : null}
                     </span>
-                    <span className="mt-1 block truncate text-xs text-muted">{opening}</span>
-                  </span>
-                  <span className="min-w-0">
-                    {row.analysis ? (
-                      <MoveQualityBar stats={row.analysis.qualityStats} />
-                    ) : (
-                      <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
-                        {row.analyzing ? 'Analyzing…' : 'Not analyzed yet'}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="text-muted">vs</span>
+                        <span
+                          className={cn(
+                            'inline-block h-2.5 w-2.5 rounded-full border border-line',
+                            row.meta.color === 'white' ? 'bg-ink' : 'bg-canvas',
+                          )}
+                          title={row.meta.color === 'white' ? 'You played White' : 'You played Black'}
+                        />
+                        <span className="truncate font-medium" translate="no">
+                          {row.meta.opponent}
+                        </span>
+                        {row.meta.opponentRating != null ? (
+                          <span className="font-mono text-xs text-muted">{row.meta.opponentRating}</span>
+                        ) : null}
+                        {row.meta.timeClass ? (
+                          <span className="font-mono text-[10px] uppercase text-muted">
+                            {row.meta.timeClass}
+                          </span>
+                        ) : null}
                       </span>
-                    )}
-                  </span>
-                  <span className="font-mono text-xs text-muted">
-                    {relativePlayedLabel(row.meta.endTime)}
-                  </span>
-                  <span className="text-muted" aria-hidden>
-                    ›
-                  </span>
+                      <span className="mt-1 block truncate text-xs text-muted">{opening}</span>
+                    </span>
+                    <span className="hidden min-w-0 sm:block">
+                      {row.analysis ? (
+                        <MoveQualityBar stats={row.analysis.qualityStats} />
+                      ) : (
+                        <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
+                          {row.analyzing ? 'Analyzing…' : 'Not analyzed yet'}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 font-mono text-xs text-muted">
+                      {relativePlayedLabel(row.meta.endTime)}
+                    </span>
+                    <span className="text-muted" aria-hidden>
+                      ›
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-3 sm:hidden">
+                    <span className="font-mono text-sm tabular">
+                      <span>{row.meta.userRating ?? '—'}</span>
+                      {row.analysis ? (
+                        <span className="ml-1 text-[11px] text-muted">
+                          {Math.round(row.analysis.accuracyPct)}%
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      {row.analysis ? (
+                        <MoveQualityBar stats={row.analysis.qualityStats} />
+                      ) : (
+                        <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
+                          {row.analyzing ? 'Analyzing…' : 'Not analyzed yet'}
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </button>
               </li>
             )

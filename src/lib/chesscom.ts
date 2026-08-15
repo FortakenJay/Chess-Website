@@ -58,9 +58,19 @@ async function chessComGet<T>(url: string): Promise<T> {
   throw lastError ?? new Error(`Chess.com request failed for ${url}`)
 }
 
+export type ChessComPlayer = {
+  username: string
+  url: string
+  avatar?: string
+}
+
+export function chessComUserAgent() {
+  return userAgent()
+}
+
 export async function fetchPlayer(username: string) {
   const name = normalizeUsername(username)
-  return chessComGet<{ username: string; url: string }>(
+  return chessComGet<ChessComPlayer>(
     `https://api.chess.com/pub/player/${encodeURIComponent(name)}`,
   )
 }

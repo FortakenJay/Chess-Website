@@ -166,7 +166,7 @@ export function PositionsTable({
           }
           options={['', ...ALL_MOTIFS]}
           labels={{ '': 'all', ...MOTIF_LABEL }}
-          className="min-w-44"
+          className="min-w-0 sm:min-w-44"
           size="md"
         />
         <SelectField
@@ -202,7 +202,7 @@ export function PositionsTable({
             inaccuracy: 'inaccuracy',
             missed_mate: 'Missed mate',
           }}
-          className="min-w-36"
+          className="min-w-0 sm:min-w-36"
           size="md"
         />
         <SelectField
@@ -213,7 +213,7 @@ export function PositionsTable({
           }
           options={SORT_OPTIONS.map((opt) => opt.value)}
           labels={Object.fromEntries(SORT_OPTIONS.map((opt) => [opt.value, opt.label]))}
-          className="min-w-36"
+          className="min-w-0 sm:min-w-36"
           size="md"
         />
         <ButtonLink
@@ -235,7 +235,7 @@ export function PositionsTable({
             timeClass: filters.timeClass || undefined,
             order: drillOrder,
           }}
-          className="ml-auto"
+          className="col-span-2 w-full sm:ml-auto sm:w-auto"
         >
           Drill these ({rows.length})
         </ButtonLink>
@@ -279,7 +279,7 @@ export function PositionsTable({
                 value={pageInput}
                 onChange={(e) => setPageInput(e.target.value)}
                 onBlur={() => goToPage(pageInput)}
-                className="w-16 border border-line bg-canvas px-2 py-1.5 text-ink outline-none"
+                className="min-h-11 w-16 border border-line bg-canvas px-2 text-ink outline-none"
                 aria-label="Go to page"
               />
             </label>
@@ -289,7 +289,51 @@ export function PositionsTable({
           </form>
         </nav>
       </div>
-      <div className="overflow-x-auto border border-line">
+      <ul className="divide-y divide-line border border-line sm:hidden">
+        {pageRows.length === 0 ? (
+          <li className="bg-surface px-3 py-8 text-sm text-muted">No positions match these filters.</li>
+        ) : null}
+        {pageRows.map((row) => (
+          <li key={row.id} className="bg-surface px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm">
+                  <span className="font-mono text-xs uppercase text-muted">{row.color[0]}</span>{' '}
+                  vs <span translate="no">{row.opponent}</span>
+                </p>
+                <p className="mt-1 font-mono text-xs text-muted">
+                  {row.played_on} · mv {row.move_number} · {row.san}
+                </p>
+              </div>
+              <span className="shrink-0 font-mono text-xs tabular">{row.loss}</span>
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              {PHASE_LABEL[row.phase as Phase]}
+              {row.motif ? ` · ${MOTIF_LABEL[row.motif as Motif]}` : ''}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <ClassificationBadge value={row.classification as Exclude<Classification, 'fine'>} />
+              <a
+                href={row.game_link}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center text-sm text-muted hover:text-ink"
+              >
+                Game
+              </a>
+              <Link
+                to="/drill/$username"
+                params={{ username }}
+                search={{ position: row.id }}
+                className="inline-flex min-h-11 items-center text-sm hover:text-ink"
+              >
+                Drill this
+              </Link>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto border border-line sm:block">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-surface-2 font-mono text-[11px] uppercase tracking-wider text-muted">
             <tr>

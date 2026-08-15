@@ -9,6 +9,8 @@ import {
   QUALITY_LABEL,
 } from '@/lib/analysis/formatEval'
 import { evaluateLines } from '@/lib/analyzeClient'
+import { FittedBoardFrame } from '@/components/FittedBoardFrame'
+import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ReviewInsights } from '@/components/review/ReviewInsights'
 import { ReviewReport } from '@/components/review/ReviewReport'
 import {
@@ -21,6 +23,7 @@ import {
   moveIdle,
 } from '@/components/review/reviewUi'
 import { cn } from '@/lib/cn'
+import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 
 type ReviewTab = 'report' | 'analysis' | 'insights'
 
@@ -113,6 +116,8 @@ function EvalGraph({
 function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   const plies = analysis.plies ?? []
   const evalCurve = analysis.evalCurve ?? [0]
+  const youAvatar = usePlayerAvatar(analysis.username)
+  const oppAvatar = usePlayerAvatar(analysis.opponent)
   const [cursor, setCursor] = useState(0)
   const [showBest, setShowBest] = useState(false)
   const [activeLine, setActiveLine] = useState(0)
@@ -244,17 +249,23 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
     <div className="grid h-full min-h-0 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] lg:overflow-hidden">
       <section className="flex min-h-[min(70vw,28rem)] flex-col border border-line bg-surface lg:min-h-0">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2 text-sm">
-          <div className="min-w-0">
-            <p className="truncate font-medium" translate="no">
-              {analysis.opponent}
-            </p>
-            <p className="font-mono text-xs text-muted">{analysis.opponentRating ?? '—'}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <PlayerAvatar username={analysis.opponent} src={oppAvatar} size={28} />
+            <div className="min-w-0">
+              <p className="truncate font-medium" translate="no">
+                {analysis.opponent}
+              </p>
+              <p className="font-mono text-xs text-muted">{analysis.opponentRating ?? '—'}</p>
+            </div>
           </div>
-          <div className="min-w-0 text-right">
-            <p className="truncate font-medium" translate="no">
-              {analysis.username}
-            </p>
-            <p className="font-mono text-xs text-muted">{analysis.userRating ?? '—'}</p>
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            <div className="min-w-0 text-right">
+              <p className="truncate font-medium" translate="no">
+                {analysis.username}
+              </p>
+              <p className="font-mono text-xs text-muted">{analysis.userRating ?? '—'}</p>
+            </div>
+            <PlayerAvatar username={analysis.username} src={youAvatar} size={28} />
           </div>
         </div>
 
@@ -269,22 +280,20 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
               {displayEval}
             </span>
           </div>
-          <div className="relative min-h-0 min-w-0 flex-1">
-            <div className="absolute inset-0 m-auto aspect-square max-h-full max-w-full">
-              <Chessboard
-                options={{
-                  position: fen,
-                  boardOrientation: orientation,
-                  allowDragging: false,
-                  squareStyles: lastMoveStyles,
-                  arrows: arrowStyles,
-                  darkSquareStyle: { backgroundColor: '#3d4450' },
-                  lightSquareStyle: { backgroundColor: '#9aa0a8' },
-                  boardStyle: { width: '100%', height: '100%' },
-                }}
-              />
-            </div>
-          </div>
+          <FittedBoardFrame>
+            <Chessboard
+              options={{
+                position: fen,
+                boardOrientation: orientation,
+                allowDragging: false,
+                squareStyles: lastMoveStyles,
+                arrows: arrowStyles,
+                darkSquareStyle: { backgroundColor: '#3d4450' },
+                lightSquareStyle: { backgroundColor: '#9aa0a8' },
+                boardStyle: { width: '100%', height: '100%' },
+              }}
+            />
+          </FittedBoardFrame>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-t border-line px-2 py-2">

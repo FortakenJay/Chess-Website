@@ -105,7 +105,7 @@ function PuzzlesPage() {
               <button
                 key={motif || 'all'}
                 type="button"
-                className={`border px-3 py-2 font-mono text-xs uppercase tracking-[0.12em] transition-colors ${
+                className={`inline-flex min-h-11 items-center border px-3 font-mono text-xs uppercase tracking-[0.12em] transition-colors ${
                   active
                     ? 'border-ink bg-ink text-canvas'
                     : 'border-line bg-surface text-ink hover:bg-surface-2'
@@ -163,8 +163,8 @@ function PuzzlesPage() {
   return (
     <AppShell username={name} dense={playing}>
       {playing ? (
-        <>
-          <details className="mb-3 border border-line bg-surface">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <details className="mb-3 shrink-0 border border-line bg-surface">
             <summary className="cursor-pointer list-none px-3 py-2 font-mono text-xs uppercase tracking-[0.12em] text-muted marker:content-none [&::-webkit-details-marker]:hidden">
               <span className="text-ink">Filters</span>
               <span className="mx-2 text-line">·</span>
@@ -182,8 +182,10 @@ function PuzzlesPage() {
               No exact matches — showing a broader set.
             </p>
           ) : null}
-          <PuzzleBoard key={boardKey} puzzles={practice.puzzles} />
-        </>
+          <div className="min-h-0 flex-1">
+            <PuzzleBoard key={boardKey} puzzles={practice.puzzles} />
+          </div>
+        </div>
       ) : (
         <>
           <PageHeader

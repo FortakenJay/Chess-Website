@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import { useReducer, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { FittedBoardFrame } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { playUci } from '@/lib/puzzles/normalize'
@@ -167,32 +168,30 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
   }
 
   return (
-    <div className="grid h-[calc(100dvh-8.5rem)] min-h-[24rem] gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
+    <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
       <div className="flex min-h-0 min-w-0 flex-col border border-line bg-surface">
         <div className="shrink-0 border-b border-line px-3 py-1.5 font-mono text-sm font-medium">
           {sideToMove} to move
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center p-2">
-            <div className="aspect-square h-auto max-h-full w-full max-w-[min(100%,calc(100dvh-7rem))]">
-              <Chessboard
-              options={{
-                position: fen,
-                boardOrientation: orientation,
-                allowDragging: !failed && !solved,
-                onPieceDrag: ({ square }) => {
-                  if (square && !failed && !solved) dispatch({ type: 'select', square })
-                },
-                onPieceDrop: ({ sourceSquare, targetSquare }) =>
-                  makeMove(sourceSquare, targetSquare),
-                onSquareClick: ({ square }) => onSquareClick(square),
-                squareStyles,
-                darkSquareStyle: { backgroundColor: '#3d4450' },
-                lightSquareStyle: { backgroundColor: '#9aa0a8' },
-                boardStyle: { width: '100%', height: '100%' },
-              }}
-            />
-            </div>
-        </div>
+        <FittedBoardFrame>
+          <Chessboard
+            options={{
+              position: fen,
+              boardOrientation: orientation,
+              allowDragging: !failed && !solved,
+              onPieceDrag: ({ square }) => {
+                if (square && !failed && !solved) dispatch({ type: 'select', square })
+              },
+              onPieceDrop: ({ sourceSquare, targetSquare }) =>
+                makeMove(sourceSquare, targetSquare),
+              onSquareClick: ({ square }) => onSquareClick(square),
+              squareStyles,
+              darkSquareStyle: { backgroundColor: '#3d4450' },
+              lightSquareStyle: { backgroundColor: '#9aa0a8' },
+              boardStyle: { width: '100%', height: '100%' },
+            }}
+          />
+        </FittedBoardFrame>
       </div>
       <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:max-h-full">
         <Panel className="shrink-0">

@@ -57,7 +57,7 @@ function ReviewEntryPage() {
           name="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="border border-line bg-canvas px-3 py-2 font-mono text-sm"
+          className="min-h-11 border border-line bg-canvas px-3 font-mono text-base sm:text-sm"
           placeholder="hikaru"
           autoCapitalize="off"
           autoCorrect="off"
@@ -68,7 +68,7 @@ function ReviewEntryPage() {
         <button
           type="submit"
           disabled={pending}
-          className={cn(btnPrimary, 'px-3 py-2 text-sm')}
+          className={cn(btnPrimary, 'inline-flex min-h-11 items-center justify-center px-3 text-sm')}
         >
           {pending ? 'Checking…' : 'Load recent games'}
         </button>

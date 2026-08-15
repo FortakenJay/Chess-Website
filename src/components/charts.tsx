@@ -3,6 +3,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -21,6 +22,7 @@ import type {
   PhaseStats,
   QualityStats,
 } from '@/lib/analysis/types'
+import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
 import {
   ENDGAME_LABEL,
   errorRate,
@@ -31,8 +33,12 @@ import {
 import type { Tables } from '@/lib/supabase/database.types'
 
 const axis = { fill: '#8b8f9a', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }
+const accAxis = { ...axis, fill: '#ececec' }
+const acplAxis = { ...axis, fill: '#e5484d' }
 const grid = { stroke: '#2a2d36' }
 const tooltipCursor = { fill: 'rgba(236, 236, 236, 0.06)' }
+const ACC_COLOR = '#ececec'
+const ACPL_COLOR = '#e5484d'
 const QUALITY_ORDER: MoveQuality[] = [
   'brilliant',
   'great',
@@ -65,6 +71,43 @@ function Frame({
       </div>
       {variant === 'chart' ? <div className="h-52 sm:h-56">{children}</div> : children}
     </Panel>
+  )
+}
+
+/** Label + bar + value on one row so names cannot drift off their bars. */
+function NamedBarList({
+  rows,
+  formatValue,
+}: {
+  rows: Array<{ name: string; value: number; color?: string }>
+  formatValue?: (value: number) => string
+}) {
+  const max = Math.max(...rows.map((row) => row.value), 1)
+  return (
+    <ul className="flex flex-col gap-2.5">
+      {rows.map((row) => {
+        const width = `${Math.max(row.value > 0 ? 4 : 0, (row.value / max) * 100)}%`
+        return (
+          <li
+            key={row.name}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] sm:gap-3"
+          >
+            <span className="truncate font-mono text-[11px] text-muted" title={row.name}>
+              {row.name}
+            </span>
+            <span className="min-w-8 text-right font-mono text-[11px] tabular text-ink sm:order-3">
+              {formatValue ? formatValue(row.value) : row.value}
+            </span>
+            <div className="col-span-2 h-2 bg-surface-2 sm:col-span-1 sm:order-2" aria-hidden>
+              <div
+                className="h-full bg-[#ececec]"
+                style={{ width, backgroundColor: row.color }}
+              />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -115,6 +158,30 @@ function CountTooltip({
   )
 }
 
+function AccAcplTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: Array<{ value?: number | string; dataKey?: string }>
+  label?: string
+}) {
+  if (!active || !payload?.length) return null
+  const acc = payload.find((p) => p.dataKey === 'accuracy')
+  const acpl = payload.find((p) => p.dataKey === 'acpl')
+  return (
+    <TooltipShell label={label}>
+      {acc != null ? (
+        <div style={{ color: ACC_COLOR }}>Accuracy {acc.value}%</div>
+      ) : null}
+      {acpl != null ? (
+        <div style={{ color: ACPL_COLOR }}>Slip size {acpl.value}</div>
+      ) : null}
+    </TooltipShell>
+  )
+}
+
 function ValueTooltip({
   active,
   payload,
@@ -130,30 +197,14 @@ function ValueTooltip({
   return (
     <TooltipShell label={label}>
       {payload.map((p) => (
-        <div key={String(p.name)} className="text-ink">
+        <div
+          key={String(p.name)}
+          className={p.name === 'Slip size' ? 'text-blunder' : 'text-ink'}
+        >
           {p.name}: {p.value}
           {suffix}
         </div>
       ))}
-    </TooltipShell>
-  )
-}
-
-function QualityTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: Array<{ value?: number; payload?: { share?: number } }>
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  const point = payload[0]
-  return (
-    <TooltipShell label={label}>
-      <div className="text-ink">{point?.value ?? 0} moves</div>
-      <div className="text-muted">{point?.payload?.share ?? 0}%</div>
     </TooltipShell>
   )
 }
@@ -222,16 +273,8 @@ export function MotifChart({ positions }: { positions: Tables<'flagged_positions
     )
   }
   return (
-    <Frame title="Tactical motif">
-      <ResponsiveContainer>
-        <BarChart data={data} layout="vertical" margin={{ left: 24 }}>
-          <CartesianGrid {...grid} horizontal={false} />
-          <XAxis type="number" tick={axis} axisLine={false} tickLine={false} />
-          <YAxis type="category" dataKey="name" tick={axis} axisLine={false} tickLine={false} width={140} />
-          <Tooltip content={<CountTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="count" fill="#ececec" maxBarSize={18} />
-        </BarChart>
-      </ResponsiveContainer>
+    <Frame title="Tactical motif" variant="panel">
+      <NamedBarList rows={data.map((row) => ({ name: row.name, value: row.count }))} />
     </Frame>
   )
 }
@@ -446,28 +489,61 @@ export function AccuracyTrendChart({
   }))
   if (data.length < 2) {
     return (
-      <Frame title="Accuracy / ACPL" variant="panel">
+      <Frame title="Accuracy vs slip size" variant="panel">
         <p className="text-sm text-muted text-pretty">
-          Need games on at least two dates. Re-sync to backfill ACPL.
+          Need games on at least two dates. Re-sync to backfill slip size.
         </p>
       </Frame>
     )
   }
   return (
-    <Frame title="Accuracy % and ACPL">
+    <Frame
+      title="Accuracy vs slip size"
+      hint="White is accuracy — how close you stay to the engine. Higher is better. Red is slip size (ACPL): the typical amount you give away each move, in hundredths of a pawn. 20 is sharp, 50 is leaky. Lower is cleaner."
+    >
       <ResponsiveContainer>
-        <LineChart data={data}>
+        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid {...grid} />
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
-          <YAxis yAxisId="acc" tick={axis} axisLine={false} tickLine={false} unit="%" />
-          <YAxis yAxisId="acpl" orientation="right" tick={axis} axisLine={false} tickLine={false} />
-          <Tooltip content={<ValueTooltip />} cursor={tooltipCursor} />
+          <YAxis
+            yAxisId="acc"
+            domain={[0, 100]}
+            tick={accAxis}
+            axisLine={false}
+            tickLine={false}
+            unit="%"
+          />
+          <YAxis
+            yAxisId="acpl"
+            orientation="right"
+            domain={[0, 120]}
+            tick={acplAxis}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip content={<AccAcplTooltip />} cursor={tooltipCursor} />
+          <Legend
+            verticalAlign="top"
+            align="left"
+            iconType="plainline"
+            iconSize={14}
+            wrapperStyle={{
+              fontFamily: 'IBM Plex Mono, monospace',
+              fontSize: 11,
+              paddingBottom: 6,
+            }}
+            formatter={(value) => (
+              <span style={{ color: value === 'Accuracy' ? ACC_COLOR : ACPL_COLOR }}>
+                {value}
+              </span>
+            )}
+          />
           <Line
             yAxisId="acc"
             type="linear"
             dataKey="accuracy"
-            name="accuracy"
-            stroke="#ececec"
+            name="Accuracy"
+            stroke={ACC_COLOR}
             strokeWidth={1.5}
             dot={false}
           />
@@ -475,8 +551,8 @@ export function AccuracyTrendChart({
             yAxisId="acpl"
             type="linear"
             dataKey="acpl"
-            name="acpl"
-            stroke="#e5484d"
+            name="Slip size"
+            stroke={ACPL_COLOR}
             strokeWidth={1.5}
             dot={false}
           />
@@ -490,8 +566,8 @@ export function QualityFunnelChart({ stats }: { stats: QualityStats }) {
   const total = Object.values(stats).reduce((sum, n) => sum + n, 0)
   const data = QUALITY_ORDER.map((key) => ({
     name: QUALITY_LABEL[key],
-    count: stats[key],
-    share: total ? Math.round((stats[key] / total) * 1000) / 10 : 0,
+    value: stats[key] ?? 0,
+    color: QUALITY_COLOR[key],
   }))
   if (total === 0) {
     return (
@@ -503,16 +579,8 @@ export function QualityFunnelChart({ stats }: { stats: QualityStats }) {
     )
   }
   return (
-    <Frame title="Move quality funnel">
-      <ResponsiveContainer>
-        <BarChart data={data}>
-          <CartesianGrid {...grid} vertical={false} />
-          <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
-          <YAxis tick={axis} axisLine={false} tickLine={false} allowDecimals={false} />
-          <Tooltip content={<QualityTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="count" fill="#ececec" maxBarSize={36} />
-        </BarChart>
-      </ResponsiveContainer>
+    <Frame title="Move quality funnel" variant="panel">
+      <NamedBarList rows={data} />
     </Frame>
   )
 }
@@ -718,16 +786,11 @@ export function DrillByMotifChart({
     error: row.solvedPct,
   }))
   return (
-    <Frame title="Drill accuracy by motif">
-      <ResponsiveContainer>
-        <BarChart data={data} layout="vertical" margin={{ left: 24 }}>
-          <CartesianGrid {...grid} horizontal={false} />
-          <XAxis type="number" tick={axis} axisLine={false} tickLine={false} unit="%" />
-          <YAxis type="category" dataKey="name" tick={axis} axisLine={false} tickLine={false} width={110} />
-          <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="solved" fill="#ececec" maxBarSize={18} />
-        </BarChart>
-      </ResponsiveContainer>
+    <Frame title="Drill accuracy by motif" variant="panel">
+      <NamedBarList
+        rows={data.map((row) => ({ name: row.name, value: row.error }))}
+        formatValue={(value) => `${value}%`}
+      />
     </Frame>
   )
 }
@@ -740,20 +803,23 @@ export function PhaseAcplChart({
   const data = rows.map((row) => ({ name: PHASE_LABEL[row.phase], acpl: row.acpl }))
   if (data.every((row) => row.acpl === 0)) {
     return (
-      <Frame title="ACPL by phase" variant="panel">
-        <p className="text-sm text-muted text-pretty">Re-sync to backfill phase ACPL.</p>
+      <Frame title="Slip size by phase" variant="panel">
+        <p className="text-sm text-muted text-pretty">Re-sync to backfill slip size by phase.</p>
       </Frame>
     )
   }
   return (
-    <Frame title="ACPL by phase">
+    <Frame
+      title="Slip size by phase"
+      hint="How much you give away per move in each phase (ACPL). Lower is cleaner."
+    >
       <ResponsiveContainer>
         <BarChart data={data}>
           <CartesianGrid {...grid} vertical={false} />
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
-          <YAxis tick={axis} axisLine={false} tickLine={false} />
+          <YAxis tick={acplAxis} axisLine={false} tickLine={false} />
           <Tooltip content={<ValueTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="acpl" name="acpl" fill="#ececec" maxBarSize={48} />
+          <Bar dataKey="acpl" name="Slip size" fill={ACPL_COLOR} maxBarSize={48} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>

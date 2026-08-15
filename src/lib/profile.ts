@@ -1,3 +1,4 @@
+import { cachePlayerAvatar } from '@/lib/chesscom.functions'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import type { Tables } from '@/lib/supabase/database.types'
 import { normalizeUsername } from '@/lib/username'
@@ -10,5 +11,12 @@ export async function linkChessUsername(username: string): Promise<Tables<'profi
   })
   if (error) throw error
   if (!data) throw new Error('Could not link Chess.com username')
-  return data as Tables<'profiles'>
+  const row = data as Tables<'profiles'>
+  try {
+    const cached = await cachePlayerAvatar({ data: { username: handle } })
+    if (cached.avatarUrl) return { ...row, avatar_url: cached.avatarUrl }
+  } catch {
+    // Profile link still succeeds if the avatar download fails.
+  }
+  return row
 }

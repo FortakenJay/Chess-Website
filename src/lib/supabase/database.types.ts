@@ -238,16 +238,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           chess_com_username: string
           created_at: string
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           chess_com_username: string
           created_at?: string
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           chess_com_username?: string
           created_at?: string
           user_id?: string

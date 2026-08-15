@@ -76,10 +76,26 @@ export function classify(loss: number): Classification {
 
 /** Fallback when only ACPL is available (legacy aggregates). */
 export function accuracyFromAcpl(acpl: number): number {
-  // Soften mate-inflated ACPL so old rows aren't stuck near 0.
-  const soft = Math.min(acpl, 300)
-  const raw = 103.1668 * Math.exp(-0.04354 * soft) - 3.1669
-  return Math.max(0, Math.min(100, Math.round(raw * 10) / 10))
+  // Map typical ACPL (20–80) onto a 100–40 band. Mate-inflated 5000+ must not become 0%.
+  const soft = Math.min(Math.max(acpl, 0), 160)
+  const raw = 100 * Math.exp(-soft / 90)
+  return Math.max(25, Math.min(100, Math.round(raw * 10) / 10))
+}
+
+/** Drop unanalyzed or mate-nuked rows so a 0% / 5000 ACPL game cannot flatten the chart. */
+export function usableAccuracy(accuracyPct: number, acpl: number): number | null {
+  const acc = Number(accuracyPct)
+  const loss = Number(acpl)
+  if (loss >= 400) return null
+  if (acc > 0 && acc <= 100) return acc
+  if (loss > 0) return accuracyFromAcpl(loss)
+  return null
+}
+
+export function usableAcpl(acpl: number): number | null {
+  const loss = Number(acpl)
+  if (loss <= 0 || loss >= 400) return null
+  return loss
 }
 
 /**

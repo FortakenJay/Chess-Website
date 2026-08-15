@@ -12,7 +12,9 @@ import {
 import { emptyQualityStats } from '@/lib/analysis/types'
 import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
 import { btnPrimary } from '@/components/review/reviewUi'
+import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { cn } from '@/lib/cn'
+import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 
 const PHASES: Phase[] = ['opening', 'middlegame', 'endgame']
 
@@ -60,6 +62,8 @@ export function ReviewReport({
   // Always put the reviewed player on the left so accuracy isn't confusing.
   const youName = analysis.username
   const oppName = analysis.opponent
+  const youAvatar = usePlayerAvatar(youName)
+  const oppAvatar = usePlayerAvatar(oppName)
   const youStats = { ...emptyQualityStats(), ...analysis.qualityStats }
   const oppStats = { ...emptyQualityStats(), ...(analysis.opponentQualityStats ?? {}) }
   const youAcc = analysis.accuracyPct
@@ -86,8 +90,9 @@ export function ReviewReport({
       <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-end gap-2 border-b border-line px-3 py-2.5">
         <div className="min-w-0 text-left">
           <p className="truncate font-mono text-[10px] uppercase tracking-wider text-[#e8c547]">You</p>
-          <p className="truncate font-mono text-xs text-muted" translate="no">
-            {youName}
+          <p className="flex items-center gap-1.5 truncate font-mono text-xs text-muted">
+            <PlayerAvatar username={youName} src={youAvatar} size={18} />
+            <span translate="no">{youName}</span>
           </p>
           <p className="mt-1 inline-block border border-line bg-ink px-2.5 py-1 font-mono text-xl text-canvas tabular">
             {youAcc.toFixed(1)}
@@ -96,8 +101,9 @@ export function ReviewReport({
         <span className="pb-2 font-mono text-[10px] uppercase tracking-wider text-muted">vs</span>
         <div className="min-w-0 text-right">
           <p className="truncate font-mono text-[10px] uppercase tracking-wider text-muted">Opp</p>
-          <p className="truncate font-mono text-xs text-muted" translate="no">
-            {oppName}
+          <p className="flex items-center justify-end gap-1.5 truncate font-mono text-xs text-muted">
+            <span translate="no">{oppName}</span>
+            <PlayerAvatar username={oppName} src={oppAvatar} size={18} />
           </p>
           <p className="mt-1 inline-block border border-line bg-surface-2 px-2.5 py-1 font-mono text-xl tabular">
             {oppAcc.toFixed(1)}

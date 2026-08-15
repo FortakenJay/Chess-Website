@@ -81,7 +81,7 @@ export function BoardPageSkeleton({
   return (
     <div
       className={cn(
-        'mt-4 grid h-[calc(100dvh-5.5rem)] min-h-[24rem] gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4',
+        'mt-4 grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4',
         className,
       )}
       aria-busy="true"
@@ -91,8 +91,8 @@ export function BoardPageSkeleton({
         <div className="shrink-0 border-b border-line px-3 py-2">
           <Skeleton className="h-4 w-28" />
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center p-2">
-          <Skeleton className="aspect-square h-auto max-h-full w-full max-w-[min(100%,calc(100dvh-8rem))]" />
+        <div className="relative min-h-0 min-w-0 flex-1 p-2 [container-type:size]">
+          <Skeleton className="absolute left-1/2 top-1/2 aspect-square w-[min(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2" />
         </div>
       </div>
       <aside className="flex min-h-0 flex-col gap-3">

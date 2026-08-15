@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { analyzeGames } from '@/lib/analyzeClient'
 import { useAuth } from '@/lib/auth'
-import { listArchives, listMonthGames } from '@/lib/chesscom.functions'
+import { cachePlayerAvatar, listArchives, listMonthGames } from '@/lib/chesscom.functions'
 import { fetchAllRows, markSyncState, persistGames, purgeExpiredGames } from '@/lib/persist'
 import { refreshPlayerData } from '@/lib/queries'
 import { errorMessage } from '@/lib/errorMessage'
@@ -184,6 +184,7 @@ async function syncGames(
   mode: SyncMode,
 ) {
   const supabase = getBrowserClient()
+  void cachePlayerAvatar({ data: { username, force: true } }).catch(() => {})
   update({
     ...INITIAL_STATE,
     username,
@@ -235,7 +236,7 @@ async function syncGames(
 }
 
 export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
-  const { ready, user, profile } = useAuth()
+  const { ready, user, profile, refreshProfile } = useAuth()
   const queryClient = useQueryClient()
   const [state, setState] = useState<BackgroundSyncState>(INITIAL_STATE)
   const [runId, setRunId] = useState(0)
@@ -259,6 +260,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
       .then(async () => {
         if (controller.signal.aborted || activeRun.current !== thisRun) return
         await refreshPlayerData(queryClient, username)
+        await refreshProfile()
       })
       .catch((error) => {
         if (controller.signal.aborted || activeRun.current !== thisRun) return
@@ -274,7 +276,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
       })
 
     return () => controller.abort()
-  }, [queryClient, ready, runId, user, username])
+  }, [queryClient, ready, refreshProfile, runId, user, username])
 
   const start = useCallback(() => {
     modeRef.current = 'full'

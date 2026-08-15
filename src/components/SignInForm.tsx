@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getBrowserClient } from '@/lib/supabase/browser'
 
-const fieldClass = 'border border-line bg-canvas px-3 py-2 text-sm'
+const fieldClass = 'min-h-11 w-full border border-line bg-canvas px-3 text-base sm:text-sm'
 
 export function SignInForm() {
   const [email, setEmail] = useState('')
@@ -62,7 +62,7 @@ export function SignInForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-1 border border-ink bg-ink px-3 py-2 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
+        className="mt-1 inline-flex min-h-11 items-center justify-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
       >
         {pending ? 'Signing in…' : 'Log in'}
       </button>

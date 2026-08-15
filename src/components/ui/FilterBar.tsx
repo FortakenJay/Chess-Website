@@ -13,9 +13,11 @@ export function FilterBar({
   return (
     <Panel>
       {lead ? <div className="mb-4">{lead}</div> : null}
-      <div className="flex flex-wrap items-end gap-3">{children}</div>
+      <div className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">{children}</div>
       {footer ? (
-        <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3">{footer}</div>
+        <div className="mt-3 grid grid-cols-2 items-end gap-3 border-t border-line pt-3 sm:flex sm:flex-wrap">
+          {footer}
+        </div>
       ) : null}
     </Panel>
   )

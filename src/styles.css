@@ -18,6 +18,10 @@
 
 :root {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 html {
@@ -84,9 +88,19 @@ body {
 
 input,
 button,
-select {
+select,
+textarea {
   font: inherit;
   touch-action: manipulation;
+}
+
+/* iOS zooms any focused control under 16px. Keep fields readable on phones. */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 button,

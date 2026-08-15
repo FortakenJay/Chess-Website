@@ -262,7 +262,7 @@ function ReviewUsernamePage() {
             actions={
               <button
                 type="button"
-                className={cn(btnGhost, 'px-3 py-1.5 font-mono text-xs')}
+                className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs')}
                 onClick={() => {
                   abortRef.current?.abort()
                   autoLatestRef.current = null
@@ -287,7 +287,7 @@ function ReviewUsernamePage() {
                   type="button"
                   onClick={() => setSource('recent')}
                   className={cn(
-                    'px-3 py-1.5 font-mono text-xs uppercase tracking-wider',
+                    'inline-flex min-h-11 items-center px-3 font-mono text-xs uppercase tracking-wider',
                     source === 'recent' ? chipActive : chipIdle,
                   )}
                 >
@@ -300,7 +300,7 @@ function ReviewUsernamePage() {
                     if (!monthKey && archiveOptions[0]) setMonthKey(archiveOptions[0].key)
                   }}
                   className={cn(
-                    'px-3 py-1.5 font-mono text-xs uppercase tracking-wider',
+                    'inline-flex min-h-11 items-center px-3 font-mono text-xs uppercase tracking-wider',
                     source === 'month' ? chipActive : chipIdle,
                   )}
                 >
@@ -316,7 +316,7 @@ function ReviewUsernamePage() {
                       type="button"
                       onClick={() => setLimit(n)}
                       className={cn(
-                        'px-3 py-1.5 font-mono text-xs',
+                        'inline-flex min-h-11 items-center px-3 font-mono text-xs',
                         limit === n ? chipActive : chipIdle,
                       )}
                     >
@@ -330,7 +330,7 @@ function ReviewUsernamePage() {
                   <select
                     value={monthKey}
                     onChange={(e) => setMonthKey(e.target.value)}
-                    className="w-full border border-line bg-canvas px-3 py-2 font-mono text-sm"
+                    className="min-h-11 w-full border border-line bg-canvas px-3 font-mono text-base sm:text-sm"
                   >
                     <option value="">Select month…</option>
                     {archiveOptions.map((opt) => (
@@ -360,7 +360,7 @@ function ReviewUsernamePage() {
                   type="button"
                   onClick={() => setPasteColor('white')}
                   className={cn(
-                    'px-2 py-1 font-mono text-[11px]',
+                    'inline-flex min-h-11 items-center px-3 font-mono text-xs',
                     pasteColor === 'white' ? chipActive : chipIdle,
                   )}
                 >
@@ -370,7 +370,7 @@ function ReviewUsernamePage() {
                   type="button"
                   onClick={() => setPasteColor('black')}
                   className={cn(
-                    'px-2 py-1 font-mono text-[11px]',
+                    'inline-flex min-h-11 items-center px-3 font-mono text-xs',
                     pasteColor === 'black' ? chipActive : chipIdle,
                   )}
                 >
@@ -380,7 +380,7 @@ function ReviewUsernamePage() {
                   type="button"
                   disabled={pastePending || !paste.trim()}
                   onClick={() => void importPaste()}
-                  className={cn(btnPrimary, 'ml-auto px-3 py-1.5 text-sm')}
+                  className={cn(btnPrimary, 'inline-flex min-h-11 w-full items-center justify-center px-3 text-sm sm:ml-auto sm:w-auto')}
                 >
                   {pastePending ? 'Importing…' : 'Import & analyze'}
                 </button>
@@ -389,12 +389,12 @@ function ReviewUsernamePage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               disabled={!selectedLinks.size || Boolean(analyzingLink)}
               onClick={() => void analyzeQueue([...selectedLinks])}
-              className={cn(btnPrimary, 'px-3 py-2 text-sm')}
+              className={cn(btnPrimary, 'inline-flex min-h-11 items-center justify-center px-3 text-sm')}
             >
               Analyze selected ({selectedLinks.size})
             </button>
@@ -406,7 +406,7 @@ function ReviewUsernamePage() {
                   rows.filter((r) => !r.analysis).map((r) => r.meta.gameLink),
                 )
               }
-              className={cn(btnGhost, 'px-3 py-2 text-sm')}
+              className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 text-sm')}
             >
               Analyze all unanalyzed
             </button>
@@ -416,7 +416,7 @@ function ReviewUsernamePage() {
               onClick={() =>
                 setSelectedLinks(new Set(rows.map((r) => r.meta.gameLink)))
               }
-              className={cn(btnGhost, 'px-3 py-2 font-mono text-xs')}
+              className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs')}
             >
               Select all
             </button>
@@ -424,7 +424,7 @@ function ReviewUsernamePage() {
               type="button"
               disabled={!selectedLinks.size}
               onClick={() => setSelectedLinks(new Set())}
-              className={cn(btnGhost, 'px-3 py-2 font-mono text-xs')}
+              className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs')}
             >
               Clear selection
             </button>
@@ -432,7 +432,7 @@ function ReviewUsernamePage() {
               <button
                 type="button"
                 onClick={() => abortRef.current?.abort()}
-                className="border border-blunder/40 px-3 py-2 font-mono text-xs text-blunder hover:bg-blunder/10"
+                className="inline-flex min-h-11 items-center justify-center border border-blunder/40 px-3 font-mono text-xs text-blunder hover:bg-blunder/10"
               >
                 Stop
               </button>

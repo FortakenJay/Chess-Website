@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import {
   accuracyTrend,
+  dateKey,
   drillAccuracyByMotif,
   drillWeekly,
   endgameConversionRate,
@@ -18,6 +19,7 @@ import {
   sumPhaseStats,
   sumQualityStats,
   timeClassStats,
+  timeframeStart,
   winRateByBlunders,
   type Timeframe,
 } from '@/lib/stats'
@@ -38,9 +40,15 @@ export function useResultsModel(
       inTimeframe(attempt.attempted_at, timeframe),
     )
     const byPhase = sumPhaseStats(filteredGames)
+    const latestGames = [...filteredGames].sort((a, b) => {
+      const byDate = dateKey(b.played_on).localeCompare(dateKey(a.played_on))
+      return byDate || a.game_link.localeCompare(b.game_link)
+    })
 
     return {
       filteredGames,
+      latestGames,
+      rangeStart: timeframeStart(timeframe),
       filteredPositions,
       filteredAttempts,
       byPhase,

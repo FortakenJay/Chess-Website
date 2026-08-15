@@ -62,9 +62,31 @@ export function ResultsCharts({
           <p className="text-pretty text-sm text-muted">Not enough moves yet for a phase leak.</p>
         )}
         <p className="mt-5 font-mono text-xs text-muted">
-          <span className="tabular">{model.filteredGames.length}</span> games ·{' '}
-          <span className="tabular">{model.filteredPositions.length}</span> flagged positions
+          <span className="tabular">{model.filteredGames.length}</span> games
+          {model.rangeStart ? (
+            <>
+              {' '}
+              since <span className="tabular">{model.rangeStart}</span>
+            </>
+          ) : null}{' '}
+          · <span className="tabular">{model.filteredPositions.length}</span> flagged positions
         </p>
+        {model.latestGames.length > 0 ? (
+          <ul className="mt-4 divide-y divide-line border-t border-line">
+            {model.latestGames.slice(0, 8).map((game) => (
+              <li
+                key={game.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-1.5 font-mono text-xs"
+              >
+                <span className="text-muted tabular">{game.played_on}</span>
+                <span className="min-w-0 flex-1 truncate text-ink" translate="no">
+                  vs {game.opponent}
+                </span>
+                <span className="text-muted">{game.result}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </Panel>
 
       <Section title="Where you leak">

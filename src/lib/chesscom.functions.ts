@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { storeChessComAvatar } from './avatar.server'
 import {
   fetchArchives,
   fetchGameByUrl,
@@ -16,7 +17,32 @@ export const lookupPlayer = createServerFn({ method: 'GET' })
   })
   .handler(async ({ data }) => {
     const player = await fetchPlayer(data.username)
-    return { username: normalizeUsername(player.username) }
+    const username = normalizeUsername(player.username)
+    let avatarUrl = player.avatar ?? null
+    try {
+      avatarUrl = (await storeChessComAvatar(username)) ?? avatarUrl
+    } catch {
+      // Keep the Chess.com URL if Storage is unavailable.
+    }
+    return { username, avatarUrl }
+  })
+
+export const cachePlayerAvatar = createServerFn({ method: 'POST' })
+  .validator((data: { username: string; force?: boolean }) => ({
+    username: normalizeUsername(data.username),
+    force: Boolean(data.force),
+  }))
+  .handler(async ({ data }) => {
+    try {
+      const avatarUrl = await storeChessComAvatar(data.username, { force: data.force })
+      return { username: data.username, avatarUrl }
+    } catch {
+      const player = await fetchPlayer(data.username)
+      return {
+        username: normalizeUsername(player.username),
+        avatarUrl: player.avatar ?? null,
+      }
+    }
   })
 
 export const getPlayerRatings = createServerFn({ method: 'GET' })

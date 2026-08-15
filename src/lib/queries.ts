@@ -17,7 +17,12 @@ async function fetchPlayerDataFromDb(username: string): Promise<PlayerData> {
       supabase.from('flagged_positions').select('*').eq('username', username).range(from, to),
     ),
     fetchAllRows((from, to) =>
-      supabase.from('games').select('*').eq('username', username).range(from, to),
+      supabase
+        .from('games')
+        .select('*')
+        .eq('username', username)
+        .order('played_on', { ascending: false })
+        .range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase

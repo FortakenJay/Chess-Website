@@ -2,6 +2,7 @@ import { Chess } from 'chess.js'
 import { useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
+import { FittedBoardFrame } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
 import { evaluateFen } from '@/lib/analyzeClient'
 import type { Classification } from '@/lib/analysis/types'
@@ -139,32 +140,30 @@ export function DrillBoard({
   }
 
   return (
-    <div className="grid h-[calc(100dvh-5.5rem)] min-h-[24rem] gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
+    <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
       <div className="flex min-h-0 min-w-0 flex-col border border-line bg-surface">
         <div className="shrink-0 border-b border-line px-3 py-1.5 font-mono text-sm font-medium">
           {sideToMove} to move
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center p-2">
-          <div className="aspect-square h-auto max-h-full w-full max-w-[min(100%,calc(100dvh-8rem))]">
-            <Chessboard
-              options={{
-                position: fen,
-                boardOrientation: orientation,
-                allowDragging: !reveal && !thinking,
-                onPieceDrag: ({ square }) => {
-                  if (square && !reveal && !thinking) setSelectedSquare(square)
-                },
-                onPieceDrop: ({ sourceSquare, targetSquare }) =>
-                  makeMove(sourceSquare, targetSquare),
-                onSquareClick: ({ square }) => onSquareClick(square),
-                squareStyles,
-                darkSquareStyle: { backgroundColor: '#3d4450' },
-                lightSquareStyle: { backgroundColor: '#9aa0a8' },
-                boardStyle: { width: '100%' },
-              }}
-            />
-          </div>
-        </div>
+        <FittedBoardFrame>
+          <Chessboard
+            options={{
+              position: fen,
+              boardOrientation: orientation,
+              allowDragging: !reveal && !thinking,
+              onPieceDrag: ({ square }) => {
+                if (square && !reveal && !thinking) setSelectedSquare(square)
+              },
+              onPieceDrop: ({ sourceSquare, targetSquare }) =>
+                makeMove(sourceSquare, targetSquare),
+              onSquareClick: ({ square }) => onSquareClick(square),
+              squareStyles,
+              darkSquareStyle: { backgroundColor: '#3d4450' },
+              lightSquareStyle: { backgroundColor: '#9aa0a8' },
+              boardStyle: { width: '100%', height: '100%' },
+            }}
+          />
+        </FittedBoardFrame>
       </div>
       <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:max-h-full">
         <Panel className="shrink-0">
@@ -200,24 +199,28 @@ export function DrillBoard({
           {thinking ? <p className="font-mono text-xs text-muted">Engine…</p> : null}
           {reveal ? (
             <dl className="space-y-2 font-mono text-xs">
-              <div className="flex justify-between">
-                <dt className="text-muted">You just played</dt>
-                <dd>{reveal.attemptSan}</dd>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">This try</dt>
+                <dd className={reveal.matchedBest ? 'text-[#81b64c]' : 'text-ink'}>
+                  {reveal.attemptSan}
+                </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">You played then</dt>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">Best move</dt>
+                <dd className="text-[#81b64c]">{reveal.bestSan}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">In that game</dt>
                 <dd className="text-blunder">{position.san}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Engine</dt>
-                <dd>{reveal.bestSan}</dd>
-              </div>
-              <div className="pt-2 text-ink">
+              <div className="pt-2 text-pretty text-ink">
                 {reveal.matchedBest
-                  ? 'Matched the engine.'
+                  ? reveal.matchedHistorical
+                    ? 'This try matches the engine — and it is also what you played in the game.'
+                    : `This try matches the engine. In the game you played ${position.san}.`
                   : reveal.matchedHistorical
-                    ? 'Repeated the historical mistake.'
-                    : 'Neither the engine move nor the original mistake.'}
+                    ? `This try repeats the game move. The engine wanted ${reveal.bestSan}.`
+                    : `This try is neither the engine move (${reveal.bestSan}) nor the game move (${position.san}).`}
               </div>
             </dl>
           ) : null}

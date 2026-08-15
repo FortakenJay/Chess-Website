@@ -45,10 +45,12 @@ function outcomeFor(
 }
 
 function playedOn(headers: Record<string, string>, endTime: number): string {
+  // Prefer finish time — daily games keep the start date in [Date] / [UTCDate].
+  if (endTime > 0) return new Date(endTime * 1000).toISOString().slice(0, 10)
   const raw = headers.UTCDate || headers.Date || ''
   const iso = raw.replace(/\./g, '-')
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
-  return new Date(endTime * 1000).toISOString().slice(0, 10)
+  return new Date().toISOString().slice(0, 10)
 }
 
 function cleanOpening(name: string | null): string | null {

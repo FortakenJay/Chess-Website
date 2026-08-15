@@ -6,8 +6,8 @@ export const selectFieldVariants = cva(
   {
     variants: {
       size: {
-        sm: '',
-        md: 'min-w-36',
+        sm: 'min-w-0',
+        md: 'min-w-0 sm:min-w-36',
       },
     },
     defaultVariants: {
@@ -17,12 +17,12 @@ export const selectFieldVariants = cva(
 )
 
 export const selectControlVariants = cva(
-  'border border-line bg-canvas px-2 py-1.5 font-mono text-xs text-ink outline-none',
+  'min-h-11 w-full border border-line bg-canvas px-3 font-mono text-sm text-ink outline-none sm:text-xs',
   {
     variants: {
       size: {
-        sm: 'min-w-28',
-        md: 'min-w-36',
+        sm: 'min-w-0 sm:min-w-28',
+        md: 'min-w-0 sm:min-w-36',
       },
     },
     defaultVariants: {

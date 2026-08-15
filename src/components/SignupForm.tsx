@@ -6,7 +6,7 @@ import { linkChessUsername } from '@/lib/profile'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
 
-const fieldClass = 'w-full border border-line bg-canvas px-3 py-2 text-sm'
+const fieldClass = 'min-h-11 w-full border border-line bg-canvas px-3 text-base sm:text-sm'
 const MIN_PASSWORD = 8
 const MAX_PASSWORD = 72
 
@@ -270,7 +270,7 @@ export function SignupForm() {
           />
           <button
             type="button"
-            className="absolute top-1/2 right-2 -translate-y-1/2 px-1 text-xs text-muted hover:text-ink"
+            className="absolute top-1/2 right-1 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-muted hover:text-ink"
             onClick={() => setShowPassword((value) => !value)}
             aria-pressed={showPassword}
             aria-label={showPassword ? 'Hide passwords' : 'Show passwords'}
@@ -310,7 +310,7 @@ export function SignupForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-1 border border-ink bg-ink px-3 py-2 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
+        className="mt-1 inline-flex min-h-11 items-center justify-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
       >
         {pending ? 'Creating account…' : 'Create account'}
       </button>

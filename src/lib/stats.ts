@@ -12,43 +12,68 @@ import type {
 } from './analysis/types'
 import { emptyEndgameStats, emptyQualityStats, isOmissionMotif } from './analysis/types'
 import { pct } from './analysis/summarize'
+import { usableAccuracy, usableAcpl } from './analysis/classify'
 import type { Tables } from './supabase/database.types'
 
 export type Timeframe = 'today' | 'week' | 'month' | 'year' | 'all'
 
 export const TIMEFRAME_LABEL: Record<Timeframe, string> = {
   today: 'Today',
-  week: 'This week',
+  week: 'Last 7 days',
   month: 'This month',
   year: 'This year',
   all: 'All time',
 }
 
-export function timeframeStart(timeframe: Timeframe, now = new Date()): string | null {
-  if (timeframe === 'all') return null
-  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-  if (timeframe === 'today') {
-    // already at UTC midnight today
-  } else if (timeframe === 'week') {
-    date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7))
-  } else if (timeframe === 'month') {
-    date.setUTCDate(1)
-  } else {
-    date.setUTCMonth(0, 1)
-  }
-  return date.toISOString().slice(0, 10)
+/** YYYY-MM-DD in the viewer's local calendar. */
+export function localDateKey(now: Date): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
-export function inTimeframe(date: string, timeframe: Timeframe, now = new Date()) {
+/** Normalize Postgres dates, ISO timestamps, or Date objects to YYYY-MM-DD. */
+export function dateKey(value: string | Date | null | undefined): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return localDateKey(value)
+  if (typeof value !== 'string' || !value) return ''
+  const iso = value.slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : localDateKey(parsed)
+}
+
+export function timeframeStart(timeframe: Timeframe, now = new Date()): string | null {
+  if (timeframe === 'all') return null
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  if (timeframe === 'today') {
+    // local midnight today
+  } else if (timeframe === 'week') {
+    // Rolling 7 days so a game from yesterday is never dropped at a week boundary.
+    start.setDate(start.getDate() - 6)
+  } else if (timeframe === 'month') {
+    start.setDate(1)
+  } else {
+    start.setMonth(0, 1)
+  }
+  return localDateKey(start)
+}
+
+export function inTimeframe(
+  date: string | Date | null | undefined,
+  timeframe: Timeframe,
+  now = new Date(),
+) {
   const start = timeframeStart(timeframe, now)
-  return !start || date.slice(0, 10) >= start
+  const key = dateKey(date)
+  return !start || (key !== '' && key >= start)
 }
 
 export function gameTrend(games: Tables<'games'>[], timeframe: Timeframe) {
   const daily = timeframe === 'today' || timeframe === 'week' || timeframe === 'month'
   const buckets = new Map<string, { errors: number; blunders: number; moves: number }>()
   for (const game of games) {
-    const key = daily ? game.played_on : game.played_on.slice(0, 7)
+    const key = daily ? dateKey(game.played_on) : dateKey(game.played_on).slice(0, 7)
     const current = buckets.get(key) ?? { errors: 0, blunders: 0, moves: 0 }
     current.errors += game.blunder_count + game.mistake_count
     current.blunders += game.blunder_count
@@ -66,21 +91,28 @@ export function gameTrend(games: Tables<'games'>[], timeframe: Timeframe) {
 
 export function accuracyTrend(games: Tables<'games'>[], timeframe: Timeframe) {
   const daily = timeframe === 'today' || timeframe === 'week' || timeframe === 'month'
-  const buckets = new Map<string, { acplSum: number; accSum: number; games: number }>()
+  const buckets = new Map<string, { acplSum: number; accSum: number; acplN: number; accN: number }>()
   for (const game of games) {
-    const key = daily ? game.played_on : game.played_on.slice(0, 7)
-    const current = buckets.get(key) ?? { acplSum: 0, accSum: 0, games: 0 }
-    current.acplSum += Number(game.acpl) || 0
-    current.accSum += Number(game.accuracy_pct) || 0
-    current.games += 1
+    const key = daily ? dateKey(game.played_on) : dateKey(game.played_on).slice(0, 7)
+    const current = buckets.get(key) ?? { acplSum: 0, accSum: 0, acplN: 0, accN: 0 }
+    const acc = usableAccuracy(Number(game.accuracy_pct) || 0, Number(game.acpl) || 0)
+    const acpl = usableAcpl(Number(game.acpl) || 0)
+    if (acc != null) {
+      current.accSum += acc
+      current.accN += 1
+    }
+    if (acpl != null) {
+      current.acplSum += acpl
+      current.acplN += 1
+    }
     buckets.set(key, current)
   }
   return [...buckets.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, value]) => ({
       date,
-      acpl: value.games ? Math.round((value.acplSum / value.games) * 10) / 10 : 0,
-      accuracy: value.games ? Math.round((value.accSum / value.games) * 10) / 10 : 0,
+      acpl: value.acplN ? Math.round((value.acplSum / value.acplN) * 10) / 10 : 0,
+      accuracy: value.accN ? Math.round((value.accSum / value.accN) * 10) / 10 : 0,
     }))
 }
 

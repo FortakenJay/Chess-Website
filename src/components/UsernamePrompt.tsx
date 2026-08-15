@@ -48,7 +48,7 @@ export function UsernamePrompt() {
         name="username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        className="border border-line bg-canvas px-3 py-2 font-mono text-sm"
+        className="min-h-11 border border-line bg-canvas px-3 font-mono text-base sm:text-sm"
         autoCapitalize="off"
         autoCorrect="off"
         autoComplete="off"
@@ -62,7 +62,7 @@ export function UsernamePrompt() {
       <button
         type="submit"
         disabled={pending}
-        className="border border-ink bg-ink px-3 py-2 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
+        className="inline-flex min-h-11 items-center justify-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
       >
         {pending ? 'Checking…' : 'Link and import games'}
       </button>
