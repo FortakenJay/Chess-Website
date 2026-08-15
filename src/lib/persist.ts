@@ -86,6 +86,16 @@ export async function persistGames(
     if (error) throw error
   })
 
+  const links = [...new Set(analyses.map((game) => game.gameLink))]
+  await chunked(links, async (slice) => {
+    const { error } = await client
+      .from('flagged_positions')
+      .delete()
+      .eq('username', username)
+      .in('game_link', slice)
+    if (error) throw error
+  })
+
   await chunked(flaggedRows, async (slice) => {
     const { error } = await client.from('flagged_positions').upsert(slice, {
       onConflict: 'username,game_link,move_number',

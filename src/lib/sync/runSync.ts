@@ -109,8 +109,11 @@ export type RunUserSyncDeps = {
    * full = walk Chess.com months within the retention window and import any game not already saved
    *   (browser library backfill — ignores since for filtering, still respects retention)
    * incremental = only games newer than since (cron catch-up)
+   * reanalyze = walk the same months as full; use shouldAnalyze to rewrite saved games
    */
   history?: SyncHistoryMode
+  /** Override which downloaded games go through the engine. Default: not already saved. */
+  shouldAnalyze?: (game: RawGame, known: Set<string>) => boolean
 }
 
 function aborted(signal?: AbortSignal) {
@@ -215,7 +218,11 @@ export async function runUserSync(
         .sort((a, b) => b.endTime - a.endTime)
       chesscomSeen += downloaded.length
       for (const game of downloaded) maxEndTime = Math.max(maxEndTime, game.endTime)
-      const games = downloaded.filter((game) => !known.has(game.url))
+      const games = downloaded.filter((game) =>
+        deps.shouldAnalyze
+          ? deps.shouldAnalyze(game, known)
+          : history === 'reanalyze' || !known.has(game.url),
+      )
       discovered += games.length
 
       deps.onProgress?.({
@@ -275,7 +282,8 @@ export async function runUserSync(
     stopped(deps)
     await flush()
     await deps.markSync(username, maxEndTime)
-    historyComplete = history === 'full' && monthsDone >= monthsTotal
+    historyComplete =
+      (history === 'full' || history === 'reanalyze') && monthsDone >= monthsTotal
   } catch (error) {
     await flush()
     if (saved > 0 || maxEndTime > since) {

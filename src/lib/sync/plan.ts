@@ -7,7 +7,7 @@ export const DEFAULT_MOVETIME = 80
 /** Only keep / sync Chess.com games from this rolling window. */
 export const GAME_RETENTION_YEARS = 2
 
-export type SyncHistoryMode = 'full' | 'incremental'
+export type SyncHistoryMode = 'full' | 'incremental' | 'reanalyze'
 
 /** Unix seconds: games with endTime before this are out of retention. */
 export function gameRetentionCutoffSeconds(now = Date.now()): number {
@@ -32,6 +32,7 @@ export function filterArchivesByRetention(
  * Newest months first.
  * - full: every archive month within the retention window (browser library backfill)
  * - incremental: only months that can contain games newer than `since`
+ * - reanalyze: same months as full; caller decides which saved games to rewrite
  * Always respects GAME_RETENTION_YEARS (no games older than that window).
  */
 export function monthsToScan(
@@ -51,7 +52,7 @@ export function monthsToScan(
   // Never sync older than retention, even on full backfill.
   const sinceFloor = Math.max(sinceEndTime ?? 0, cutoff)
 
-  if (history === 'full') {
+  if (history === 'full' || history === 'reanalyze') {
     // Full history within retention only.
     return sorted
   }

@@ -44,14 +44,18 @@ function AnalyzePage() {
     sync.phase === 'complete'
       ? sync.mode === 'today'
         ? 'Today’s games checked'
-        : sync.historyComplete
-          ? 'Library synced'
-          : 'Sync pass finished'
+        : sync.mode === 'reanalyze'
+          ? 'Reanalyze finished'
+          : sync.historyComplete
+            ? 'Library synced'
+            : 'Sync pass finished'
       : sync.phase === 'error'
         ? 'Sync stopped'
         : sync.mode === 'today'
           ? 'Resyncing today'
-          : 'Building your library'
+          : sync.mode === 'reanalyze'
+            ? 'Reanalyzing stale games'
+            : 'Building your library'
 
   return (
     <AppShell username={name}>
@@ -108,6 +112,9 @@ function AnalyzePage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Button disabled={busy} onClick={sync.resyncToday}>
             Resync today
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={sync.reanalyze}>
+            Reanalyze stale games
           </Button>
           {sync.phase === 'error' || (sync.phase === 'complete' && !sync.historyComplete) ? (
             <Button variant="ghost" disabled={busy} onClick={sync.retry}>

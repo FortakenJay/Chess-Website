@@ -11,7 +11,8 @@
     "openings:build": "node scripts/build-opening-book.mjs",
     "puzzles:seed": "node scripts/build-puzzle-seed.mjs",
     "puzzles:download": "node scripts/download-lichess-puzzles.mjs",
-    "puzzles:import-full": "node scripts/download-lichess-puzzles.mjs --full"
+    "puzzles:import-full": "node scripts/download-lichess-puzzles.mjs --full",
+    "reanalyze": "npx tsx scripts/reanalyze-user.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

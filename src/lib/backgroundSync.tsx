@@ -18,7 +18,7 @@ import { errorMessage } from '@/lib/errorMessage'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { runUserSync, type SyncProgress } from '@/lib/sync/runSync'
 
-export type SyncMode = 'full' | 'today'
+export type SyncMode = 'full' | 'today' | 'reanalyze'
 
 export type BackgroundSyncState = {
   username: string | null
@@ -42,6 +42,7 @@ type BackgroundSyncContextValue = BackgroundSyncState & {
   start: () => void
   retry: () => void
   resyncToday: () => void
+  reanalyze: () => void
 }
 
 const INITIAL_STATE: BackgroundSyncState = {
@@ -82,7 +83,9 @@ function detailFromProgress(
         detail:
           mode === 'today'
             ? 'Looking for today’s newest Chess.com games…'
-            : 'Checking your saved library…',
+            : mode === 'reanalyze'
+              ? 'Finding games that still have the old engine scores…'
+              : 'Checking your saved library…',
       }
     case 'scanning':
       return {
@@ -97,7 +100,9 @@ function detailFromProgress(
               : 'Scanning for games from today…'
             : event.months === 0
               ? 'No Chess.com archives found.'
-              : `Preparing ${event.months} archive month${event.months === 1 ? '' : 's'} (full history)…`,
+              : mode === 'reanalyze'
+                ? `Reanalyzing stale games across ${event.months} archive month${event.months === 1 ? '' : 's'}…`
+                : `Preparing ${event.months} archive month${event.months === 1 ? '' : 's'} (full history)…`,
       }
     case 'month_batch':
       return {
@@ -110,11 +115,17 @@ function detailFromProgress(
         detail:
           mode === 'today'
             ? `Checking today’s games · ${event.libraryCount} saved in library…`
-            : `Scanning Chess.com months ${event.monthsDone}/${event.monthsTotal} · ${event.libraryCount} saved in library${
-                event.chesscomSeen > 0
-                  ? ` · ${event.chesscomSeen} standard games seen`
-                  : ''
-              }…`,
+            : mode === 'reanalyze'
+              ? `Reanalyze ${event.monthsDone}/${event.monthsTotal} · ${event.libraryCount} in library${
+                  event.chesscomSeen > 0
+                    ? ` · ${event.chesscomSeen} standard games seen`
+                    : ''
+                }…`
+              : `Scanning Chess.com months ${event.monthsDone}/${event.monthsTotal} · ${event.libraryCount} saved in library${
+                  event.chesscomSeen > 0
+                    ? ` · ${event.chesscomSeen} standard games seen`
+                    : ''
+                }…`,
       }
     case 'analyzing':
       if (event.phase === 'engine') {
@@ -146,7 +157,10 @@ function detailFromProgress(
         flagged: event.flagged,
         libraryCount: event.libraryCount,
         chesscomSeen: event.chesscomSeen,
-        detail: `Saved ${event.saved} new this session · library ${event.libraryCount}…`,
+        detail:
+          mode === 'reanalyze'
+            ? `Rewrote ${event.saved} game${event.saved === 1 ? '' : 's'} · library ${event.libraryCount}…`
+            : `Saved ${event.saved} new this session · library ${event.libraryCount}…`,
       }
     case 'complete':
       return {
@@ -166,7 +180,11 @@ function detailFromProgress(
             ? event.saved === 0
               ? `No new games from today. Library has ${event.libraryCount} standard games.`
               : `Added ${event.saved} game${event.saved === 1 ? '' : 's'} from today · library now ${event.libraryCount}.`
-            : event.historyComplete
+            : mode === 'reanalyze'
+              ? event.saved === 0
+                ? `No stale games left to rewrite. Library has ${event.libraryCount} standard games.`
+                : `Rewrote ${event.saved} game${event.saved === 1 ? '' : 's'} with the current engine · library ${event.libraryCount}.`
+              : event.historyComplete
               ? event.saved === 0
                 ? `Finished every Chess.com month. Library has ${event.libraryCount} standard games (${event.chesscomSeen} seen this pass). Variants like bughouse are skipped.`
                 : `Finished every Chess.com month. Added ${event.saved} this session · library now ${event.libraryCount} standard games (${event.chesscomSeen} seen this pass).`
@@ -193,15 +211,35 @@ async function syncGames(
     detail:
       mode === 'today'
         ? 'Looking for today’s newest Chess.com games…'
-        : 'Checking your saved library…',
+        : mode === 'reanalyze'
+          ? 'Finding games that still have the old engine scores…'
+          : 'Checking your saved library…',
   })
 
   const todayFloor = startOfTodayUtcSec() - 1
+  const staleLinks =
+    mode === 'reanalyze'
+      ? new Set(
+          (
+            await fetchAllRows((from, to) =>
+              supabase
+                .from('games')
+                .select('game_link')
+                .eq('username', username)
+                .is('analysis_budget', null)
+                .range(from, to),
+            )
+          ).map((row) => row.game_link),
+        )
+      : null
 
   await runUserSync(username, {
     signal,
-    history: mode === 'today' ? 'incremental' : 'full',
+    history: mode === 'today' ? 'incremental' : mode === 'reanalyze' ? 'reanalyze' : 'full',
     maxMonthsWithoutSince: mode === 'today' ? 1 : undefined,
+    shouldAnalyze: staleLinks
+      ? (game) => staleLinks.has(game.url)
+      : undefined,
     listArchives: (name) => listArchives({ data: { username: name } }),
     listMonthGames: (name, year, month, since) =>
       listMonthGames({
@@ -271,7 +309,9 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
           detail:
             mode === 'today'
               ? 'Today’s resync stopped — your saved games are kept. Try again when ready.'
-              : 'Sync stopped — your saved games are kept. Run Sync again to continue the library.',
+              : mode === 'reanalyze'
+                ? 'Reanalyze stopped — already rewritten games are kept. Run it again to continue.'
+                : 'Sync stopped — your saved games are kept. Run Sync again to continue the library.',
         }))
       })
 
@@ -288,9 +328,14 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
     setRunId((current) => current + 1)
   }, [])
 
+  const reanalyze = useCallback(() => {
+    modeRef.current = 'reanalyze'
+    setRunId((current) => current + 1)
+  }, [])
+
   const value = useMemo(
-    () => ({ ...state, start, retry: start, resyncToday }),
-    [resyncToday, start, state],
+    () => ({ ...state, start, retry: start, resyncToday, reanalyze }),
+    [reanalyze, resyncToday, start, state],
   )
 
   return (
