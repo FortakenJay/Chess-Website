@@ -46,6 +46,21 @@ async function loadEnvFiles() {
   }
 }
 
+async function withRetry<T>(run: () => Promise<T>, attempts = 5): Promise<T> {
+  let last: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await run()
+    } catch (error) {
+      last = error
+      const wait = Math.min(30_000, 1500 * 2 ** i)
+      console.warn(`Save failed (try ${i + 1}/${attempts}), retrying in ${wait / 1000}s…`)
+      await new Promise((resolve) => setTimeout(resolve, wait))
+    }
+  }
+  throw last
+}
+
 async function listUsernames(
   supabase: ReturnType<typeof getServiceClient>,
 ): Promise<string[]> {
@@ -147,8 +162,9 @@ async function main() {
             }
           }
         },
-        persistBatch: (analyses) => persistGames(supabase, analyses, { updateSyncState: false }),
-        markSync: (name, maxEndTime) => markSyncState(supabase, name, maxEndTime),
+        persistBatch: (analyses) =>
+          withRetry(() => persistGames(supabase, analyses, { updateSyncState: false })),
+        markSync: (name, maxEndTime) => withRetry(() => markSyncState(supabase, name, maxEndTime)),
         onProgress: (event) => {
           if (event.type === 'month_batch') {
             console.log(

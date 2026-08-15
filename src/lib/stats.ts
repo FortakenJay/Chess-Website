@@ -305,8 +305,8 @@ export function openingRepertoire(games: Tables<'games'>[]) {
   const refined = new Map<string, Acc>()
   for (const game of games) {
     const eco = game.opening_eco || '—'
-    const name = game.opening_name || eco
-    const key = `${eco}|${name}`
+    const name = (game.opening_name || '').trim() || eco
+    const key = name.toLowerCase()
     const opening = (game.phase_stats as unknown as PhaseStats)?.opening
     const cur = refined.get(key) ?? {
       eco,

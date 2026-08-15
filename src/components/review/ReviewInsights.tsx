@@ -8,6 +8,7 @@ import {
   phaseAccuracyFromPlies,
 } from '@/lib/analysis/reportStats'
 import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
+import { PHASE_LABEL } from '@/lib/stats'
 import { cn } from '@/lib/cn'
 
 function StandBar({
@@ -94,6 +95,83 @@ function AccuracyChart({ analysis }: { analysis: GameAnalysis }) {
   )
 }
 
+function phaseErrors(analysis: GameAnalysis, phase: Phase) {
+  const bucket = analysis.phaseStats[phase]
+  return bucket.blunder + bucket.mistake + bucket.inaccuracy
+}
+
+function slipCompare(yours: number, theirs: number | null): string | null {
+  if (theirs == null || theirs <= 0) return null
+  const ratio = yours / theirs
+  if (ratio >= 1.8) return 'You gave away about twice as much as they did.'
+  if (ratio >= 1.15) return 'You leaked more than they did this game.'
+  if (ratio <= 0.55) return 'You were much cleaner than they were.'
+  if (ratio <= 0.85) return 'You were cleaner than they were.'
+  return 'You leaked about the same amount.'
+}
+
+function EngineStats({ analysis }: { analysis: GameAnalysis }) {
+  const phases: Phase[] = ['opening', 'middlegame', 'endgame']
+  const opp = analysis.opponentAcpl
+  const note = slipCompare(analysis.acpl, opp ?? null)
+
+  return (
+    <section className="border border-line bg-surface p-4">
+      <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Slip size</h3>
+      <p className="mt-1 text-sm text-muted text-pretty">
+        Average you give away each move, in hundredths of a pawn. Lower is cleaner.
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-sm text-muted">You</p>
+          <p className="mt-1 font-mono text-2xl tabular tracking-tight">{analysis.acpl}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted">Opponent</p>
+          <p className="mt-1 font-mono text-2xl tabular tracking-tight text-muted">
+            {opp ?? '—'}
+          </p>
+        </div>
+      </div>
+      {note ? <p className="mt-2 text-sm text-pretty text-ink">{note}</p> : null}
+
+      <h4 className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+        Errors by phase
+      </h4>
+      <ul className="mt-3 space-y-3">
+        {phases.map((phase) => {
+          const total = analysis.phaseStats[phase].total
+          const errors = phaseErrors(analysis, phase)
+          const width = total ? Math.max(errors > 0 ? 6 : 0, (errors / total) * 100) : 0
+          return (
+            <li key={phase}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span>{PHASE_LABEL[phase]}</span>
+                <span className="font-mono text-xs tabular text-muted">
+                  {total === 0 ? "Didn't reach" : `${errors} of ${total} moves`}
+                </span>
+              </div>
+              <div className="mt-1.5 h-2 bg-surface-2" aria-hidden>
+                <div
+                  className="h-full bg-blunder"
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+
+      <p className="mt-5 font-mono text-xs text-muted">
+        <span className="tabular">{analysis.totalMoves}</span> moves
+        {' · '}
+        <span className="tabular">{analysis.flagged.length}</span> flagged
+      </p>
+    </section>
+  )
+}
+
 export function ReviewInsights({ analysis }: { analysis: GameAnalysis }) {
   const bandLow = Math.floor(((analysis.userRating ?? 1200) - 100) / 100) * 100
   const bandHigh = bandLow + 199
@@ -148,38 +226,7 @@ export function ReviewInsights({ analysis }: { analysis: GameAnalysis }) {
         </div>
       </section>
 
-      <section className="border border-line bg-surface p-4">
-        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Engine stats</h3>
-        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <dt className="text-muted">Your ACPL</dt>
-            <dd className="font-mono text-lg tabular">{analysis.acpl}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Opp ACPL</dt>
-            <dd className="font-mono text-lg tabular">{analysis.opponentAcpl ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Moves</dt>
-            <dd className="font-mono text-lg tabular">{analysis.totalMoves}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Flagged</dt>
-            <dd className="font-mono text-lg tabular">{analysis.flagged.length}</dd>
-          </div>
-          {(Object.keys(analysis.phaseStats) as Phase[]).map((phase) => (
-            <div key={phase}>
-              <dt className="capitalize text-muted">{phase} errors</dt>
-              <dd className="font-mono text-lg tabular">
-                {analysis.phaseStats[phase].blunder +
-                  analysis.phaseStats[phase].mistake +
-                  analysis.phaseStats[phase].inaccuracy}
-                <span className="text-muted">/{analysis.phaseStats[phase].total}</span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      <EngineStats analysis={analysis} />
     </div>
   )
 }

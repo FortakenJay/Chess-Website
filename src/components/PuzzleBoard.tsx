@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import { useReducer, type CSSProperties } from 'react'
+import { useEffect, useReducer, useRef, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { FittedBoardFrame } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
@@ -14,6 +14,7 @@ type BoardState = {
   fen: string
   failed: boolean
   solved: boolean
+  replying: boolean
   selectedSquare: string | null
   score: { correct: number; total: number }
 }
@@ -22,7 +23,7 @@ type BoardAction =
   | { type: 'reset'; fen: string }
   | { type: 'select'; square: string | null }
   | { type: 'fail' }
-  | { type: 'progress'; fen: string; ply: number; solved: boolean }
+  | { type: 'progress'; fen: string; ply: number; solved: boolean; replying?: boolean }
   | { type: 'next'; index: number; fen: string }
 
 function boardReducer(state: BoardState, action: BoardAction): BoardState {
@@ -34,6 +35,7 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
         ply: 0,
         failed: false,
         solved: false,
+        replying: false,
         selectedSquare: null,
       }
     case 'select':
@@ -42,6 +44,7 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
       return {
         ...state,
         failed: true,
+        replying: false,
         selectedSquare: null,
         score: { ...state.score, total: state.score.total + 1 },
       }
@@ -51,6 +54,7 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
         fen: action.fen,
         ply: action.ply,
         solved: action.solved,
+        replying: action.replying ?? false,
         selectedSquare: null,
         score: action.solved
           ? { correct: state.score.correct + 1, total: state.score.total + 1 }
@@ -64,6 +68,7 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
         ply: 0,
         failed: false,
         solved: false,
+        replying: false,
         selectedSquare: null,
       }
     default:
@@ -78,6 +83,7 @@ function initialBoard(puzzles: PracticePuzzle[]): BoardState {
     fen: puzzles[0]?.fen ?? '',
     failed: false,
     solved: false,
+    replying: false,
     selectedSquare: null,
     score: { correct: 0, total: 0 },
   }
@@ -85,18 +91,26 @@ function initialBoard(puzzles: PracticePuzzle[]): BoardState {
 
 export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
   const [state, dispatch] = useReducer(boardReducer, puzzles, initialBoard)
-  const { index, ply, fen, failed, solved, selectedSquare, score } = state
+  const { index, ply, fen, failed, solved, replying, selectedSquare, score } = state
+  const replyTimer = useRef<number | null>(null)
 
   const puzzle = puzzles[index]
   const sideToMove = fen.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = (puzzle?.color ?? 'white') === 'black' ? 'black' : 'white'
+
+  useEffect(
+    () => () => {
+      if (replyTimer.current != null) window.clearTimeout(replyTimer.current)
+    },
+    [],
+  )
 
   if (!puzzle) {
     return <p className="text-sm text-muted">No puzzles match these filters yet.</p>
   }
 
   function makeMove(sourceSquare: string, targetSquare: string | null) {
-    if (!targetSquare || failed || solved) return false
+    if (!targetSquare || failed || solved || replying) return false
     const expected = puzzle.solution[ply]
     if (!expected) return false
 
@@ -120,24 +134,33 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
       return true
     }
 
-    let nextPly = ply + 1
-    let nextFen = board.fen()
+    const nextPly = ply + 1
+    const userFen = board.fen()
 
     if (nextPly < puzzle.solution.length) {
       const reply = puzzle.solution[nextPly]!
-      if (playUci(board, reply)) {
-        nextPly += 1
-        nextFen = board.fen()
-      }
+      dispatch({ type: 'progress', fen: userFen, ply: nextPly, solved: false, replying: true })
+      replyTimer.current = window.setTimeout(() => {
+        const replyBoard = new Chess(userFen)
+        const played = playUci(replyBoard, reply)
+        const replyPly = played ? nextPly + 1 : nextPly
+        dispatch({
+          type: 'progress',
+          fen: played ? replyBoard.fen() : userFen,
+          ply: replyPly,
+          solved: replyPly >= puzzle.solution.length,
+        })
+        replyTimer.current = null
+      }, 500)
+      return true
     }
 
-    const done = nextPly >= puzzle.solution.length
-    dispatch({ type: 'progress', fen: nextFen, ply: nextPly, solved: done })
+    dispatch({ type: 'progress', fen: userFen, ply: nextPly, solved: true })
     return true
   }
 
   function onSquareClick(square: string) {
-    if (failed || solved) return
+    if (failed || solved || replying) return
     const next = nextSelectedSquare(fen, selectedSquare, square)
     if (next.action === 'select') {
       dispatch({ type: 'select', square: next.square })
@@ -147,17 +170,21 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
   }
 
   function next() {
+    if (replyTimer.current != null) window.clearTimeout(replyTimer.current)
+    replyTimer.current = null
     const nextIndex = (index + 1) % puzzles.length
     const nextPuzzle = puzzles[nextIndex]!
     dispatch({ type: 'next', index: nextIndex, fen: nextPuzzle.fen })
   }
 
   function retry() {
+    if (replyTimer.current != null) window.clearTimeout(replyTimer.current)
+    replyTimer.current = null
     dispatch({ type: 'reset', fen: puzzle.fen })
   }
 
   const squareStyles: Record<string, CSSProperties> =
-    failed || solved ? {} : legalMoveStyles(fen, selectedSquare)
+    failed || solved || replying ? {} : legalMoveStyles(fen, selectedSquare)
 
   if (failed) {
     const expected = puzzle.solution[ply]
@@ -178,9 +205,11 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
             options={{
               position: fen,
               boardOrientation: orientation,
-              allowDragging: !failed && !solved,
+              allowDragging: !failed && !solved && !replying,
               onPieceDrag: ({ square }) => {
-                if (square && !failed && !solved) dispatch({ type: 'select', square })
+                if (square && !failed && !solved && !replying) {
+                  dispatch({ type: 'select', square })
+                }
               },
               onPieceDrop: ({ sourceSquare, targetSquare }) =>
                 makeMove(sourceSquare, targetSquare),
@@ -233,7 +262,9 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
         </Panel>
         <Panel className="shrink-0 text-sm">
           {!failed && !solved ? (
-            <p className="text-muted">Find the tactic. Opponent replies play automatically.</p>
+            <p className="text-muted">
+              {replying ? 'Opponent is replying…' : 'Find the tactic. Opponent replies play automatically.'}
+            </p>
           ) : null}
           {failed ? (
             <p className="text-blunder">Not the solution line. Highlighted is the key move.</p>

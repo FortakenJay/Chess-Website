@@ -645,6 +645,28 @@ export function RecoveryChart({
   )
 }
 
+function OpeningMeter({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: number
+  color: string
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 font-mono text-[11px]">
+        <span className="text-muted">{label}</span>
+        <span className="tabular text-ink">{value}%</span>
+      </div>
+      <div className="mt-1 h-2 bg-surface-2" aria-hidden>
+        <div className="h-full" style={{ width: `${Math.min(100, Math.max(value > 0 ? 4 : 0, value))}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  )
+}
+
 export function OpeningRepertoireChart({
   rows,
 }: {
@@ -653,27 +675,34 @@ export function OpeningRepertoireChart({
   if (rows.length === 0) {
     return (
       <Frame title="Opening repertoire" variant="panel">
-        <p className="text-sm text-muted text-pretty">No ECO tags yet. Re-sync to pull opening headers.</p>
+        <p className="text-sm text-muted text-pretty">No opening names yet. Re-sync to pull opening headers.</p>
       </Frame>
     )
   }
-  const data = rows.slice(0, 8).map((row) => ({
-    name: row.eco === '—' ? row.name.slice(0, 14) : row.eco,
-    error: row.errorPct,
-    win: row.winPct,
-  }))
   return (
-    <Frame title="Opening repertoire (ECO)">
-      <ResponsiveContainer>
-        <BarChart data={data}>
-          <CartesianGrid {...grid} vertical={false} />
-          <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
-          <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
-          <Tooltip content={<ValueTooltip suffix="%" />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="opening errors" fill="#e5484d" maxBarSize={28} />
-          <Bar dataKey="win" name="win %" fill="#ececec" maxBarSize={28} />
-        </BarChart>
-      </ResponsiveContainer>
+    <Frame
+      title="Opening repertoire"
+      hint="Most-played lines. Error rate is blunders and mistakes in the opening."
+      variant="panel"
+    >
+      <ul className="flex flex-col gap-3.5">
+        {rows.slice(0, 8).map((row) => (
+          <li key={row.name}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 truncate text-sm text-ink" title={row.name}>
+                {row.name}
+              </span>
+              <span className="shrink-0 font-mono text-[11px] tabular text-muted">
+                {row.games} {row.games === 1 ? 'game' : 'games'}
+              </span>
+            </div>
+            <div className="mt-1.5 grid grid-cols-2 gap-3">
+              <OpeningMeter label="errors" value={row.errorPct} color="#e5484d" />
+              <OpeningMeter label="wins" value={row.winPct} color="#ececec" />
+            </div>
+          </li>
+        ))}
+      </ul>
     </Frame>
   )
 }

@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Chess } from 'chess.js'
 import { useMemo } from 'react'
 import { AppShell } from '@/components/AppShell'
 import { DrillBoard } from '@/components/DrillBoard'
@@ -9,6 +10,7 @@ import type { Tables } from '@/lib/supabase/database.types'
 
 type DrillSearch = {
   position?: string
+  fen?: string
   ids?: string
   motif?: string
   motifKind?: string
@@ -23,6 +25,7 @@ type DrillSearch = {
 export const Route = createFileRoute('/drill/$username')({
   validateSearch: (search: Record<string, unknown>): DrillSearch => ({
     position: typeof search.position === 'string' ? search.position : undefined,
+    fen: typeof search.fen === 'string' ? search.fen : undefined,
     ids: typeof search.ids === 'string' ? search.ids : undefined,
     motif: typeof search.motif === 'string' ? search.motif : undefined,
     motifKind: typeof search.motifKind === 'string' ? search.motifKind : undefined,
@@ -43,7 +46,44 @@ export const Route = createFileRoute('/drill/$username')({
   component: DrillPage,
 })
 
-function selectPositions(all: Tables<'flagged_positions'>[], search: DrillSearch) {
+function adhocFromFen(username: string, fen: string): Tables<'flagged_positions'> | null {
+  try {
+    const board = new Chess(fen)
+    const color = board.turn() === 'b' ? 'black' : 'white'
+    return {
+      id: 'adhoc',
+      username,
+      played_on: new Date().toISOString().slice(0, 10),
+      opponent: 'analysis',
+      color,
+      move_number: board.moveNumber(),
+      san: '',
+      loss: 0,
+      classification: 'inaccuracy',
+      quality: 'inaccuracy',
+      phase: 'middlegame',
+      endgame_type: null,
+      clock_left: null,
+      fen_before: board.fen(),
+      game_link: '',
+      motif: null,
+      motif_kind: null,
+      time_class: null,
+    }
+  } catch {
+    return null
+  }
+}
+
+function selectPositions(
+  all: Tables<'flagged_positions'>[],
+  search: DrillSearch,
+  username: string,
+) {
+  if (search.fen) {
+    const adhoc = adhocFromFen(username, search.fen)
+    return adhoc ? [adhoc] : []
+  }
   let rows = all
   if (search.ids) {
     const set = new Set(search.ids.split(',').filter(Boolean))
@@ -81,13 +121,13 @@ function DrillPage() {
   const name = normalizeUsername(username)
   const query = usePlayerData(name)
   const positions = useMemo(
-    () => selectPositions(query.data?.positions ?? [], search),
-    [query.data?.positions, search],
+    () => selectPositions(query.data?.positions ?? [], search, name),
+    [query.data?.positions, search, name],
   )
 
   return (
-    <AppShell username={name} dense={positions.length > 0 && !query.isLoading}>
-      {query.isLoading ? (
+    <AppShell username={name} dense={positions.length > 0}>
+      {query.isLoading && !search.fen ? (
         <BoardPageSkeleton label="Loading drill positions" className="mt-0" />
       ) : positions.length > 0 ? (
         <DrillBoard username={name} positions={positions} />

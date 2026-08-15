@@ -36,6 +36,7 @@ export function DrillBoard({
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
 
   const position = positions[index]
+  const adhoc = position?.id === 'adhoc' || !position?.san
   const sideToMove = position?.fen_before.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = sideToMove === 'Black' ? 'black' : 'white'
 
@@ -96,7 +97,7 @@ export function DrillBoard({
         correct: s.correct + (matchedBest ? 1 : 0),
         total: s.total + 1,
       }))
-      if (owner) {
+      if (owner && position.id && position.id !== 'adhoc') {
         await getBrowserClient().from('drill_attempts').insert({
           username,
           position_id: position.id,
@@ -176,21 +177,27 @@ export function DrillBoard({
           <div className="mt-2 font-mono text-2xl tabular">
             {score.correct}/{score.total}
           </div>
-          <div className="mt-4 text-sm text-muted">
-            {position.played_on} · {position.color} vs {position.opponent} · move{' '}
-            {position.move_number}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <ClassificationBadge value={position.classification as Exclude<Classification, 'fine'>} />
-            <span className="font-mono text-xs text-muted">
-              {PHASE_LABEL[position.phase as keyof typeof PHASE_LABEL]}
-            </span>
-            {position.motif ? (
-              <span className="font-mono text-xs text-muted">
-                {MOTIF_LABEL[position.motif as keyof typeof MOTIF_LABEL]}
-              </span>
-            ) : null}
-          </div>
+          {adhoc ? (
+            <p className="mt-4 text-sm text-muted">Position from analysis. Find the engine move.</p>
+          ) : (
+            <>
+              <div className="mt-4 text-sm text-muted">
+                {position.played_on} · {position.color} vs {position.opponent} · move{' '}
+                {position.move_number}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <ClassificationBadge value={position.classification as Exclude<Classification, 'fine'>} />
+                <span className="font-mono text-xs text-muted">
+                  {PHASE_LABEL[position.phase as keyof typeof PHASE_LABEL]}
+                </span>
+                {position.motif ? (
+                  <span className="font-mono text-xs text-muted">
+                    {MOTIF_LABEL[position.motif as keyof typeof MOTIF_LABEL]}
+                  </span>
+                ) : null}
+              </div>
+            </>
+          )}
         </Panel>
         <Panel className="shrink-0 text-sm">
           {!reveal && !thinking ? (
@@ -209,18 +216,24 @@ export function DrillBoard({
                 <dt className="text-muted">Best move</dt>
                 <dd className="text-[#81b64c]">{reveal.bestSan}</dd>
               </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-muted">In that game</dt>
-                <dd className="text-blunder">{position.san}</dd>
-              </div>
+              {adhoc ? null : (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted">In that game</dt>
+                  <dd className="text-blunder">{position.san}</dd>
+                </div>
+              )}
               <div className="pt-2 text-pretty text-ink">
-                {reveal.matchedBest
-                  ? reveal.matchedHistorical
-                    ? 'This try matches the engine — and it is also what you played in the game.'
-                    : `This try matches the engine. In the game you played ${position.san}.`
-                  : reveal.matchedHistorical
-                    ? `This try repeats the game move. The engine wanted ${reveal.bestSan}.`
-                    : `This try is neither the engine move (${reveal.bestSan}) nor the game move (${position.san}).`}
+                {adhoc
+                  ? reveal.matchedBest
+                    ? 'This try matches the engine.'
+                    : `The engine wanted ${reveal.bestSan}.`
+                  : reveal.matchedBest
+                    ? reveal.matchedHistorical
+                      ? 'This try matches the engine — and it is also what you played in the game.'
+                      : `This try matches the engine. In the game you played ${position.san}.`
+                    : reveal.matchedHistorical
+                      ? `This try repeats the game move. The engine wanted ${reveal.bestSan}.`
+                      : `This try is neither the engine move (${reveal.bestSan}) nor the game move (${position.san}).`}
               </div>
             </dl>
           ) : null}

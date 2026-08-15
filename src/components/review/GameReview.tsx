@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
+import { ButtonLink } from '@/components/ui'
 import type { AnalyzedPly, EngineLine, GameAnalysis, MoveQuality } from '@/lib/analysis/types'
 import {
   coachCopy,
@@ -23,7 +25,15 @@ import {
   moveIdle,
 } from '@/components/review/reviewUi'
 import { cn } from '@/lib/cn'
+import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
+
+type ExploreMove = {
+  san: string
+  from: string
+  to: string
+  fenAfter: string
+}
 
 type ReviewTab = 'report' | 'analysis' | 'insights'
 
@@ -46,6 +56,22 @@ function formatLineMoves(line: EngineLine, maxMoves = 8): string {
   return sans.slice(0, maxMoves).join(' ')
 }
 
+function isLeakPly(ply: AnalyzedPly) {
+  return (
+    ply.isUserMove &&
+    (ply.quality === 'inaccuracy' ||
+      ply.quality === 'mistake' ||
+      ply.quality === 'blunder' ||
+      ply.quality === 'miss')
+  )
+}
+
+function curveIndexFromClick(el: HTMLElement, clientX: number, count: number) {
+  const rect = el.getBoundingClientRect()
+  const t = (clientX - rect.left) / Math.max(1, rect.width)
+  return Math.max(0, Math.min(count - 1, Math.round(t * (count - 1))))
+}
+
 function EvalGraph({
   curve,
   plies,
@@ -60,54 +86,67 @@ function EvalGraph({
   if (curve.length < 2) return null
   const w = 320
   const h = 72
-  const maxAbs = Math.max(200, ...curve.map((v) => Math.min(800, Math.abs(v))))
+  const last = curve.length - 1
+  const maxAbs = Math.max(200, ...curve.map((cp) => Math.min(800, Math.abs(cp))))
   const points = curve
     .map((cp, i) => {
-      const x = (i / (curve.length - 1)) * w
+      const x = (i / last) * w
       const y = h / 2 - (Math.max(-maxAbs, Math.min(maxAbs, cp)) / maxAbs) * (h / 2 - 4)
       return `${x},${y}`
     })
     .join(' ')
+  const leaks = plies.filter(isLeakPly)
 
   return (
-    <div className="relative border-t border-line bg-surface-2 px-2 py-2">
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-16 w-full" role="img" aria-label="Evaluation graph">
-        <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke="currentColor" className="text-line" strokeWidth="1" />
-        <polyline fill="none" stroke="#ececec" strokeWidth="1.5" points={points} />
-        {plies.map((ply) => {
-          if (!ply.isUserMove || !ply.quality) return null
-          if (
-            ply.quality === 'brilliant' ||
-            ply.quality === 'great' ||
-            ply.quality === 'book' ||
-            ply.quality === 'best' ||
-            ply.quality === 'excellent' ||
-            ply.quality === 'good'
-          ) return null
-          const x = ((ply.ply + 1) / (curve.length - 1)) * w
-          const y = h / 2 - (Math.max(-maxAbs, Math.min(maxAbs, ply.evalCp)) / maxAbs) * (h / 2 - 4)
-          const fill = QUALITY_COLOR[ply.quality]
-          return <circle key={ply.ply} cx={x} cy={y} r="3.5" fill={fill} />
-        })}
-        <line
-          x1={(cursor / Math.max(1, curve.length - 1)) * w}
-          y1="0"
-          x2={(cursor / Math.max(1, curve.length - 1)) * w}
-          y2={h}
-          stroke="#e8c547"
-          strokeWidth="1.5"
-        />
-      </svg>
-      <div className="absolute inset-0 flex">
-        {curve.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            className="quiet h-full flex-1 hover:bg-ink/10"
-            aria-label={`Go to ply ${i}`}
-            onClick={() => onSelect(i)}
+    <div className="border-t border-line bg-surface-2 px-2 py-2">
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          className="block w-full"
+          role="img"
+          aria-label="Evaluation graph"
+        >
+          <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke="currentColor" className="text-line" strokeWidth="1" />
+          <polyline fill="none" stroke="#ececec" strokeWidth="1.5" points={points} />
+          {leaks.map((ply) => {
+            const x = ((ply.ply + 1) / last) * w
+            const y = h / 2 - (Math.max(-maxAbs, Math.min(maxAbs, ply.evalCp)) / maxAbs) * (h / 2 - 4)
+            return <circle key={ply.ply} cx={x} cy={y} r="4.5" fill={QUALITY_COLOR[ply.quality!]} />
+          })}
+          <line
+            x1={(cursor / last) * w}
+            y1="0"
+            x2={(cursor / last) * w}
+            y2={h}
+            stroke="#e8c547"
+            strokeWidth="1.5"
           />
-        ))}
+        </svg>
+        <button
+          type="button"
+          className="quiet absolute inset-0"
+          aria-label="Jump to move on the graph"
+          onClick={(event) => {
+            onSelect(curveIndexFromClick(event.currentTarget, event.clientX, curve.length))
+          }}
+        />
+        {leaks.map((ply) => {
+          const xPct = ((ply.ply + 1) / last) * 100
+          const y =
+            h / 2 -
+            (Math.max(-maxAbs, Math.min(maxAbs, ply.evalCp)) / maxAbs) * (h / 2 - 4)
+          const yPct = (y / h) * 100
+          return (
+            <button
+              key={ply.ply}
+              type="button"
+              className="quiet absolute z-10 h-11 w-11 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${xPct}%`, top: `${yPct}%` }}
+              aria-label={`Go to ${ply.san}`}
+              onClick={() => onSelect(ply.ply + 1)}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -123,9 +162,16 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   const [activeLine, setActiveLine] = useState(0)
   const [engineLines, setEngineLines] = useState<EngineLine[]>([])
   const [linesLoading, setLinesLoading] = useState(false)
+  const [engineEnabled, setEngineEnabled] = useState(true)
+  const [engineTime, setEngineTime] = useState(280)
+  const [engineMultiPv, setEngineMultiPv] = useState(3)
+  const [explore, setExplore] = useState<ExploreMove[]>([])
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
 
   const currentPly = cursor === 0 ? null : plies[cursor - 1] ?? null
-  const fen = currentPly?.fenAfter ?? plies[0]?.fenBefore ?? undefined
+  const gameFen = currentPly?.fenAfter ?? plies[0]?.fenBefore ?? undefined
+  const fen = explore.at(-1)?.fenAfter ?? gameFen
+  const exploring = explore.length > 0
   const orientation = analysis.color === 'black' ? 'black' : 'white'
 
   const topLine = engineLines[0]
@@ -135,6 +181,13 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   const barPct = evalBarWhitePct(topLine?.cp ?? currentPly?.evalCp ?? evalCurve[0] ?? 0)
 
   const coach = useMemo(() => {
+    if (exploring) {
+      const last = explore.at(-1)!
+      return {
+        title: `You played ${last.san}`,
+        body: 'Engine is scoring this line. Undo or drill the position on the board.',
+      }
+    }
     if (!currentPly?.isUserMove) {
       return {
         title: analysis.openingName
@@ -142,19 +195,28 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           : currentPly
             ? `${currentPly.san}`
             : 'Starting position',
-        body: currentPly?.isUserMove === false ? 'Opponent move.' : 'Browse moves or open the engine line.',
+        body: currentPly?.isUserMove === false
+          ? 'Opponent move. Play a move on the board to try a different line.'
+          : 'Play a move on the board, or step through the game.',
       }
     }
     return coachCopy(currentPly.quality, currentPly.san)
-  }, [analysis.openingName, currentPly])
+  }, [analysis.openingName, currentPly, explore, exploring])
 
   const lastMoveStyles = useMemo(() => {
+    const last = explore.at(-1)
+    if (last) {
+      return {
+        [last.from]: { backgroundColor: 'rgba(232, 197, 71, 0.35)' },
+        [last.to]: { backgroundColor: 'rgba(232, 197, 71, 0.5)' },
+      } satisfies Record<string, CSSProperties>
+    }
     if (!currentPly) return {}
     return {
       [currentPly.from]: { backgroundColor: 'rgba(232, 197, 71, 0.35)' },
       [currentPly.to]: { backgroundColor: 'rgba(232, 197, 71, 0.5)' },
     } satisfies Record<string, CSSProperties>
-  }, [currentPly])
+  }, [currentPly, explore])
 
   const arrowStyles = useMemo(() => {
     if (!showBest) return undefined
@@ -179,17 +241,69 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
     setShowBest(false)
     setActiveLine(0)
     setEngineLines([])
+    setExplore([])
+    setSelectedSquare(null)
   }, [cursor])
 
-  useEffect(() => {
+  function playExploreMove(sourceSquare: string, targetSquare: string | null) {
+    if (!fen || !targetSquare) return false
+    const board = new Chess(fen)
+    if (board.isGameOver()) return false
+    const move = board.move({
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: 'q',
+    })
+    if (!move) return false
+    setSelectedSquare(null)
+    setExplore((line) => [
+      ...line,
+      { san: move.san, from: move.from, to: move.to, fenAfter: board.fen() },
+    ])
+    return true
+  }
+
+  function onSquareClick(square: string) {
     if (!fen) return
+    const next = nextSelectedSquare(fen, selectedSquare, square)
+    if (next.action === 'select') {
+      setSelectedSquare(next.square)
+      return
+    }
+    playExploreMove(next.from, next.to)
+  }
+
+  function stepBack() {
+    if (explore.length) {
+      setExplore((line) => line.slice(0, -1))
+      setSelectedSquare(null)
+      return
+    }
+    setCursor((c) => Math.max(0, c - 1))
+  }
+
+  function stepForward() {
+    if (explore.length) {
+      setExplore([])
+      setSelectedSquare(null)
+    }
+    setCursor((c) => Math.min(evalCurve.length - 1, c + 1))
+  }
+
+  useEffect(() => {
+    if (!fen || !engineEnabled) {
+      setLinesLoading(false)
+      setEngineLines([])
+      setShowBest(false)
+      return
+    }
     let cancelled = false
     setLinesLoading(true)
     const handle = window.setTimeout(() => {
-      void evaluateLines(fen, 280, 3)
+      void evaluateLines(fen, engineTime, engineMultiPv)
         .then((lines) => {
           if (cancelled) return
-          setEngineLines(lines.slice(0, 3))
+          setEngineLines(lines.slice(0, engineMultiPv))
           setShowBest(true)
         })
         .catch(() => {
@@ -203,25 +317,29 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
       cancelled = true
       window.clearTimeout(handle)
     }
-  }, [fen])
+  }, [engineEnabled, engineMultiPv, engineTime, fen])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
-        setCursor((c) => Math.max(0, c - 1))
+        stepBack()
       } else if (event.key === 'ArrowRight') {
         event.preventDefault()
-        setCursor((c) => Math.min(evalCurve.length - 1, c + 1))
+        stepForward()
       } else if (event.key === 'Home') {
+        setExplore([])
+        setSelectedSquare(null)
         setCursor(0)
       } else if (event.key === 'End') {
+        setExplore([])
+        setSelectedSquare(null)
         setCursor(evalCurve.length - 1)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [evalCurve.length])
+  }, [evalCurve.length, explore.length])
 
   const pairs: Array<{ moveNumber: number; white?: AnalyzedPly; black?: AnalyzedPly }> = []
   for (const ply of plies) {
@@ -285,8 +403,17 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
               options={{
                 position: fen,
                 boardOrientation: orientation,
-                allowDragging: false,
-                squareStyles: lastMoveStyles,
+                allowDragging: Boolean(fen),
+                onPieceDrag: ({ square }) => {
+                  if (square) setSelectedSquare(square)
+                },
+                onPieceDrop: ({ sourceSquare, targetSquare }) =>
+                  playExploreMove(sourceSquare, targetSquare),
+                onSquareClick: ({ square }) => onSquareClick(square),
+                squareStyles: {
+                  ...lastMoveStyles,
+                  ...(fen ? legalMoveStyles(fen, selectedSquare) : {}),
+                },
                 arrows: arrowStyles,
                 darkSquareStyle: { backgroundColor: '#3d4450' },
                 lightSquareStyle: { backgroundColor: '#9aa0a8' },
@@ -308,7 +435,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           <button
             type="button"
             className={cn(btnNav, 'px-2 py-1 font-mono text-xs')}
-            onClick={() => setCursor((c) => Math.max(0, c - 1))}
+            onClick={stepBack}
             aria-label="Previous move"
           >
             ‹
@@ -337,7 +464,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           <button
             type="button"
             className={cn(btnNav, 'px-2 py-1 font-mono text-xs')}
-            onClick={() => setCursor((c) => Math.min(evalCurve.length - 1, c + 1))}
+            onClick={stepForward}
             aria-label="Next move"
           >
             ›
@@ -353,12 +480,16 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
         </div>
       </section>
 
-      <section className="flex min-h-[22rem] flex-col overflow-hidden border border-line bg-surface lg:min-h-0">
+      <section className="flex min-h-[22rem] flex-col overflow-y-auto overscroll-contain border border-line bg-surface lg:min-h-0">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-3 py-3 sm:px-4">
           <div className="min-w-0">
             <p className={cn('text-base font-medium', qualityClass(currentPly?.quality))}>{coach.title}</p>
             <p className="mt-1 text-sm text-muted">{coach.body}</p>
-            {currentPly?.isUserMove && currentPly.bestSan && currentPly.quality !== 'best' ? (
+            {exploring ? (
+              <p className="mt-2 font-mono text-xs text-muted">
+                Line {explore.map((move) => move.san).join(' ')}
+              </p>
+            ) : currentPly?.isUserMove && currentPly.bestSan && currentPly.quality !== 'best' ? (
               <p className="mt-2 font-mono text-xs text-[#81b64c]">Best was {currentPly.bestSan}</p>
             ) : null}
           </div>
@@ -369,11 +500,65 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
 
         <div className="shrink-0 space-y-2 border-b border-line px-3 py-3 sm:px-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-muted">Top 3 lines</p>
-            <span className="font-mono text-[11px] text-muted">
-              Acc {Math.round(analysis.accuracyPct)}% · ACPL {analysis.acpl}
-            </span>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-muted">
+                {engineEnabled ? `Top ${engineMultiPv} ${engineMultiPv === 1 ? 'line' : 'lines'}` : 'Engine paused'}
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-muted">
+                Acc {Math.round(analysis.accuracyPct)}% · ACPL {analysis.acpl}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-pressed={engineEnabled}
+              onClick={() => setEngineEnabled((enabled) => !enabled)}
+              className={cn(
+                'inline-flex min-h-11 items-center border px-3 font-mono text-xs',
+                engineEnabled ? chipActive : chipIdle,
+              )}
+            >
+              Engine {engineEnabled ? 'on' : 'off'}
+            </button>
           </div>
+          <details className="border border-line bg-canvas">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 font-mono text-xs text-muted marker:content-none [&::-webkit-details-marker]:hidden">
+              Engine settings
+              <span aria-hidden>+</span>
+            </summary>
+            <div className="grid grid-cols-2 gap-3 border-t border-line p-3">
+              <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-muted">
+                Search
+                <select
+                  value={engineTime}
+                  onChange={(event) => setEngineTime(Number(event.target.value))}
+                  className="min-h-11 border border-line bg-canvas px-3 text-base text-ink sm:text-xs"
+                >
+                  <option value={120}>Fast</option>
+                  <option value={280}>Balanced</option>
+                  <option value={700}>Deep</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-muted">
+                Lines
+                <select
+                  value={engineMultiPv}
+                  onChange={(event) => setEngineMultiPv(Number(event.target.value))}
+                  className="min-h-11 border border-line bg-canvas px-3 text-base text-ink sm:text-xs"
+                >
+                  {[1, 2, 3, 4, 5].map((count) => (
+                    <option key={count} value={count}>
+                      {count}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </details>
+          {!engineEnabled ? (
+            <p className="py-2 text-sm text-muted">
+              Engine is off. Browsing and move playback still work.
+            </p>
+          ) : null}
           {linesLoading && engineLines.length === 0 ? (
             <p className="font-mono text-xs text-muted">Calculating…</p>
           ) : null}
@@ -399,16 +584,46 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            onClick={() => setShowBest((v) => !v)}
-            className={cn(btnPrimary, 'w-full px-3 py-2 text-sm')}
-          >
-            {showBest ? 'Hide arrow' : 'See best move'}
-          </button>
+          <div className="flex flex-col gap-2">
+            {engineEnabled ? (
+              <button
+                type="button"
+                disabled={engineLines.length === 0}
+                onClick={() => setShowBest((v) => !v)}
+                className={cn(btnPrimary, 'w-full min-h-11 px-3 text-sm')}
+              >
+                {showBest ? 'Hide arrow' : 'See best move'}
+              </button>
+            ) : null}
+            {exploring ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setExplore([])
+                  setSelectedSquare(null)
+                }}
+                className={cn(btnNav, 'w-full min-h-11 px-3 text-sm')}
+              >
+                Back to game
+              </button>
+            ) : null}
+            {fen ? (
+              <ButtonLink
+                to="/drill/$username"
+                params={{ username: analysis.username }}
+                search={{ fen }}
+                className="w-full"
+              >
+                Drill this
+              </ButtonLink>
+            ) : null}
+          </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+        <div className="min-h-[12rem] shrink-0 px-2 py-3">
+          <h3 className="mb-2 px-1 font-mono text-[11px] uppercase tracking-wider text-muted">
+            Game moves
+          </h3>
           <ol className="space-y-0.5 font-mono text-sm">
             {pairs.map((pair) => (
               <li key={pair.moveNumber} className="grid grid-cols-[2rem_1fr_1fr] gap-1">
@@ -450,7 +665,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
         <div className="shrink-0">
           <EvalGraph curve={evalCurve} plies={plies} cursor={cursor} onSelect={setCursor} />
 
-          <div className="flex gap-2 border-t border-line p-2 sm:p-3">
+          <div className="sticky bottom-0 z-10 flex gap-2 border-t border-line bg-surface p-2 sm:p-3">
             <button
               type="button"
               className={cn(btnNav, 'flex-1 py-2 font-mono text-sm')}
@@ -461,14 +676,14 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
             <button
               type="button"
               className={cn(btnNavStrong, 'flex-1 py-2 font-mono text-sm')}
-              onClick={() => setCursor((c) => Math.max(0, c - 1))}
+              onClick={stepBack}
             >
               ‹
             </button>
             <button
               type="button"
               className={cn(btnNav, 'flex-1 py-2 font-mono text-sm')}
-              onClick={() => setCursor((c) => Math.min(evalCurve.length - 1, c + 1))}
+              onClick={stepForward}
             >
               ›
             </button>
