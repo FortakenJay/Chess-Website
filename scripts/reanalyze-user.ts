@@ -1,8 +1,9 @@
 /**
- * Re-run Stockfish on saved games that still have the old analyzer scores.
+ * Re-run Stockfish on saved games.
  *
  *   npx tsx scripts/reanalyze-user.ts sakenetal
  *   npx tsx scripts/reanalyze-user.ts sakenetal --all
+ *   npx tsx scripts/reanalyze-user.ts --all
  */
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -45,103 +46,124 @@ async function loadEnvFiles() {
   }
 }
 
+async function listUsernames(
+  supabase: ReturnType<typeof getServiceClient>,
+): Promise<string[]> {
+  const rows = await fetchAllRows((from, to) =>
+    supabase.from('games').select('username').range(from, to),
+  )
+  const unique = [...new Set(rows.map((row) => row.username))]
+  unique.sort((a, b) => {
+    if (a === 'sakenetal') return -1
+    if (b === 'sakenetal') return 1
+    return a.localeCompare(b)
+  })
+  return unique
+}
+
 async function main() {
   await loadEnvFiles()
   const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'))
   const all = process.argv.includes('--all')
-  const username = normalizeUsername(args[0] || 'sakenetal')
   const supabase = getServiceClient()
-
-  const stale = all
-    ? null
-    : new Set(
-        (
-          await fetchAllRows((from, to) =>
-            supabase
-              .from('games')
-              .select('game_link')
-              .eq('username', username)
-              .is('analysis_budget', null)
-              .range(from, to),
-          )
-        ).map((row) => row.game_link),
-      )
-
-  console.log(
-    all
-      ? `Reanalyzing every saved game for ${username}`
-      : `Reanalyzing ${stale?.size ?? 0} stale games for ${username}`,
-  )
+  const usernames = args[0]
+    ? [normalizeUsername(args[0])]
+    : all
+      ? await listUsernames(supabase)
+      : ['sakenetal']
 
   const engine = await createNodeEngine()
   const started = Date.now()
   let analyzed = 0
 
   try {
-    const result = await runUserSync(username, {
-      history: 'reanalyze',
-      shouldAnalyze: stale ? (game) => stale.has(game.url) : () => true,
-      listArchives: fetchArchives,
-      listMonthGames: fetchMonthGames,
-      getSavedGameLinks: async (name) => {
-        const rows = await fetchAllRows((from, to) =>
-          supabase.from('games').select('game_link').eq('username', name).range(from, to),
-        )
-        return new Set(rows.map((row) => row.game_link))
-      },
-      getSinceEndTime: async () => 0,
-      analyzeBatch: async (games, name, options) => {
-        for (let i = 0; i < games.length; i++) {
-          if (options.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-          const game = games[i]!
-          options.onProgress?.({
-            phase: 'game',
-            gamesDone: i,
-            gamesTotal: games.length,
-            ply: 0,
-            plyTotal: 0,
-          })
-          await engine.newGame()
-          const analysis = await analyzeGame(
-            game,
-            name,
-            (fen) => engine.evaluate(fen, options.movetime),
-            {
-              analysisBudget: DEFAULT_ANALYSIS_BUDGET,
-              evaluateLines: (fen) =>
-                engine.evaluateLines(
-                  fen,
-                  DEFAULT_ANALYSIS_BUDGET,
-                  DEFAULT_ANALYSIS_BUDGET.multipv,
-                ),
-            },
+    for (const username of usernames) {
+      const stale = all
+        ? null
+        : new Set(
+            (
+              await fetchAllRows((from, to) =>
+                supabase
+                  .from('games')
+                  .select('game_link')
+                  .eq('username', username)
+                  .is('analysis_budget', null)
+                  .range(from, to),
+              )
+            ).map((row) => row.game_link),
           )
-          if (analysis) {
-            analyzed += 1
-            await options.onGame?.(analysis)
-            if (analyzed % 10 === 0) {
-              const mins = ((Date.now() - started) / 60000).toFixed(1)
-              console.log(`  ${analyzed} rewritten · ${mins} min`)
+
+      console.log(
+        all
+          ? `Reanalyzing every saved game for ${username}`
+          : `Reanalyzing ${stale?.size ?? 0} stale games for ${username}`,
+      )
+
+      const result = await runUserSync(username, {
+        history: 'reanalyze',
+        shouldAnalyze: stale ? (game) => stale.has(game.url) : () => true,
+        listArchives: fetchArchives,
+        listMonthGames: fetchMonthGames,
+        getSavedGameLinks: async (name) => {
+          const rows = await fetchAllRows((from, to) =>
+            supabase.from('games').select('game_link').eq('username', name).range(from, to),
+          )
+          return new Set(rows.map((row) => row.game_link))
+        },
+        getSinceEndTime: async () => 0,
+        analyzeBatch: async (games, name, options) => {
+          for (let i = 0; i < games.length; i++) {
+            if (options.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+            const game = games[i]!
+            options.onProgress?.({
+              phase: 'game',
+              gamesDone: i,
+              gamesTotal: games.length,
+              ply: 0,
+              plyTotal: 0,
+            })
+            await engine.newGame()
+            const analysis = await analyzeGame(
+              game,
+              name,
+              (fen) => engine.evaluate(fen, options.movetime),
+              {
+                analysisBudget: DEFAULT_ANALYSIS_BUDGET,
+                evaluateLines: (fen) =>
+                  engine.evaluateLines(
+                    fen,
+                    DEFAULT_ANALYSIS_BUDGET,
+                    DEFAULT_ANALYSIS_BUDGET.multipv,
+                  ),
+              },
+            )
+            if (analysis) {
+              analyzed += 1
+              await options.onGame?.(analysis)
+              if (analyzed % 10 === 0) {
+                const mins = ((Date.now() - started) / 60000).toFixed(1)
+                console.log(`  ${analyzed} rewritten · ${mins} min · ${name}`)
+              }
             }
           }
-        }
-      },
-      persistBatch: (analyses) => persistGames(supabase, analyses, { updateSyncState: false }),
-      markSync: (name, maxEndTime) => markSyncState(supabase, name, maxEndTime),
-      onProgress: (event) => {
-        if (event.type === 'month_batch') {
-          console.log(
-            `Month ${event.monthsDone}/${event.monthsTotal} · ${event.chesscomSeen} games seen`,
-          )
-        }
-        if (event.type === 'complete') {
-          console.log(
-            `Done. Rewrote ${event.saved} games, flagged ${event.flagged} positions.`,
-          )
-        }
-      },
-    })
-    console.log(JSON.stringify({ username, analyzed, ...result }, null, 2))
+        },
+        persistBatch: (analyses) => persistGames(supabase, analyses, { updateSyncState: false }),
+        markSync: (name, maxEndTime) => markSyncState(supabase, name, maxEndTime),
+        onProgress: (event) => {
+          if (event.type === 'month_batch') {
+            console.log(
+              `${username} · month ${event.monthsDone}/${event.monthsTotal} · ${event.chesscomSeen} games seen`,
+            )
+          }
+          if (event.type === 'complete') {
+            console.log(
+              `${username} done. Rewrote ${event.saved} games, flagged ${event.flagged} positions.`,
+            )
+          }
+        },
+      })
+      console.log(JSON.stringify({ username, analyzed, saved: result.saved }, null, 2))
+    }
   } finally {
     engine.quit()
   }
