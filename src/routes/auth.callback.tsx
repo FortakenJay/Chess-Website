@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { getBrowserClient } from '@/lib/supabase/browser'
+import { titleHead } from '@/lib/pageTitle'
 
 export const Route = createFileRoute('/auth/callback')({
+  head: () => titleHead('Signing in'),
   component: AuthCallback,
 })
 

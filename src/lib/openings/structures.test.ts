@@ -99,6 +99,10 @@ describe('pawn structure keys', () => {
     expect(structureFromOpening('Sicilian Defense: Accelerated Dragon, Maroczy Bind', 'B36')).toBe(
       'maroczy',
     )
+    expect(structureFromOpening('Sicilian Defense: Old Sicilian', 'B30')).toBeNull()
+    expect(structureFromOpening('Sicilian Defense: Scheveningen', 'B80')).toBe(
+      'sicilian_scheveningen',
+    )
   })
 
   it('counts leaks from pawn-stripped positions, not phase labels', () => {

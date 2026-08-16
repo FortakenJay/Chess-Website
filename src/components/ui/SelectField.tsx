@@ -17,7 +17,7 @@ export const selectFieldVariants = cva(
 )
 
 export const selectControlVariants = cva(
-  'min-h-11 w-full border border-line bg-canvas px-3 font-mono text-sm text-ink outline-none hover:border-muted focus:border-accent sm:text-xs',
+  'min-h-11 w-full cursor-pointer border border-line bg-canvas px-3 font-mono text-sm text-ink outline-none hover:border-muted focus:border-accent sm:text-xs',
   {
     variants: {
       size: {

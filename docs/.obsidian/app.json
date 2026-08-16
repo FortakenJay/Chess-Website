@@ -1,0 +1,9 @@
+{
+  "alwaysUpdateLinks": true,
+  "attachmentFolderPath": "humans/_shared",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "humans/_templates",
+  "showLineNumber": false,
+  "strictLineBreaks": false,
+  "readableLineLength": true
+}

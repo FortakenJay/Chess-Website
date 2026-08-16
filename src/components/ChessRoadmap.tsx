@@ -21,6 +21,7 @@ import {
   type RoadmapHref,
   type RoadmapNode,
 } from '@/lib/roadmap/topics'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 
 function PracticeLink({
   username,
@@ -248,6 +249,11 @@ export function ChessRoadmap({
   const doneCount = nodes.filter((node) => nodeIsComplete(node.id, marks)).length
   const startId = nodes.find((node) => !nodeIsComplete(node.id, marks))?.id ?? null
   const selected = selectedId ? roadmapNodeById(selectedId) : null
+  useSessionTitle({
+    page: 'Roadmap',
+    library: username,
+    activity: selected?.title,
+  })
 
   function closeSheet() {
     void navigate({

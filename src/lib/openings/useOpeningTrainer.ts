@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { applyReview, emptyProgress } from '@/lib/openings/schedule'
@@ -11,20 +11,43 @@ import {
   type TrainingMode,
 } from '@/lib/openings/session'
 import { openingPlayedCount } from '@/lib/openings/matchPlayed'
-import { loadProgress, loadTrainerData, saveOpening, upsertProgress } from '@/lib/openings/persist'
+import {
+  insertGenerationJob,
+  loadProgress,
+  loadTrainerData,
+  saveOpening,
+  updateGenerationJob,
+  upsertProgress,
+} from '@/lib/openings/persist'
 import { isReasonTag, type ReasonTag } from '@/lib/openings/tags'
 import type { BuiltNode, BuiltOpening, KnowledgeCard, NodeProgress, TrainedSide } from '@/lib/openings/types'
 import { reasonChoices } from '@/lib/openings/distractors'
 import { usePlayerData } from '@/lib/queries'
 import type { Json, Tables } from '@/lib/supabase/database.types'
+import { parseAlternatives, parseCommentary, parseExplorerStats, packKeyFor } from '@/lib/openings/commentary'
 import { parseKnowledgeCard } from '@/lib/openings/parseCard'
-import { extendOpeningLine } from '@/lib/openings/functions'
-import { openingFromDownloadHit } from '@/lib/openings/downloadLine'
-import type { OpeningSearchHit } from '@/lib/openings/searchCatalog'
+import { COMMENTARY_GENERATOR_VERSION, type GenerationStage } from '@/lib/openings/types'
+import {
+  extendOpeningLine,
+  fetchExplorerSlice,
+  fetchOpeningPack,
+  fetchStudyPgn,
+  saveOpeningPack,
+} from '@/lib/openings/functions'
+import { openingFromDownloadHit, openingFromPgn } from '@/lib/openings/downloadLine'
+import { openingHitKey, type OpeningSearchHit } from '@/lib/openings/searchCatalog'
 import { formatMoveOrder, parseMoveOrderSans } from '@/lib/openings/tree'
 import { MAX_TEACHING_PLY } from '@/lib/openings/lessonFromOpening'
 import { isStructureId, structureFromOpening, type StructureId } from '@/lib/openings/structures'
 import { normalizeUsername } from '@/lib/username'
+import {
+  initialGenerationState,
+  processCourseChunk,
+  shouldGenerateCourse,
+  STAGE_LABEL,
+} from '@/lib/openings/generateCourse'
+import { ratingBandLabel } from '@/lib/openings/explorer'
+import { evaluateLines } from '@/lib/analyzeClient'
 
 function asNode(row: Tables<'opening_nodes'>): BuiltNode {
   return {
@@ -38,9 +61,10 @@ function asNode(row: Tables<'opening_nodes'>): BuiltNode {
     source: row.source === 'explorer' ? 'explorer' : 'repertoire',
     reason_tags: (row.reason_tags ?? []).filter(isReasonTag),
     reason_text: row.reason_text,
-    alternatives: [],
-    explorer_stats: null,
+    alternatives: parseAlternatives(row.alternatives),
+    explorer_stats: parseExplorerStats(row.explorer_stats),
     frequency_weight: row.frequency_weight ?? 1,
+    commentary: parseCommentary(row.commentary),
   }
 }
 
@@ -81,11 +105,15 @@ function localOpeningRow(
     knowledge_card: built.knowledge_card as unknown as Json,
     parent_id: null,
     created_at: new Date().toISOString(),
+    generator_version: built.knowledge_card.generator_version ?? null,
+    pack_key: null,
+    generation_status: built.knowledge_card.low_confidence ? 'starter' : 'ready',
   }
 }
 
 export function useOpeningTrainer(username: string) {
   const { user, profile } = useAuth()
+  const userId = user?.id ?? null
   const player = usePlayerData(username)
   const [nodes, setNodes] = useState<BuiltNode[]>([])
   const [items, setItems] = useState<DrillItem[]>([])
@@ -95,7 +123,7 @@ export function useOpeningTrainer(username: string) {
   >('loading')
   const [error, setError] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
-  const [downloading, setDownloading] = useState(false)
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null)
   const [score, setScore] = useState({ recall: 0, recallTotal: 0, reason: 0, reasonTotal: 0 })
   const [progressMap, setProgressMap] = useState<Map<string, NodeProgress>>(new Map())
   const [familyTags, setFamilyTags] = useState<ReasonTag[]>([])
@@ -103,15 +131,26 @@ export function useOpeningTrainer(username: string) {
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null)
   const [selectedMode, setSelectedMode] = useState<TrainingMode>('weakest')
   const [lessonCard, setLessonCard] = useState<KnowledgeCard | null>(null)
+  const [generation, setGeneration] = useState<{
+    openingId: string
+    jobId: string | null
+    stage: GenerationStage
+    done: number
+    total: number
+    paused: boolean
+    error: string | null
+  } | null>(null)
+  const generationPause = useRef(false)
+  const generationRun = useRef(0)
 
   const fetchSnapshot = useCallback(async (): Promise<Snapshot> => {
     const client = getBrowserClient()
     const data = await loadTrainerData(client, username)
     const nextNodes = data.nodes.map(asNode)
-    const progressRows = user
+    const progressRows = userId
       ? await loadProgress(
           client,
-          user.id,
+          userId,
           nextNodes.map((node) => node.id),
         )
       : []
@@ -134,7 +173,7 @@ export function useOpeningTrainer(username: string) {
       progressMap: map,
       familyTags: nextNodes.flatMap((node) => node.reason_tags),
     }
-  }, [username, user])
+  }, [username, userId])
 
   const applySnapshot = useCallback((snapshot: Snapshot) => {
     setNodes(snapshot.nodes)
@@ -305,47 +344,253 @@ export function useOpeningTrainer(username: string) {
     return id
   }
 
+  function playerElo(): number {
+    const ratings = (player.data?.games ?? [])
+      .map((game) => game.user_rating)
+      .filter((value): value is number => typeof value === 'number' && value > 0)
+    if (!ratings.length) return 1700
+    return ratings[0]!
+  }
+
+  function canPersist(): boolean {
+    const linked = profile?.chess_com_username
+    return Boolean(user && linked && normalizeUsername(linked) === normalizeUsername(username))
+  }
+
+  async function persistBuilt(built: BuiltOpening): Promise<string> {
+    if (canPersist()) {
+      const id = await saveOpening(getBrowserClient(), built, username)
+      applySnapshot(await fetchSnapshot())
+      return id
+    }
+    return attachLocalOpening(built)
+  }
+
+  async function runGeneration(openingId: string, built: BuiltOpening, jobId: string | null) {
+    if (!shouldGenerateCourse(built.knowledge_card)) return
+    const run = ++generationRun.current
+    generationPause.current = false
+    const elo = playerElo()
+    const band = ratingBandLabel(elo)
+    const key = packKeyFor(built.name, built.side, band, COMMENTARY_GENERATOR_VERSION)
+    let state = initialGenerationState(built)
+    setGeneration({
+      openingId,
+      jobId,
+      stage: 'starter',
+      done: 0,
+      total: state.total,
+      paused: false,
+      error: null,
+    })
+    const deps = {
+      fetchSlice: async (fen: string) =>
+        (await fetchExplorerSlice({ data: { fen, elo } })) as Awaited<
+          ReturnType<typeof fetchExplorerSlice>
+        >,
+      evaluate: async (fen: string) => {
+        const lines = await evaluateLines(fen, 180, 2)
+        const best = lines[0]?.pvSan[0] ?? null
+        const reply = lines[0]?.pvSan[1] ?? null
+        return { best, reply }
+      },
+    }
+    while (state.stage !== 'ready' && run === generationRun.current) {
+      if (generationPause.current) {
+        setGeneration((current) => (current ? { ...current, paused: true, stage: 'paused' } : current))
+        if (jobId && user) {
+          await updateGenerationJob(getBrowserClient(), jobId, {
+            stage: 'paused',
+            paused: true,
+            cursor: state.cursor,
+            done_count: state.done,
+            total_count: state.total,
+          })
+        }
+        return
+      }
+      try {
+        state = await processCourseChunk(built, state, deps)
+        built = { ...built, nodes: state.nodes, knowledge_card: state.card }
+        setNodes((current) => [
+          ...current.filter((node) => node.opening_id !== openingId),
+          ...state.nodes.map((node) => ({ ...node, opening_id: openingId })),
+        ])
+        setLessonCard(state.card)
+        setGeneration({
+          openingId,
+          jobId,
+          stage: state.stage,
+          done: state.done,
+          total: state.total,
+          paused: false,
+          error: null,
+        })
+        if (canPersist()) {
+          await saveOpening(getBrowserClient(), { ...built, nodes: state.nodes }, username)
+          if (jobId) {
+            await updateGenerationJob(getBrowserClient(), jobId, {
+              stage: state.stage,
+              cursor: state.cursor,
+              done_count: state.done,
+              total_count: state.total,
+              paused: false,
+              error: null,
+            })
+          }
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Course generation paused on an error'
+        setGeneration({
+          openingId,
+          jobId,
+          stage: 'error',
+          done: state.done,
+          total: state.total,
+          paused: true,
+          error: message,
+        })
+        if (jobId && user) {
+          await updateGenerationJob(getBrowserClient(), jobId, {
+            stage: 'error',
+            error: message,
+            paused: true,
+            cursor: state.cursor,
+            done_count: state.done,
+          })
+        }
+        return
+      }
+    }
+    if (state.stage === 'ready') {
+      void saveOpeningPack({
+        data: {
+          packKey: key,
+          openingName: built.name,
+          side: built.side,
+          ratingBand: band,
+          generatorVersion: COMMENTARY_GENERATOR_VERSION,
+          payload: { ...built, knowledge_card: state.card, nodes: state.nodes },
+        },
+      })
+    }
+  }
+
   async function downloadOpening(hit: OpeningSearchHit, side: TrainedSide) {
-    setDownloading(true)
+    setDownloadingKey(openingHitKey(hit))
     setDownloadError(null)
     try {
       if (!hit?.name || !hit.moves) throw new Error('That search result has no moves')
-      let moves = hit.moves
-      const sans = parseMoveOrderSans(moves)
-      if (sans.length < 10) {
-        try {
-          const extended = await extendOpeningLine({ data: { moves } })
-          if (Array.isArray(extended) && extended.length) {
-            moves = formatMoveOrder(extended.slice(0, MAX_TEACHING_PLY))
-          }
-        } catch {
-          // Keep the named ECO line if explorer is down.
-        }
-      }
-      const built = openingFromDownloadHit({
-        name: hit.name,
-        eco: hit.eco,
-        moves,
-        side,
-      })
-      if (!built?.name) throw new Error('Could not build that opening')
-      const linked = profile?.chess_com_username
-      const canSave = Boolean(
-        user && linked && normalizeUsername(linked) === normalizeUsername(username),
-      )
-      let id: string
-      if (canSave) {
-        id = await saveOpening(getBrowserClient(), built, username)
-        applySnapshot(await fetchSnapshot())
+      const elo = playerElo()
+      const band = ratingBandLabel(elo)
+      const key = packKeyFor(hit.name, side, band, COMMENTARY_GENERATOR_VERSION)
+      const cached = await fetchOpeningPack({ data: { packKey: key } })
+      let built: BuiltOpening
+      if (cached && typeof cached === 'object' && cached !== null && 'nodes' in (cached as object)) {
+        built = cached as unknown as BuiltOpening
       } else {
-        id = attachLocalOpening(built)
+        let moves = hit.moves
+        const sans = parseMoveOrderSans(moves)
+        if (sans.length < 10) {
+          try {
+            const extended = await extendOpeningLine({ data: { moves } })
+            if (Array.isArray(extended) && extended.length) {
+              moves = formatMoveOrder(extended.slice(0, MAX_TEACHING_PLY))
+            }
+          } catch {
+            // Keep the named ECO line if explorer is down.
+          }
+        }
+        built = openingFromDownloadHit({
+          name: hit.name,
+          eco: hit.eco,
+          moves,
+          side,
+        })
       }
+      if (!built?.name) throw new Error('Could not build that opening')
+      const id = await persistBuilt(built)
       startLesson(id, 'foundations', built.knowledge_card)
+      if (shouldGenerateCourse(built.knowledge_card)) {
+        let jobId: string | null = null
+        if (canPersist() && user) {
+          const job = await insertGenerationJob(getBrowserClient(), {
+            user_id: user.id,
+            username,
+            pack_key: key,
+            opening_id: id,
+            opening_name: built.name,
+            side,
+            generator_version: COMMENTARY_GENERATOR_VERSION,
+            rating_band: band,
+            stage: 'starter',
+            cursor: { stage: 'starter', nodeIndex: 0 },
+            total_count: built.nodes.length,
+          })
+          jobId = job.id
+        }
+        void runGeneration(id, built, jobId)
+      }
     } catch (err) {
       setDownloadError(err instanceof Error ? err.message : 'Could not download that opening')
     } finally {
-      setDownloading(false)
+      setDownloadingKey(null)
     }
+  }
+
+  async function importOpeningPgn(pgn: string, side: TrainedSide) {
+    setDownloadError(null)
+    try {
+      const built = openingFromPgn(pgn, side)
+      const id = await persistBuilt(built)
+      startLesson(id, 'foundations', built.knowledge_card)
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Could not import that PGN')
+    }
+  }
+
+  async function importLichessStudy(url: string, side: TrainedSide) {
+    setDownloadError(null)
+    try {
+      const pgn = await fetchStudyPgn({ data: { studyId: url } })
+      if (typeof pgn !== 'string') throw new Error('Could not fetch that study')
+      await importOpeningPgn(pgn, side)
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Could not import that study')
+    }
+  }
+
+  function pauseGeneration() {
+    generationPause.current = true
+  }
+
+  function resumeGeneration() {
+    if (!generation || !selectedOpeningId) return
+    const builtOpening = openings.find((row) => row.id === generation.openingId)
+    const card = parseKnowledgeCard(builtOpening?.knowledge_card ?? null)
+    if (!card) return
+    const built: BuiltOpening = {
+      name: builtOpening?.name ?? card.name,
+      eco: builtOpening?.eco ?? null,
+      side: (builtOpening?.side === 'b' ? 'b' : 'w') as TrainedSide,
+      structure_family: builtOpening?.structure_family ?? null,
+      center_type: (builtOpening?.center_type as BuiltOpening['center_type']) ?? null,
+      theory_load: builtOpening?.theory_load ?? 2,
+      knowledge_card: card,
+      nodes: nodes.filter((node) => node.opening_id === generation.openingId),
+      targets: {
+        my_breaks: [],
+        their_breaks: [],
+        my_good_squares: [],
+        their_good_squares: [],
+        my_problem_piece: null,
+        their_problem_piece: null,
+        typical_endgame: null,
+        tempo_traps: [],
+      },
+    }
+    generationPause.current = false
+    void runGeneration(generation.openingId, built, generation.jobId)
   }
 
   function advance() {
@@ -376,7 +621,8 @@ export function useOpeningTrainer(username: string) {
     phase,
     error,
     downloadError,
-    downloading,
+    downloading: Boolean(downloadingKey),
+    downloadingKey,
     item,
     openingName,
     knowledgeCard,
@@ -396,6 +642,16 @@ export function useOpeningTrainer(username: string) {
     beginDrill,
     reviewLesson,
     downloadOpening,
+    importOpeningPgn,
+    importLichessStudy,
+    generation: generation
+      ? {
+          ...generation,
+          label: STAGE_LABEL[generation.paused ? 'paused' : generation.stage],
+        }
+      : null,
+    pauseGeneration,
+    resumeGeneration,
     chooseOpening,
     repeatSession,
     gradeRecall,

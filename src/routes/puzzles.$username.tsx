@@ -14,10 +14,13 @@ import {
 } from '@/components/ui'
 import { usePuzzlePractice } from '@/lib/puzzles/usePuzzlePractice'
 import type { PuzzleFilters } from '@/lib/puzzles/types'
-import { MOTIF_LABEL, ALL_MOTIFS } from '@/lib/stats'
+import { MOTIF_LABEL, ALL_MOTIFS, PHASE_LABEL } from '@/lib/stats'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 
 export const Route = createFileRoute('/puzzles/$username')({
+  head: ({ params }) => playerHead('Puzzles', params.username),
   component: PuzzlesPage,
 })
 
@@ -34,6 +37,15 @@ function PuzzlesPage() {
       ? `${practice.elo}${practice.ratings?.primaryClass ? ` ${practice.ratings.primaryClass}` : ''}`
       : '—'
   const playing = !practice.loading && practice.puzzles.length > 0
+  useSessionTitle({
+    page: 'Puzzles',
+    library: name,
+    enabled: !playing,
+    activity:
+      (practice.filters.motif && MOTIF_LABEL[practice.filters.motif]) ||
+      (practice.filters.phase && PHASE_LABEL[practice.filters.phase]) ||
+      undefined,
+  })
 
   if (!practice.ready) {
     return (
@@ -163,9 +175,9 @@ function PuzzlesPage() {
   return (
     <AppShell username={name} dense={playing}>
       {playing ? (
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden">
           <details className="mb-3 shrink-0 border border-line bg-surface">
-            <summary className="cursor-pointer list-none px-3 py-2 font-mono text-xs uppercase tracking-[0.12em] text-muted marker:content-none [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center px-3 font-mono text-xs uppercase tracking-[0.12em] text-muted marker:content-none [&::-webkit-details-marker]:hidden">
               <span className="text-ink">Filters</span>
               <span className="mx-2 text-line">·</span>
               <span className="tabular">{ratingLabel}</span>
@@ -182,8 +194,8 @@ function PuzzlesPage() {
               No exact matches — showing a broader set.
             </p>
           ) : null}
-          <div className="min-h-0 flex-1">
-            <PuzzleBoard key={boardKey} puzzles={practice.puzzles} />
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+            <PuzzleBoard key={boardKey} puzzles={practice.puzzles} username={name} />
           </div>
         </div>
       ) : (

@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import { isReasonTag, type ReasonTag } from './tags'
-import type { BuiltNode, MoveOrderLogic, NodeAlternative, TrainedSide } from './types'
+import { commentaryKey } from './evidence'
+import type { BuiltNode, MoveCommentary, MoveOrderLogic, NodeAlternative, TrainedSide } from './types'
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
@@ -61,6 +62,7 @@ export function buildNodesFromSans(
   side: TrainedSide,
   logic: MoveOrderLogic[] = [],
   idFactory: () => string = () => crypto.randomUUID(),
+  commentaries?: Record<string, MoveCommentary>,
 ): BuiltNode[] {
   const board = new Chess(START_FEN)
   const nodes: BuiltNode[] = []
@@ -89,6 +91,7 @@ export function buildNodesFromSans(
       alternatives: [],
       explorer_stats: null,
       frequency_weight: 1,
+      commentary: commentaries?.[commentaryKey(i + 1, played.san)] ?? null,
     })
     parent = nodes[nodes.length - 1]!.id
   }

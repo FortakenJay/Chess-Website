@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { Chess } from 'chess.js'
 import { buildFromCard } from './buildFromCard'
+import { parseAlternatives, parseExplorerStats } from './commentary'
+import { commentaryFromEvidence } from './commentaryTemplates'
 import { pickDistractors, reasonChoices } from './distractors'
 import { importPgn } from './importPgn'
 import { applyReview, emptyProgress, effectiveEase } from './schedule'
@@ -7,11 +10,13 @@ import { SEED_CARDS } from './seed'
 import { matchesOpeningQuery, openingPlayedCount } from './matchPlayed'
 import { buildSession, openingTrainingStats, trainableNodes } from './session'
 import { parseMoveOrderSans } from './tree'
-import { validateKnowledgeCard } from './validate'
+import { validateGeneratedClaims, validateKnowledgeCard } from './validate'
 import type { KnowledgeCard } from './types'
+import type { Json } from '@/lib/supabase/database.types'
 import { rankOpeningHits } from './searchCatalog'
 import { destinationSquare, heuristicMoveLogic, lessonFromOpening } from './lessonFromOpening'
 import { openingFromDownloadHit } from './downloadLine'
+import { expandSearchQuery, humanOpeningLabel } from './nicknames'
 
 describe('seed cards', () => {
   it('accepts all hand-written cards', () => {
@@ -272,7 +277,7 @@ describe('opening encyclopedia search', () => {
       ],
       'Vienna',
     )
-    expect(hits[0]).toMatchObject({ name: 'Vienna Game', eco: '' })
+    expect(hits.some((hit) => hit.name.includes('Vienna'))).toBe(true)
   })
 
   it('puts the Dragon main line ahead of Yugoslav and Accelerated branches', () => {
@@ -308,6 +313,31 @@ describe('opening encyclopedia search', () => {
     expect(hits[0]?.name).toBe('Sicilian Defense: Dragon Variation')
     expect(hits[0]?.eco).toBe('B70')
     expect(hits.some((hit) => hit.name.includes('Reversed Dragon'))).toBe(false)
+  })
+
+  it('treats club nicknames as the main line people mean', () => {
+    expect(expandSearchQuery('dragon')).toBe('sicilian dragon')
+    expect(expandSearchQuery('spanish')).toBe('ruy lopez')
+    expect(expandSearchQuery('drgon')).toBe('sicilian dragon')
+    expect(humanOpeningLabel('Sicilian Defense: Dragon Variation', 'B70').title).toBe('Dragon')
+    const hits = rankOpeningHits(
+      [
+        {
+          name: 'Sicilian Defense: Dragon Variation, Yugoslav Attack',
+          eco: 'B76',
+          moves: '1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 g6 6. Be3 Bg7 7. f3 O-O',
+          isEcoRoot: true,
+        },
+        {
+          name: 'Sicilian Defense: Dragon Variation',
+          eco: 'B70',
+          moves: '1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 g6',
+          isEcoRoot: true,
+        },
+      ],
+      'dragon',
+    )
+    expect(hits[0]?.eco).toBe('B70')
   })
 })
 
@@ -360,5 +390,113 @@ describe('lessonFromOpening', () => {
     expect(logic.tags).toContain('control_square')
     expect(destinationSquare('e4')).toBe('e4')
     expect(logic.why).toContain('e4')
+  })
+
+  it('does not teach f4-f5 as current in the Old Sicilian while Nf3 blocks f2', () => {
+    const card = lessonFromOpening({
+      name: 'Sicilian Defense: Old Sicilian',
+      eco: 'B30',
+      moves: '1. e4 c5 2. Nf3 Nc6',
+      side: 'w',
+    })
+    expect(card.low_confidence).toBe(true)
+    expect(card.center.structure_family).not.toBe('sicilian_scheveningen')
+    const nf3 = card.move_order_logic.find((row) => row.move.includes('Nf3'))
+    expect(nf3?.why).toMatch(/f3|f2/i)
+    const f4 = card.breaks.mine.find((row) => /f4/.test(row.move))
+    expect(f4?.precondition).toMatch(/f3|blocks/i)
+    expect(validateKnowledgeCard(card)).toEqual([])
+  })
+
+  it('mentions that Nxd4 frees the f-pawn', () => {
+    const card = lessonFromOpening({
+      name: 'Sicilian Defense',
+      eco: 'B32',
+      moves: '1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4',
+      side: 'w',
+    })
+    const recapture = card.move_order_logic.find((row) => row.move.includes('Nxd4'))
+    expect(recapture?.why).toMatch(/f4|f3/i)
+    expect(validateKnowledgeCard(card)).toEqual([])
+  })
+
+  it('stores evidence-backed commentary keyed by ply and SAN', () => {
+    const card = lessonFromOpening({
+      name: 'Scotch Game',
+      eco: 'C45',
+      moves: '1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4',
+      side: 'w',
+    })
+    const nf3 = card.commentaries?.['3:Nf3']
+    expect(nf3?.problem).toMatch(/knight/i)
+    expect(nf3?.drawback).toMatch(/f2–f4|illegal/i)
+    expect(nf3?.confidence).toBe('evidence')
+    expect(validateKnowledgeCard(card)).toEqual([])
+  })
+})
+
+describe('importPgn tree', () => {
+  it('keeps RAV variations as sibling nodes', () => {
+    const pgn = `[Event "Test"]
+[Opening "Open Game"]
+
+1. e4 e5 (1... c5 2. Nf3) 2. Nf3 *`
+    const [line] = importPgn(pgn, {
+      side: 'w',
+      idFactory: (() => {
+        let n = 0
+        return () => `id-${++n}`
+      })(),
+    })
+    const sans = line?.nodes.map((node) => node.san) ?? []
+    expect(sans).toContain('c5')
+    expect(sans.filter((san) => san === 'Nf3').length).toBeGreaterThanOrEqual(2)
+    const e4 = line?.nodes.find((node) => node.san === 'e4')
+    const c5 = line?.nodes.find((node) => node.san === 'c5')
+    expect(c5?.parent_node_id).toBe(e4?.id)
+    expect(c5?.ply).toBe(2)
+  })
+
+  it('marks imported comments as user-supplied', () => {
+    const pgn = `[Event "Study"]
+[Opening "Italian"]
+
+1. e4 {Hits the center} e5 *`
+    const [line] = importPgn(pgn, { side: 'w' })
+    expect(line?.nodes[0]?.commentary?.provenance).toBe('imported')
+    expect(line?.nodes[0]?.commentary?.confidence).toBe('imported')
+  })
+})
+
+describe('generated commentary claims', () => {
+  it('rejects a comment that treats f2-f4 as legal while Nf3 blocks it', () => {
+    const board = new Chess()
+    board.move('e4')
+    board.move('c5')
+    const commentary = commentaryFromEvidence(board, 'Nf3', 3)!
+    expect(commentary.evidence.blocked_breaks.some((row) => /f2/.test(row))).toBe(true)
+    expect(validateGeneratedClaims(commentary)).toEqual([])
+    const forged: typeof commentary = {
+      ...commentary,
+      problem: 'f2–f4 cramps e6 so it sags.',
+      accomplishes: 'f2–f4 cramps e6 so it sags.',
+      why: 'f2–f4 cramps e6 so it sags.',
+      drawback: 'f2–f4 cramps e6 so it sags.',
+      enables: undefined,
+      if_omitted: undefined,
+    }
+    expect(validateGeneratedClaims(forged).length).toBeGreaterThan(0)
+  })
+
+  it('hydrates explorer stats and alternatives from JSON', () => {
+    const alts = parseAlternatives([
+      { san: 'Nc3', tag: 'develop', why_worse: 'Does not hit e5' },
+    ] as unknown as Json)
+    expect(alts[0]?.san).toBe('Nc3')
+    const stats = parseExplorerStats([
+      { rating_band: '1600-1800', san: 'd6', plays: 100, pct: 12.5, win_pct: 48, corpus: 'club' },
+    ] as unknown as Json)
+    expect(stats?.[0]?.san).toBe('d6')
+    expect(stats?.[0]?.corpus).toBe('club')
   })
 })

@@ -135,12 +135,34 @@ body {
   transform: none;
 }
 
+button:not(:disabled),
+a[href],
+select:not(:disabled),
+summary,
+[role='button']:not([aria-disabled='true']),
+label {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled='true'],
+select:disabled {
+  cursor: not-allowed;
+}
+
 input,
 button,
 select,
 textarea {
   font: inherit;
   touch-action: manipulation;
+}
+
+button,
+a {
+  border-radius: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
 
 input::placeholder,
@@ -155,12 +177,6 @@ textarea::placeholder {
   textarea {
     font-size: 16px;
   }
-}
-
-button,
-a {
-  border-radius: 0;
-  touch-action: manipulation;
 }
 
 button,
@@ -227,4 +243,14 @@ a.control:active {
 ::selection {
   background: var(--color-accent-low);
   color: var(--color-ink);
+}
+
+/* UA stylesheets use cursor: default on buttons. Keep this after Tailwind. */
+button:not(:disabled),
+a[href],
+select:not(:disabled),
+summary,
+[role='button']:not([aria-disabled='true']),
+label {
+  cursor: pointer;
 }

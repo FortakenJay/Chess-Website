@@ -32,3 +32,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - `/drill/$username` — guess-before-reveal board
 
 Daily cron (Vercel Hobby allows once per day): `0 6 * * *` → `/api/sync-user` with `Authorization: Bearer $CRON_SECRET`.
+
+## Docs
+
+Architecture vault (Obsidian): open the `docs/` folder, start at `docs/Home.md`. Humans: `docs/humans/` (diagrams). Agents: `docs/llm/INDEX.md`.

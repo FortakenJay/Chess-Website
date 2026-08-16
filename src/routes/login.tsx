@@ -4,8 +4,10 @@ import { AuthFrame } from '@/components/AuthFrame'
 import { ShellSkeleton } from '@/components/ShellSkeleton'
 import { SignInForm } from '@/components/SignInForm'
 import { useAuth } from '@/lib/auth'
+import { titleHead } from '@/lib/pageTitle'
 
 export const Route = createFileRoute('/login')({
+  head: () => titleHead('Sign in'),
   component: LoginPage,
 })
 

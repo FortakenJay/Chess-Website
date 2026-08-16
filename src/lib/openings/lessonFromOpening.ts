@@ -1,82 +1,29 @@
+import { Chess } from 'chess.js'
 import { CENTER_LESSONS, classifyOpeningFamily, familyForOpening } from './families'
+import {
+  breaksFromBoard,
+  explainPlayedMove,
+  heuristicMoveLogic,
+  undevelopedBishops,
+} from './explainMove'
 import { matchesOpeningQuery } from './matchPlayed'
 import { SEED_CARDS } from './seed'
-import { structureById, structureFromOpening, type StructureId } from './structures'
+import { matchPawnStructure, structureById, type StructureId } from './structures'
 import { formatMoveOrder, parseMoveOrderSans } from './tree'
-import type {
-  AfterTheBook,
-  KnowledgeCard,
-  LessonQuiz,
-  LessonVariation,
-  MoveOrderLogic,
-  TrainedSide,
-} from './types'
+import { commentariesFromMainline } from './commentaryTemplates'
 import { validateKnowledgeCard } from './validate'
+import {
+  COMMENTARY_GENERATOR_VERSION,
+  type AfterTheBook,
+  type KnowledgeCard,
+  type LessonQuiz,
+  type LessonVariation,
+  type TrainedSide,
+} from './types'
 
-export const MAX_TEACHING_PLY = 16
+export { destinationSquare, heuristicMoveLogic, numberedMove } from './explainMove'
 
-export function numberedMove(ply: number, san: string): string {
-  const n = Math.ceil(ply / 2)
-  return ply % 2 === 1 ? `${n}.${san}` : `${n}...${san}`
-}
-
-export function destinationSquare(san: string): string | null {
-  const clean = san.replace(/[+#]+$/g, '').replace(/=[QRBN]/, '')
-  if (clean === 'O-O' || clean === 'O-O-O') return null
-  const match = /[a-h][1-8]$/.exec(clean)
-  return match?.[0] ?? null
-}
-
-export function heuristicMoveLogic(ply: number, san: string): MoveOrderLogic {
-  const move = numberedMove(ply, san)
-  const dest = destinationSquare(san)
-  if (san === 'O-O' || san === 'O-O-O') {
-    return {
-      move,
-      tags: ['king_safety'],
-      why:
-        san === 'O-O'
-          ? 'Castles short so the king leaves the center before files open.'
-          : 'Castles long so the king leaves the e-file and a rook can use the d-file.',
-    }
-  }
-  if (san.includes('x') && dest) {
-    return {
-      move,
-      tags: ['tempo_gain'],
-      why: `Takes on ${dest} and forces a recapture or a concession.`,
-    }
-  }
-  if (/^[NBRQK]/.test(san) && dest) {
-    const piece =
-      san[0] === 'N'
-        ? 'knight'
-        : san[0] === 'B'
-          ? 'bishop'
-          : san[0] === 'R'
-            ? 'rook'
-            : san[0] === 'Q'
-              ? 'queen'
-              : 'king'
-    return {
-      move,
-      tags: ['develop'],
-      why: `Develops the ${piece} toward ${dest}.`,
-    }
-  }
-  if (dest) {
-    return {
-      move,
-      tags: ['control_square'],
-      why: `Takes ${dest} and asks the opponent to contest the center.`,
-    }
-  }
-  return {
-    move,
-    tags: ['develop'],
-    why: 'Puts a piece into the game and prepares the next developing move.',
-  }
-}
+export const MAX_TEACHING_PLY = 20
 
 export function authoredCardFor(
   name: string,
@@ -91,39 +38,8 @@ export function authoredCardFor(
   return named.find((card) => card.name.toLowerCase() === name.trim().toLowerCase()) ?? null
 }
 
-function defaultBreaks(sans: string[], side: TrainedSide): KnowledgeCard['breaks'] {
-  const first = sans[0] ?? 'e4'
-  const isE4 = first === 'e4'
-  if (side === 'w') {
-    return {
-      mine: [
-        {
-          move: isE4 ? 'd4' : 'e4',
-          why: `The second central pawn strike once development is ready, asking them to take or push past ${isE4 ? 'e4' : 'd4'}.`,
-        },
-      ],
-      theirs: [
-        {
-          move: isE4 ? '...d5' : '...c5',
-          why: `Challenges your extra center pawn on ${isE4 ? 'e4' : 'd4'}.`,
-        },
-      ],
-    }
-  }
-  return {
-    mine: [
-      {
-        move: isE4 ? '...d5' : '...c5',
-        why: 'The thematic strike against White’s extra center once your pieces are ready.',
-      },
-    ],
-    theirs: [
-      {
-        move: isE4 ? 'd4' : 'e4',
-        why: `White’s second pawn break, opening files toward ${isE4 ? 'e5' : 'd5'} before you finish development.`,
-      },
-    ],
-  }
+function defaultBreaks(board: Chess, side: TrainedSide): KnowledgeCard['breaks'] {
+  return breaksFromBoard(board, side)
 }
 
 function quizChoices(correct: string, distractors: string[], salt: string): LessonQuiz['choices'] {
@@ -170,19 +86,22 @@ function afterTheBookFor(args: {
   side: TrainedSide
   structureId: StructureId | null
   centerBody: string
+  breakNotes: string[]
 }): AfterTheBook {
   const tail = args.sans.slice(-2).join(' ')
   const structure = args.structureId ? structureById(args.structureId) : null
   const yours = args.side === 'w' ? structure?.lesson.whitePlan : structure?.lesson.blackPlan
   const theirs = args.side === 'w' ? structure?.lesson.blackPlan : structure?.lesson.whitePlan
+  const extra = args.breakNotes
   return {
-    when: `After ${tail}, the named line is over. The rest is a middlegame: finish development, then play the breaks.`,
+    when: `After ${tail}, the named line is over. The rest is a middlegame: finish development, then play the breaks that are actually legal.`,
     your_jobs: yours
-      ? [yours, structure!.lesson.breaks, 'Do not keep reciting moves — ask which break is ready.']
+      ? [yours, structure!.lesson.breaks, ...extra, 'Do not keep reciting moves — ask which break is ready.']
       : [
           'Castle if the king is still in the center.',
           'Complete the last minor piece, then play the thematic pawn break.',
           args.centerBody,
+          ...extra,
         ],
     their_jobs: theirs
       ? [theirs, 'If they skip their break, your extra space or file is the plan.']
@@ -204,9 +123,16 @@ export function lessonFromOpening(input: {
   if (authored) return authored
 
   const sans = parseMoveOrderSans(input.moves).slice(0, MAX_TEACHING_PLY)
+  const board = new Chess()
+  const moveLogic = sans.map((san, index) => {
+    const logic = explainPlayedMove(board, san, index + 1)
+    const played = board.move(san)
+    if (!played) return heuristicMoveLogic(index + 1, san)
+    return logic
+  })
   const family = familyForOpening({ eco: input.eco, name: input.name })
   const familyId = classifyOpeningFamily(input.eco, input.name)
-  const structureId = structureFromOpening(input.name, input.eco)
+  const structureId = matchPawnStructure(board.fen())
   const structure = structureId ? structureById(structureId) : null
   const centerType =
     familyId === 'closed_game'
@@ -233,15 +159,25 @@ export function lessonFromOpening(input: {
     ? input.side === 'w'
       ? structure.lesson.whitePlan
       : structure.lesson.blackPlan
-    : family
-      ? `Play the ${family.name} so you get a ${centerLesson.name.toLowerCase()}, then the breaks once development is done.`
-      : `Occupy the center, castle, then play the thematic pawn break.`
+    : familyId === 'semi_open'
+      ? 'Fight for the extra center (d4 vs ...d5) and the half-open c-file. Do not copy a later kingside attack onto a position where your own knight still blocks f2–f4.'
+      : family
+        ? `Play the ${family.name} so you get a ${centerLesson.name.toLowerCase()}, then the breaks once development is done.`
+        : `Occupy the center, castle, then play the thematic pawn break.`
 
   const theirLine = structure
     ? input.side === 'w'
       ? structure.lesson.blackPlan
       : structure.lesson.whitePlan
-    : 'Equalize first, then hit the center or the file you were given.'
+    : familyId === 'semi_open'
+      ? 'Equalize with ...d5 or pressure e4 on the c-file. Do not wait to be squeezed on a kingside attack that is not legal yet.'
+      : 'Equalize first, then hit the center or the file you were given.'
+
+  const breaks = defaultBreaks(board, input.side)
+  const bishops = undevelopedBishops(board, input.side)
+  const breakNotes = [...breaks.mine, ...breaks.theirs]
+    .map((item) => item.precondition)
+    .filter((row): row is string => Boolean(row))
 
   const cardWithoutQuizzes: Omit<KnowledgeCard, 'quizzes'> = {
     name: input.name,
@@ -256,15 +192,16 @@ export function lessonFromOpening(input: {
     },
     space_and_targets: {
       who_has_space: input.side === 'w' ? 'white' : 'black',
-      my_targets: structure ? [structure.lesson.weaknesses] : ['the extra center squares'],
-      their_targets: structure ? [structure.lesson.attackDirection] : ['your uncastled king'],
+      my_targets: structure
+        ? [structure.lesson.weaknesses]
+        : ['the extra center squares', 'the files that will open after the first pawn trade'],
+      their_targets: structure
+        ? [structure.lesson.attackDirection]
+        : ['your uncastled king', 'the pawn that is no longer defended after a break'],
     },
-    breaks: defaultBreaks(sans, input.side),
-    problem_pieces: {
-      mine: 'Bc1 until the center opens',
-      theirs: 'Bc8 until the center opens',
-    },
-    move_order_logic: sans.map((san, index) => heuristicMoveLogic(index + 1, san)),
+    breaks,
+    problem_pieces: bishops,
+    move_order_logic: moveLogic,
     expected_deviations: [],
     traps: [],
     typical_endgame: structure?.lesson.endgame ?? 'The ending follows the same breaks as the middlegame.',
@@ -276,14 +213,18 @@ export function lessonFromOpening(input: {
       side: input.side,
       structureId,
       centerBody: centerLesson.body,
+      breakNotes,
     }),
     low_confidence: true,
     uncertain_fields: ['move_order_logic', 'traps'],
   }
 
-  const card: KnowledgeCard = {
+    const card: KnowledgeCard = {
     ...cardWithoutQuizzes,
     quizzes: makeQuizzes(cardWithoutQuizzes),
+    commentaries: commentariesFromMainline(sans),
+    generator_version: COMMENTARY_GENERATOR_VERSION,
+    provenance: 'generated',
   }
   const issues = validateKnowledgeCard(card)
   if (issues.length) {

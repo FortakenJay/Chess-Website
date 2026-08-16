@@ -196,7 +196,7 @@ export function ReviewGamesList({
             return (
               <li key={row.meta.gameLink} className="flex border-b border-line bg-surface last:border-b-0">
                 {selectable ? (
-                  <label className="flex cursor-pointer items-center px-3 hover:bg-surface-2">
+                  <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center px-3 hover:bg-surface-2">
                     <input
                       type="checkbox"
                       checked={checked}

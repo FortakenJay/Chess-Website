@@ -20,7 +20,7 @@ function AnalysisNav({
   linkClassName?: string
 }) {
   const linkClass = cn(
-    'inline-flex min-h-11 shrink-0 items-center border-b-2 border-transparent font-mono text-[11px] uppercase tracking-[0.08em] hover:border-line hover:text-ink',
+    'inline-flex min-h-11 shrink-0 cursor-pointer items-center border-b-2 border-transparent font-mono text-[11px] uppercase tracking-[0.08em] hover:border-line hover:text-ink',
     linkClassName,
   )
 
@@ -170,7 +170,7 @@ export function AppShell({
             {user && username ? (
               <span className="inline-flex items-center gap-2 font-mono text-xs text-muted">
                 <PlayerAvatar username={username} src={pageAvatar} size={22} />
-                <span className="hidden max-w-28 truncate sm:inline" translate="no">
+                <span className="max-w-20 truncate sm:max-w-28" translate="no">
                   {username}
                 </span>
               </span>
@@ -181,7 +181,7 @@ export function AppShell({
                 className="inline-flex min-h-11 items-center gap-2 font-mono text-xs text-muted hover:text-ink"
               >
                 <PlayerAvatar username={linkedUsername} src={profile?.avatar_url} size={22} />
-                <span className="hidden max-w-28 truncate sm:inline" translate="no">
+                <span className="max-w-20 truncate sm:max-w-28" translate="no">
                   {linkedUsername}
                 </span>
               </Link>
@@ -236,7 +236,7 @@ export function AppShell({
         id="main"
         tabIndex={-1}
         className={`mx-auto box-border flex min-h-0 min-w-0 w-full max-w-6xl flex-1 flex-col ${
-          dense ? 'overflow-hidden py-2' : 'py-5 sm:py-8'
+          dense ? 'overflow-y-auto py-3 lg:overflow-hidden lg:py-2' : 'py-5 sm:py-8'
         }`}
         style={{
           paddingLeft: 'max(1rem, var(--safe-left))',

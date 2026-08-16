@@ -12,10 +12,13 @@ import { gameFromPgn } from '@/lib/chesscom'
 import { findGameByUrl } from '@/lib/chesscom.functions'
 import { useArchives, useMonthGames, useRecentGames } from '@/lib/queries'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 import { btnGhost, btnPrimary, chipActive, chipIdle } from '@/components/review/reviewUi'
 import { cn } from '@/lib/cn'
 
 export const Route = createFileRoute('/review/$username')({
+  head: ({ params }) => playerHead('Review', params.username),
   component: ReviewUsernamePage,
 })
 
@@ -126,6 +129,13 @@ function ReviewUsernamePage() {
     const extra = queueRemaining > 1 ? ` · ${queueRemaining} in queue` : ''
     return `Analyzing · move ${progress.ply}/${progress.plyTotal || '…'}${extra}`
   }, [analyzingLink, progress, queueRemaining])
+
+  useSessionTitle({
+    page: 'Review',
+    library: username,
+    enabled: !selectedAnalysis?.plies?.length,
+    activity: progressLabel?.startsWith('Analyzing') ? 'Analyzing' : undefined,
+  })
 
   useEffect(() => {
     autoLatestRef.current = null

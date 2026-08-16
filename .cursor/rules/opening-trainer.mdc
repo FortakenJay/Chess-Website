@@ -10,9 +10,14 @@ alwaysApply: false
 **Why:** The test states that the weaker score keeps a node due (source: `src/lib/openings/openings.test.ts`); schema and `schedule.ts` preserve both scores separately.
 
 ## Move and explanation provenance
-**Chose:** Repertoire PGN supplies moves; Lichess Explorer supplies frequencies and deviation nodes; authored cards supply explanations only.
-**Considered:** Allowing authored explanation content to supply deviations, evaluations, or statistics.
-**Why:** The migration header separates repertoire moves, explorer frequency, and explanation fields. Seed comments say “Explanations only. No evals, no frequencies,” and the validator rejects evals and author-filled deviations.
+**Chose:** Repertoire PGN supplies moves; Lichess Explorer supplies frequencies, deviation nodes, and model-game refs; authored cards, imported comments, or evidence-backed templates supply explanations. Every generated claim must cite board/engine/explorer evidence. Imported commentary stays on personal openings.
+**Considered:** Allowing authored explanation content to supply deviations, evaluations, or statistics; copying commercial course prose; calling a paid AI API.
+**Why:** The migration header separates repertoire moves, explorer frequency, and explanation fields. Seed comments say “Explanations only. No evals, no frequencies,” and the validator rejects evals, author-filled deviations, illegal pawn-break claims, and mismatched squares.
+
+## On-demand courses
+**Chose:** Download creates a playable starter immediately, then a resumable client job fills explorer branches, Stockfish verification, templates, and middlegame milestones in chunks persisted to Supabase. Shared factual packs cache by opening + side + rating band + generator version.
+**Considered:** One 30-minute server request, or blocking the lesson until the full tree exists.
+**Why:** Vercel Hobby functions stop at 5 minutes and Supabase Free Edge Functions at 150 seconds. Lichess requires sequential requests and a one-minute pause after HTTP 429. The UI shows measured stages, not a fake duration.
 
 ## Reason model
 **Chose:** Use a constrained reason-tag enum, requiring concrete moves or squares for prophylaxis, break preparation/stopping, and square control.
@@ -28,14 +33,14 @@ alwaysApply: false
 **Why:** A dumped catalog mixed never-played lines with the player's repertoire. Color is the first repertoire choice; asking keeps the opening explicit. Refusing unknown names made “Learn a new opening” a dead search.
 
 ## Lessons before drills
-**Chose:** Foundations and newly downloaded lines open a Pawnbreak-shaped lesson (idea, both-side plans, walkable line, after-the-book jobs, traps, quizzes) before move recall. Weak-spot drills skip the lesson. After a session, the same after-the-book jobs stay on screen.
-**Considered:** Jumping straight into recall, or treating the Results openings table as the teacher.
-**Why:** Reciting the first eight moves does not say what to do when theory ends. The Results table is stats. Authored cards (Vienna as the quality bar) carry the teaching; downloaded lines reuse family/structure copy and honest heuristic tags from the SAN itself — no evals, no invented explorer deviations.
+**Chose:** Foundations and newly downloaded lines open a Pawnbreak-shaped lesson (idea, both-side plans, walkable line, after-the-book jobs, traps, quizzes) before move recall. Weak-spot drills skip the lesson. After a session, the same after-the-book jobs stay on screen. Downloaded lines explain each SAN from the board (what it occupies, attacks, or blocks — e.g. Nf3 makes f2–f4 illegal). Structure copy is attached only when the line’s pawn FEN matches a named skeleton.
+**Considered:** Jumping straight into recall, treating the Results openings table as the teacher, or pasting Scheveningen “f4–f5 / e6 sags” onto every ECO B Sicilian.
+**Why:** Reciting the first eight moves does not say what to do when theory ends. The Results table is stats. Authored cards (Vienna as the quality bar) carry the teaching; encyclopedia stubs must not invent a later pawn storm while a knight still sits on f3.
 
 ## Downloaded lines
-**Chose:** Server-side ECO search plus optional Lichess most-played extension of short named lines, then `lessonFromOpening`. If a seed card already matches the name/ECO/side, use the authored card instead of the stub.
-**Considered:** Client-side GitHub fetches, or writing explorer frequencies onto the knowledge card.
-**Why:** Explorer and eco.json need a User-Agent and stay off the browser. Provenance stays: PGN/ECO supplies moves, explorer may lengthen the mainline, authored or heuristic text supplies explanations only.
+**Chose:** Server-side ECO search plus optional Lichess most-played extension of short named lines, then `lessonFromOpening` and a resumable evidence-backed generation job. If a seed card already matches the name/ECO/side, use the authored card instead of the stub. Users may also import PGN or a public Lichess Study (comments + variations) into a personal repertoire.
+**Considered:** Client-side GitHub fetches, writing explorer frequencies onto the knowledge card, or scraping Chessable/Chessreps/Pawnbreak prose.
+**Why:** Explorer and eco.json need a User-Agent and stay off the browser. Provenance stays: PGN/ECO supplies moves, explorer may lengthen the mainline and fill deviations, authored/imported/template text supplies explanations only.
 
 ## Pawn structures
 **Chose:** Teach named pawn skeletons as a second trainer tab. Structure identity is the pawn-only FEN (pieces stripped). Fuzzy-match against canonical must/absent pawn squares so wing-pawn noise still tags the same structure. Drills ask which break and whether the moment is right. Games tag by opening name/ECO; leak positions tag by FEN match. Roadmap deep-links with `?tab=structures&structure=`.

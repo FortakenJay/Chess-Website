@@ -4,8 +4,12 @@ import { LandingPage } from '@/components/landing/LandingPage'
 import { ShellSkeleton } from '@/components/ShellSkeleton'
 import { UsernamePrompt } from '@/components/UsernamePrompt'
 import { useAuth } from '@/lib/auth'
+import { SessionTitle } from '@/lib/useDocumentTitle'
 
 export const Route = createFileRoute('/')({
+  head: () => ({
+    meta: [{ title: 'leak — chess error analysis' }],
+  }),
   component: HomePage,
 })
 
@@ -27,6 +31,7 @@ function HomePage() {
   if (user && !profile) {
     return (
       <AppShell>
+        <SessionTitle page="Link Chess.com" library="" />
         <div className="mx-auto max-w-md">
           <UsernamePrompt />
         </div>

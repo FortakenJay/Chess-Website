@@ -4,7 +4,7 @@ import { Link, type LinkProps } from '@tanstack/react-router'
 import { cn } from '@/lib/cn'
 
 export const buttonVariants = cva(
-  'inline-flex min-h-11 items-center justify-center px-4 font-mono text-xs uppercase tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-40',
+  'inline-flex min-h-11 cursor-pointer items-center justify-center px-4 font-mono text-xs uppercase tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-40',
   {
     variants: {
       variant: {

@@ -5,6 +5,7 @@ import { BoardPageSkeleton, PageHeader } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { useOpeningTrainer } from '@/lib/openings/useOpeningTrainer'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
 
 type TrainerSearch = {
   tab?: 'openings' | 'structures'
@@ -12,6 +13,8 @@ type TrainerSearch = {
 }
 
 export const Route = createFileRoute('/trainer/$username')({
+  head: ({ params, match }) =>
+    playerHead(match.search.tab === 'structures' ? 'Structures' : 'Trainer', params.username),
   validateSearch: (search: Record<string, unknown>): TrainerSearch => ({
     tab: search.tab === 'structures' || search.tab === 'openings' ? search.tab : undefined,
     structure: typeof search.structure === 'string' ? search.structure : undefined,
@@ -35,7 +38,7 @@ function TrainerPage() {
         <div
           className={
             boardMode
-              ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
+              ? 'flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden'
               : 'flex flex-1 flex-col'
           }
         >
@@ -47,7 +50,7 @@ function TrainerPage() {
               description="Train White or Black, or learn the pawn structures the openings become."
             />
           )}
-          <div className={boardMode ? 'min-h-0 flex-1 overflow-hidden' : 'min-w-0'}>
+          <div className={boardMode ? 'lg:min-h-0 lg:h-full lg:overflow-hidden' : 'min-w-0'}>
             <OpeningTrainer trainer={trainer} username={name} tab={tab} structure={structure} />
           </div>
         </div>

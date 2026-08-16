@@ -5,8 +5,10 @@ import { ButtonLink, EmptyState, PageHeader, ResultsSkeleton } from '@/component
 import { useAuth } from '@/lib/auth'
 import { usePlayerData } from '@/lib/queries'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
 
 export const Route = createFileRoute('/results/$username')({
+  head: ({ params }) => playerHead('Results', params.username),
   component: ResultsLayout,
 })
 

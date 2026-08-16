@@ -115,6 +115,7 @@ async function main() {
         alternatives: [],
         explorer_stats: null,
         frequency_weight: row.frequency_weight ?? 1,
+        commentary: null,
       }
       const children = (byParent.get(row.id) ?? []).map((child) => ({
         ...current,

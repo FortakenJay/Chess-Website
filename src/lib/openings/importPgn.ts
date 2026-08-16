@@ -1,84 +1,50 @@
-import { Chess } from 'chess.js'
-import { parseComment } from './tree'
+import { parsePgnTree, type ParsedPgnGame } from './pgnTree'
 import type { BuiltNode, TrainedSide } from './types'
-
-function splitPgnGames(pgn: string): string[] {
-  const chunks = pgn
-    .replace(/^\uFEFF/, '')
-    .trim()
-    .split(/\n(?=\[Event )/g)
-  return chunks.map((chunk) => chunk.trim()).filter(Boolean)
-}
-
-function header(pgn: string, key: string): string {
-  const match = new RegExp(`\\[${key}\\s+"([^"]*)"\\]`, 'i').exec(pgn)
-  return match?.[1] ?? ''
-}
 
 export type ImportedLine = {
   name: string
   eco: string | null
   side: TrainedSide
   nodes: BuiltNode[]
+  chapter?: string | null
 }
 
 export function importPgn(
   pgn: string,
   options: { side?: TrainedSide; idFactory?: () => string } = {},
 ): ImportedLine[] {
-  const games = splitPgnGames(pgn)
-  if (games.length === 0 && pgn.trim()) games.push(pgn.trim())
-  const idFactory = options.idFactory ?? (() => crypto.randomUUID())
+  return parsePgnTree(pgn, options).map((game: ParsedPgnGame) => ({
+    name: game.name,
+    eco: game.eco,
+    side: game.side,
+    nodes: game.nodes,
+    chapter: game.chapter,
+  }))
+}
 
-  return games.map((game) => {
-    const board = new Chess()
-    try {
-      board.loadPgn(game, { strict: false })
-    } catch {
-      throw new Error(`Could not parse PGN: ${header(game, 'Event') || 'untitled'}`)
+export function mergeImportedLines(lines: ImportedLine[]): ImportedLine | null {
+  if (!lines.length) return null
+  const root = lines[0]!
+  const nodes = [...root.nodes]
+  const seen = new Set(nodes.map((node) => `${node.parent_node_id ?? 'root'}:${node.san}`))
+  for (const line of lines.slice(1)) {
+    const idMap = new Map<string, string>()
+    for (const node of line.nodes) {
+      const parent = node.parent_node_id ? (idMap.get(node.parent_node_id) ?? node.parent_node_id) : null
+      const key = `${parent ?? 'root'}:${node.san}`
+      const existing = nodes.find((row) => `${row.parent_node_id ?? 'root'}:${row.san}` === key)
+      if (existing) {
+        idMap.set(node.id, existing.id)
+        if (!existing.reason_text && node.reason_text) existing.reason_text = node.reason_text
+        if (!existing.commentary && node.commentary) existing.commentary = node.commentary
+        if (!existing.reason_tags.length && node.reason_tags.length) existing.reason_tags = node.reason_tags
+        continue
+      }
+      const copy = { ...node, parent_node_id: parent }
+      nodes.push(copy)
+      idMap.set(node.id, copy.id)
+      seen.add(key)
     }
-    if (board.history().length === 0) {
-      throw new Error(`Could not parse PGN: ${header(game, 'Event') || 'untitled'}`)
-    }
-
-    const comments = new Map(board.getComments().map((row) => [row.fen, row.comment]))
-    const history = board.history({ verbose: true })
-    const replay = new Chess()
-    const nodes: BuiltNode[] = []
-    let parent: string | null = null
-    const white = header(game, 'White').toLowerCase()
-    const black = header(game, 'Black').toLowerCase()
-    const side: TrainedSide =
-      options.side ??
-      (white.includes('me') || white === 'white' ? 'w' : black.includes('me') ? 'b' : 'w')
-
-    history.forEach((move, index) => {
-      const mover: TrainedSide = replay.turn()
-      replay.move(move.san)
-      const parsed = parseComment(comments.get(replay.fen()) ?? '')
-      const isMine = mover === side
-      nodes.push({
-        id: idFactory(),
-        parent_node_id: parent,
-        fen: replay.fen(),
-        ply: index + 1,
-        san: move.san,
-        is_mine: isMine,
-        source: 'repertoire',
-        reason_tags: isMine ? parsed.tags : [],
-        reason_text: isMine ? parsed.text || null : parsed.text || null,
-        alternatives: parsed.alternatives,
-        explorer_stats: null,
-        frequency_weight: 1,
-      })
-      parent = nodes[nodes.length - 1]!.id
-    })
-
-    return {
-      name: header(game, 'Opening') || header(game, 'Event') || 'Imported line',
-      eco: header(game, 'ECO') || null,
-      side,
-      nodes,
-    }
-  })
+  }
+  return { ...root, nodes }
 }

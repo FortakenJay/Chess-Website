@@ -1,10 +1,15 @@
 import { parseMoveOrderSans } from './tree'
+import { expandSearchQuery, nicknameCanonical } from './nicknames'
 
 export type OpeningSearchHit = {
   name: string
   eco: string
   moves: string
   isEcoRoot: boolean
+}
+
+export function openingHitKey(hit: Pick<OpeningSearchHit, 'name' | 'eco' | 'moves'>): string {
+  return `${hit.eco}|${hit.name}|${hit.moves}`
 }
 
 export type OpeningSearchInput = {
@@ -89,14 +94,36 @@ function scoreHit(opening: OpeningSearchInput | null | undefined, query: string)
   return score
 }
 
+function bestScore(opening: OpeningSearchInput, original: string, expanded: string): number {
+  const a = scoreHit(opening, original)
+  if (expanded === original.trim()) return a
+  return Math.max(a, scoreHit(opening, expanded))
+}
+
 export function rankOpeningHits(
   openings: OpeningSearchInput[],
   query: string,
   limit = 16,
 ): OpeningSearchHit[] {
-  const ranked = openings
+  const expanded = expandSearchQuery(query)
+  const nick = nicknameCanonical(query)
+  const extras: OpeningSearchInput[] = nick
+    ? [
+        {
+          name: nick.name,
+          eco: nick.eco,
+          moves: nick.moves,
+          isEcoRoot: true,
+          aliases: nick.keys,
+        },
+      ]
+    : []
+  const ranked = [...extras, ...openings]
     .filter((opening): opening is OpeningSearchInput => Boolean(opening?.name && opening.moves))
-    .map((opening) => ({ opening, score: scoreHit(opening, query) }))
+    .map((opening) => ({
+      opening,
+      score: bestScore(opening, query, expanded) + (nick && opening.name === nick.name ? 20 : 0),
+    }))
     .filter((row) => row.score > 0)
     .sort((a, b) => b.score - a.score || a.opening.name.localeCompare(b.opening.name))
 

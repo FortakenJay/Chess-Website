@@ -385,12 +385,12 @@ export const PAWN_STRUCTURES: PawnStructure[] = [
     moveOrder: ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'e6'],
     must: { w: ['e4'], b: ['d6', 'e6'], wAbsent: ['d4', 'c4'], bAbsent: ['c5', 'c7'] },
     lesson: {
-      whitePlan: 'Kingside attack (f4-f5 or g4-g5) using the half-open d-file as the other theater. This is a race.',
+      whitePlan: 'Open with d4. After ...cxd4 Nxd4 the king knight has left f3, so the f-pawn is free. Then f4–f5 or g4–g5 is the kingside race; the half-open d-file is the other theater.',
       blackPlan: 'Queenside counterplay on the c-file, ...a6/...b5, and the classic ...d5 break when it equalizes on the spot.',
       attackDirection: 'Fixed/semi-open center: White on the kingside, Black on the c-file. Both sides have their own attack.',
-      weaknesses: 'd6 can be backward. e6 can sag after f4-f5. White’s e4 is a target for ...Nc6-b4 or ...d5.',
+      weaknesses: 'd6 can be backward. e6 can become a target after White plays f4–f5 — that push is illegal while a knight still sits on f3. White’s e4 is a target for ...Nc6-b4 or ...d5.',
       pieces: 'Knights on d4 (White) and c6/d7 (Black). Bishops often stay behind the pawn walls until the race opens. Rooks: d-file White, c-file Black.',
-      breaks: 'White: f4-f5 or e5. Black: ...d5 (the equalizer) or ...b5. Whoever is slower loses a race, not a squeeze.',
+      breaks: 'White: f4–f5 or e5, only after Nxd4 (or another move) leaves f3. Black: ...d5 (the equalizer) or ...b5. Whoever is slower loses a race, not a squeeze.',
       endgame: 'If ...d5 lands and pieces come off, equality. If the kingside attack hits first, there is no ending.',
     },
     edges: [
@@ -477,7 +477,7 @@ const OPENING_NAME_TO_STRUCTURE: Array<{ test: RegExp; id: StructureId }> = [
   { test: /catalan/, id: 'catalan' },
   { test: /london/, id: 'london_d5' },
   { test: /queen'?s gambit declined|orthodox/, id: 'qgd_tense' },
-  { test: /sicilian/, id: 'sicilian_scheveningen' },
+  { test: /scheveningen|najdorf|sicilian.*classical/, id: 'sicilian_scheveningen' },
 ]
 
 const ECO_TO_STRUCTURE: Array<{ letter: string; from: number; to: number; id: StructureId }> = [
@@ -489,8 +489,7 @@ const ECO_TO_STRUCTURE: Array<{ letter: string; from: number; to: number; id: St
   { letter: 'E', from: 60, to: 99, id: 'kid_closed' },
   { letter: 'E', from: 20, to: 59, id: 'qgd_tense' },
   { letter: 'B', from: 36, to: 39, id: 'maroczy' },
-  { letter: 'B', from: 80, to: 99, id: 'sicilian_scheveningen' },
-  { letter: 'B', from: 20, to: 99, id: 'sicilian_scheveningen' },
+  { letter: 'B', from: 80, to: 85, id: 'sicilian_scheveningen' },
   { letter: 'C', from: 2, to: 2, id: 'french_advance' },
   { letter: 'C', from: 0, to: 19, id: 'french_advance' },
   { letter: 'A', from: 43, to: 79, id: 'benoni' },

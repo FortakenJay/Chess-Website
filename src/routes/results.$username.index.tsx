@@ -5,12 +5,15 @@ import { usePlayerData } from '@/lib/queries'
 import { useResultsModel } from '@/lib/resultsModel'
 import { TIMEFRAME_LABEL, type Timeframe } from '@/lib/stats'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { SessionTitle } from '@/lib/useDocumentTitle'
 
 const ResultsCharts = lazy(() =>
   import('@/components/ResultsCharts').then((mod) => ({ default: mod.ResultsCharts })),
 )
 
 export const Route = createFileRoute('/results/$username/')({
+  head: ({ params }) => playerHead('Results', params.username),
   component: ResultsOverview,
 })
 
@@ -26,6 +29,7 @@ function ResultsOverview() {
 
   return (
     <>
+      <SessionTitle page="Results" library={name} />
       <SegmentedControl
         label="Results timeframe"
         value={timeframe}

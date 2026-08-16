@@ -4,10 +4,12 @@ import { AppShell } from '@/components/AppShell'
 import { PageHeader, ErrorText } from '@/components/ui'
 import { lookupPlayer } from '@/lib/chesscom.functions'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
+import { titleHead } from '@/lib/pageTitle'
 import { btnPrimary } from '@/components/review/reviewUi'
 import { cn } from '@/lib/cn'
 
 export const Route = createFileRoute('/review/')({
+  head: () => titleHead('Review'),
   component: ReviewEntryPage,
 })
 

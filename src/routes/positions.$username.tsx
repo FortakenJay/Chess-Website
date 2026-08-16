@@ -10,8 +10,11 @@ import {
 import { PageHeader, PositionsSkeleton } from '@/components/ui'
 import { usePlayerData } from '@/lib/queries'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { SessionTitle } from '@/lib/useDocumentTitle'
 
 export const Route = createFileRoute('/positions/$username')({
+  head: ({ params }) => playerHead('Positions', params.username),
   component: PositionsPage,
 })
 
@@ -27,6 +30,7 @@ function PositionsPage() {
 
   return (
     <AppShell username={name}>
+      <SessionTitle page="Positions" library={name} />
       <PageHeader
         title="Positions"
         username={name}

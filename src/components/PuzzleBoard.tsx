@@ -2,12 +2,13 @@ import { Chess } from 'chess.js'
 import { useEffect, useReducer, useRef, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { productBoardStyles } from '@/lib/boardTheme'
-import { FittedBoardFrame } from '@/components/FittedBoardFrame'
+import { PlaySplit } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { playUci } from '@/lib/puzzles/normalize'
 import type { PracticePuzzle } from '@/lib/puzzles/types'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 
 type BoardState = {
   index: number
@@ -90,12 +91,25 @@ function initialBoard(puzzles: PracticePuzzle[]): BoardState {
   }
 }
 
-export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
+export function PuzzleBoard({
+  puzzles,
+  username,
+}: {
+  puzzles: PracticePuzzle[]
+  username: string
+}) {
   const [state, dispatch] = useReducer(boardReducer, puzzles, initialBoard)
   const { index, ply, fen, failed, solved, replying, selectedSquare, score } = state
   const replyTimer = useRef<number | null>(null)
 
   const puzzle = puzzles[index]
+  useSessionTitle({
+    page: 'Puzzles',
+    library: username,
+    activity: puzzle
+      ? (puzzle.motif && MOTIF_LABEL[puzzle.motif]) || PHASE_LABEL[puzzle.phase]
+      : undefined,
+  })
   const sideToMove = fen.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = (puzzle?.color ?? 'white') === 'black' ? 'black' : 'white'
 
@@ -196,34 +210,32 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
   }
 
   return (
-    <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
-      <div className="flex min-h-0 min-w-0 flex-col border border-line bg-surface">
-        <div className="shrink-0 border-b border-line px-3 py-1.5 font-mono text-sm font-medium">
-          {sideToMove} to move
-        </div>
-        <FittedBoardFrame>
-          <Chessboard
-            options={{
-              position: fen,
-              boardOrientation: orientation,
-              allowDragging: !failed && !solved && !replying,
-              onPieceDrag: ({ square }) => {
-                if (square && !failed && !solved && !replying) {
-                  dispatch({ type: 'select', square })
-                }
-              },
-              onPieceDrop: ({ sourceSquare, targetSquare }) =>
-                makeMove(sourceSquare, targetSquare),
-              onSquareClick: ({ square }) => onSquareClick(square),
-              squareStyles,
-              ...productBoardStyles,
-              boardStyle: { width: '100%', height: '100%' },
-            }}
-          />
-        </FittedBoardFrame>
-      </div>
-      <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:max-h-full">
-        <Panel className="shrink-0">
+    <PlaySplit
+      panelWidth="narrow"
+      boardLabel={<>{sideToMove} to move</>}
+      board={
+        <Chessboard
+          options={{
+            position: fen,
+            boardOrientation: orientation,
+            allowDragging: !failed && !solved && !replying,
+            onPieceDrag: ({ square }) => {
+              if (square && !failed && !solved && !replying) {
+                dispatch({ type: 'select', square })
+              }
+            },
+            onPieceDrop: ({ sourceSquare, targetSquare }) =>
+              makeMove(sourceSquare, targetSquare),
+            onSquareClick: ({ square }) => onSquareClick(square),
+            squareStyles,
+            ...productBoardStyles,
+            boardStyle: { width: '100%', height: '100%' },
+          }}
+        />
+      }
+      panel={
+        <>
+        <Panel className="shrink-0" padding="md">
           <div className="flex items-center justify-between gap-3 font-mono text-xs uppercase tracking-wider text-muted">
             <span>Session</span>
             <span>
@@ -255,12 +267,12 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
             href={puzzle.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-block text-xs text-muted hover:text-ink"
+            className="mt-3 inline-flex min-h-11 items-center text-xs text-muted hover:text-ink"
           >
             Open source puzzle
           </a>
         </Panel>
-        <Panel className="shrink-0 text-sm">
+        <Panel className="shrink-0 text-sm" padding="md">
           {!failed && !solved ? (
             <p className="text-muted">
               {replying ? 'Opponent is replying…' : 'Find the tactic. Opponent replies play automatically.'}
@@ -272,14 +284,15 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
           {solved ? <p className="text-ink">Solved.</p> : null}
         </Panel>
         <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">
-          <Button variant="ghost" onClick={retry}>
+          <Button variant="ghost" className="w-full" onClick={retry}>
             Try again
           </Button>
-          <Button onClick={next} disabled={puzzles.length < 2}>
+          <Button className="w-full" onClick={next} disabled={puzzles.length < 2}>
             Next puzzle
           </Button>
         </div>
-      </aside>
-    </div>
+        </>
+      }
+    />
   )
 }

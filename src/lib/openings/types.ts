@@ -4,6 +4,13 @@ export type TrainedSide = 'w' | 'b'
 export type CenterType = 'open' | 'semi_open' | 'closed' | 'fixed' | 'tense' | 'fluid'
 export type NodeSource = 'repertoire' | 'explorer'
 
+/** Bump when commentary schema or templates change. Cached packs key on this. */
+export const COMMENTARY_GENERATOR_VERSION = 1
+
+export type CommentaryConfidence = 'verified' | 'evidence' | 'imported' | 'basic'
+export type CommentaryProvenance = 'authored' | 'board' | 'imported' | 'template' | 'engine'
+export type CardProvenance = 'authored' | 'generated' | 'imported'
+
 export type PawnBreak = {
   move: string
   precondition?: string
@@ -37,6 +44,73 @@ export type AfterTheBook = {
   if_they_deviate: string
 }
 
+export type ModelGameRef = {
+  id: string
+  white: string
+  black: string
+  year?: number
+  winner?: 'white' | 'black' | 'draw' | null
+}
+
+export type ExplorerEvidence = {
+  source: 'lichess' | 'masters'
+  rating_band: string
+  san: string
+  plays: number
+  pct: number
+}
+
+export type CommentaryEvidence = {
+  fen: string
+  fen_before: string
+  san: string
+  ply: number
+  attacks: string[]
+  defends: string[]
+  controls: string[]
+  opened: string[]
+  blocked_breaks: string[]
+  legal_breaks: string[]
+  explorer?: ExplorerEvidence[]
+  model_games?: ModelGameRef[]
+  engine_best_san?: string | null
+  engine_reply_san?: string | null
+}
+
+export type MoveCommentary = {
+  problem?: string
+  accomplishes?: string
+  attacks?: string[]
+  defends?: string[]
+  controls?: string[]
+  enables?: string
+  drawback?: string
+  if_omitted?: string
+  position_type?: string
+  plans?: string[]
+  why: string
+  confidence: CommentaryConfidence
+  provenance: CommentaryProvenance
+  generator_version: number
+  evidence: CommentaryEvidence
+}
+
+export type LessonDeviation = {
+  at_fen: string
+  they_play: string
+  your_response?: string
+  idea: string
+  source: 'explorer' | 'imported'
+}
+
+export type MiddlegameMilestone = {
+  fen: string
+  ply: number
+  title: string
+  jobs: string[]
+  model_games?: ModelGameRef[]
+}
+
 export type KnowledgeCard = {
   name: string
   side: TrainedSide
@@ -63,6 +137,11 @@ export type KnowledgeCard = {
   quizzes?: LessonQuiz[]
   low_confidence?: boolean
   uncertain_fields?: string[]
+  commentaries?: Record<string, MoveCommentary>
+  deviations?: LessonDeviation[]
+  milestones?: MiddlegameMilestone[]
+  generator_version?: number
+  provenance?: CardProvenance
 }
 
 export type NodeAlternative = {
@@ -77,6 +156,8 @@ export type ExplorerReply = {
   plays: number
   pct: number
   win_pct: number | null
+  corpus?: 'club' | 'masters'
+  games?: ModelGameRef[]
 }
 
 export type BuiltNode = {
@@ -93,6 +174,7 @@ export type BuiltNode = {
   alternatives: NodeAlternative[]
   explorer_stats: ExplorerReply[] | null
   frequency_weight: number
+  commentary: MoveCommentary | null
 }
 
 export type StructureTargets = {
@@ -127,4 +209,27 @@ export type NodeProgress = {
   last_understanding_pass: boolean | null
   streak: number
   lapses: number
+}
+
+export type GenerationStage =
+  | 'queued'
+  | 'starter'
+  | 'explorer'
+  | 'engine'
+  | 'commentary'
+  | 'milestones'
+  | 'ready'
+  | 'paused'
+  | 'error'
+
+export type GenerationCursor = {
+  stage: GenerationStage
+  nodeIndex: number
+}
+
+export type OpeningPackKey = {
+  name: string
+  side: TrainedSide
+  rating_band: string
+  generator_version: number
 }

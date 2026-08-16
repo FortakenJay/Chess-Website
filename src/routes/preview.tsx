@@ -6,8 +6,10 @@ import type { PreviewPosition } from '@/components/PreviewErrors'
 import { ErrorText, PageHeader, PreviewListSkeleton } from '@/components/ui'
 import type { FlaggedPosition } from '@/lib/analysis/types'
 import { usePlayerData } from '@/lib/queries'
+import { titleHead } from '@/lib/pageTitle'
 
 export const Route = createFileRoute('/preview')({
+  head: () => titleHead('Preview'),
   component: PreviewPage,
 })
 

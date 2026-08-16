@@ -11,7 +11,12 @@ import {
 } from '@/lib/openings/families'
 import { searchOpeningCatalog } from '@/lib/openings/functions'
 import { matchesOpeningQuery } from '@/lib/openings/matchPlayed'
-import type { OpeningSearchHit } from '@/lib/openings/searchCatalog'
+import {
+  expandSearchQuery,
+  FEATURED_OPENING_CHIPS,
+  humanOpeningLabel,
+} from '@/lib/openings/nicknames'
+import { openingHitKey, type OpeningSearchHit } from '@/lib/openings/searchCatalog'
 import type { OpeningTrainingOption } from '@/lib/openings/useOpeningTrainer'
 
 const WEAKNESS_COPY = {
@@ -167,25 +172,39 @@ function LearnOpeningAsk({
   color,
   initialQuery,
   downloading,
+  downloadingKey,
   downloadError,
   onBack,
   onStart,
   onDownload,
+  onImportPgn,
+  onImportStudy,
 }: {
   catalog: OpeningTrainingOption[]
   color: TrainedColor
   initialQuery: string
   downloading: boolean
+  downloadingKey: string | null
   downloadError: string | null
   onBack: () => void
   onStart: (openingId: string, mode: 'weakest' | 'foundations') => void
   onDownload: (hit: OpeningSearchHit) => void
+  onImportPgn?: (pgn: string, side: TrainedColor) => void
+  onImportStudy?: (url: string, side: TrainedColor) => void
 }) {
   const [query, setQuery] = useState(initialQuery)
   const [remote, setRemote] = useState<OpeningSearchHit[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const matches = catalog.filter((opening) => opening && matchesOpeningQuery(opening, query))
+  const [pgnText, setPgnText] = useState('')
+  const [studyUrl, setStudyUrl] = useState('')
+  const expanded = expandSearchQuery(query)
+  const matches = catalog.filter(
+    (opening) =>
+      opening &&
+      (matchesOpeningQuery(opening, query) ||
+        (expanded !== query.trim() && matchesOpeningQuery(opening, expanded))),
+  )
   const sideLabel = color === 'w' ? 'White' : 'Black'
   const remoteOnly = remote.filter(
     (hit) =>
@@ -197,6 +216,9 @@ function LearnOpeningAsk({
             (Boolean(opening.eco) && opening.eco === hit.eco && opening.side === color)),
       ),
   )
+  const topMatch = matches[0]
+  const topRemote = remoteOnly[0]
+  const canTakeTop = Boolean(topMatch || (topRemote && !downloading))
 
   useEffect(() => {
     const needle = query.trim()
@@ -248,124 +270,206 @@ function LearnOpeningAsk({
           What opening do you want to learn?
         </h2>
         <p className="mt-4 max-w-xl text-sm leading-6 text-muted">
-          Type a name or ECO code. If we already teach it, start the lesson. If not, download the
-          named line and we will teach the idea, the breaks, and what to do when the book ends.
+          Say it the way you would at the club — Dragon, Spanish, fried liver, London. We pick the
+          main line people mean, then you can download a sharper branch if you want it.
         </p>
 
         <form
           className="mt-6 flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault()
-            const first = matches[0]
-            if (first) {
-              onStart(first.id, first.known && first.stats.attempted > 0 ? 'weakest' : 'foundations')
+            if (topMatch) {
+              onStart(
+                topMatch.id,
+                topMatch.known && topMatch.stats.attempted > 0 ? 'weakest' : 'foundations',
+              )
               return
             }
-            const hit = remoteOnly[0]
-            if (hit && !downloading) onDownload(hit)
+            if (topRemote && !downloading) onDownload(topRemote)
           }}
         >
           <label htmlFor="learn-opening" className={fieldLabelClass}>
-            Opening name
+            What do you call it?
           </label>
           <input
             id="learn-opening"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className={fieldControlClass}
-            placeholder={
-              color === 'w' ? 'e.g. Vienna, Spanish, C29' : 'e.g. Sicilian, French, Caro-Kann'
-            }
+            placeholder="Dragon, Spanish, fried liver…"
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
             autoFocus
           />
-          <Button
-            type="submit"
-            className="w-full sm:w-auto"
-            disabled={downloading || (matches.length !== 1 && remoteOnly.length !== 1)}
-          >
-            {matches.length === 1
-              ? `Learn ${matches[0]?.name}`
-              : remoteOnly.length === 1
-                ? `Download ${remoteOnly[0]?.name}`
-                : 'Search'}
+          <Button type="submit" className="w-full sm:w-auto" disabled={!canTakeTop}>
+            {topMatch
+              ? `Learn ${humanOpeningLabel(topMatch.name, topMatch.eco).title}`
+              : topRemote
+                ? `Learn ${humanOpeningLabel(topRemote.name, topRemote.eco).title}`
+                : searching
+                  ? 'Looking…'
+                  : 'Search'}
           </Button>
         </form>
         {downloadError ? <p className="mt-3 text-sm text-blunder-text">{downloadError}</p> : null}
         {searchError ? <p className="mt-3 text-sm text-muted">{searchError}</p> : null}
+
+        <details className="mt-6 border border-line bg-canvas px-4 py-3">
+          <summary className="min-h-11 cursor-pointer font-mono text-[11px] uppercase tracking-[0.08em] text-ink">
+            Import a PGN or Lichess study
+          </summary>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            Comments and variations stay in your personal repertoire. They are not published to the
+            shared catalog.
+          </p>
+          <label htmlFor="import-pgn" className={`${fieldLabelClass} mt-4`}>
+            PGN
+          </label>
+          <textarea
+            id="import-pgn"
+            value={pgnText}
+            onChange={(event) => setPgnText(event.target.value)}
+            className={`${fieldControlClass} min-h-28`}
+            placeholder="Paste a repertoire PGN with comments and variations…"
+          />
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <label className="inline-flex min-h-11 cursor-pointer items-center border border-line px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink hover:border-accent">
+              Upload PGN
+              <input
+                type="file"
+                accept=".pgn,text/plain"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  void file.text().then(setPgnText)
+                }}
+              />
+            </label>
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              disabled={!pgnText.trim() || downloading}
+              onClick={() => onImportPgn?.(pgnText, color)}
+            >
+              Import PGN
+            </Button>
+          </div>
+          <label htmlFor="import-study" className={`${fieldLabelClass} mt-4`}>
+            Lichess study URL
+          </label>
+          <input
+            id="import-study"
+            value={studyUrl}
+            onChange={(event) => setStudyUrl(event.target.value)}
+            className={fieldControlClass}
+            placeholder="https://lichess.org/study/…"
+          />
+          <Button
+            type="button"
+            className="mt-3 w-full sm:w-auto"
+            disabled={!studyUrl.trim() || downloading}
+            onClick={() => onImportStudy?.(studyUrl, color)}
+          >
+            Import study
+          </Button>
+        </details>
       </div>
 
       {query.trim().length < 2 ? (
-        <p className="mt-5 text-sm text-muted">Name the opening. Matches appear as you type.</p>
+        <div className="mt-5">
+          <p className="text-sm text-muted">Tap a nickname, or start typing.</p>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {FEATURED_OPENING_CHIPS.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                className="inline-flex min-h-11 shrink-0 items-center border border-line px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink hover:border-accent hover:bg-surface-2"
+                onClick={() => setQuery(chip)}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
         <>
           {matches.length > 0 ? (
             <ul className="mt-5 divide-y divide-line border border-line">
-              {matches.map((opening) => (
-                <li key={opening.id}>
-                  <button
-                    type="button"
-                    className="flex min-h-14 w-full flex-col gap-1 px-4 py-3 text-left hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between"
-                    onClick={() =>
-                      onStart(
-                        opening.id,
-                        opening.known && opening.stats.attempted > 0 ? 'weakest' : 'foundations',
-                      )
-                    }
-                  >
-                    <span className="min-w-0">
-                      <span className="block font-medium text-ink">{opening.name}</span>
-                      <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
-                        {opening.eco ?? 'Repertoire'} · {opening.side === 'w' ? 'White' : 'Black'}
-                        {opening.known ? ' · already in your games' : ' · lesson ready'}
+              {matches.map((opening) => {
+                const label = humanOpeningLabel(opening.name, opening.eco)
+                return (
+                  <li key={opening.id}>
+                    <button
+                      type="button"
+                      className="flex min-h-14 w-full flex-col gap-1 px-4 py-3 text-left hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between"
+                      onClick={() =>
+                        onStart(
+                          opening.id,
+                          opening.known && opening.stats.attempted > 0 ? 'weakest' : 'foundations',
+                        )
+                      }
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-medium text-ink">{label.title}</span>
+                        <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                          {label.hint !== label.title ? `${label.hint} · ` : ''}
+                          {opening.eco ?? 'Repertoire'} · {opening.side === 'w' ? 'White' : 'Black'}
+                          {opening.known ? ' · already in your games' : ' · lesson ready'}
+                        </span>
                       </span>
-                    </span>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
-                      Learn this
-                    </span>
-                  </button>
-                </li>
-              ))}
+                      <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
+                        Learn this
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           ) : null}
 
           {searching ? (
-            <p className="mt-5 text-sm text-muted">Searching the opening book…</p>
+            <p className="mt-5 text-sm text-muted">Looking up how people name that…</p>
           ) : remoteOnly.length > 0 ? (
             <section className="mt-5">
               <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
-                Download from the encyclopedia
+                {matches.length ? 'Other named lines' : 'Closest match'}
               </p>
               <ul className="mt-3 divide-y divide-line border border-line">
-                {remoteOnly.map((hit) => (
-                  <li key={`${hit.eco}-${hit.name}-${hit.moves}`}>
-                    <button
-                      type="button"
-                      disabled={downloading}
-                      className="flex min-h-14 w-full flex-col gap-1 px-4 py-3 text-left hover:bg-surface-2 disabled:opacity-40 sm:flex-row sm:items-center sm:justify-between"
-                      onClick={() => onDownload(hit)}
-                    >
-                      <span className="min-w-0">
-                        <span className="block font-medium text-ink">{hit.name}</span>
-                        <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
-                          {hit.eco}
-                          {hit.isEcoRoot ? ' · ECO root' : ''} · {hit.moves}
+                {remoteOnly.map((hit, index) => {
+                  const label = humanOpeningLabel(hit.name, hit.eco)
+                  const thisOne = downloadingKey === openingHitKey(hit)
+                  return (
+                    <li key={openingHitKey(hit)}>
+                      <button
+                        type="button"
+                        disabled={downloading}
+                        className="flex min-h-14 w-full flex-col gap-1 px-4 py-3 text-left hover:bg-surface-2 disabled:opacity-40 sm:flex-row sm:items-center sm:justify-between"
+                        onClick={() => onDownload(hit)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-medium text-ink">{label.title}</span>
+                          <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                            {label.hint !== label.title ? `${label.hint} · ` : ''}
+                            {hit.eco}
+                            {index === 0 ? ' · usually this' : ''}
+                            {hit.isEcoRoot ? ' · main line' : ''} · {hit.moves}
+                          </span>
                         </span>
-                      </span>
-                      <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
-                        {downloading ? 'Downloading…' : 'Download and learn'}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
+                          {thisOne ? 'Downloading…' : 'Download and learn'}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </section>
           ) : !searching && matches.length === 0 ? (
             <p className="mt-5 border border-line bg-surface px-4 py-4 text-sm text-muted">
-              No {sideLabel} line named “{query.trim()}” in the catalog or the opening book. Try
-              another name, or an ECO code.
+              Nothing named “{query.trim()}”. Try the nickname — Dragon, Najdorf, Spanish — or an
+              ECO code like B70.
             </p>
           ) : null}
         </>
@@ -405,16 +509,22 @@ export function OpeningChooser({
   known,
   catalog,
   downloading,
+  downloadingKey,
   downloadError,
   onStart,
   onDownload,
+  onImportPgn,
+  onImportStudy,
 }: {
   known: OpeningTrainingOption[]
   catalog: OpeningTrainingOption[]
   downloading: boolean
+  downloadingKey: string | null
   downloadError: string | null
   onStart: (openingId: string, mode: 'weakest' | 'foundations') => void
   onDownload: (hit: OpeningSearchHit, side: TrainedColor) => void
+  onImportPgn?: (pgn: string, side: TrainedColor) => void
+  onImportStudy?: (url: string, side: TrainedColor) => void
 }) {
   const [color, setColor] = useState<TrainedColor>('w')
   const [asking, setAsking] = useState(false)
@@ -442,10 +552,13 @@ export function OpeningChooser({
         color={color}
         initialQuery={askQuery}
         downloading={downloading}
+        downloadingKey={downloadingKey}
         downloadError={downloadError}
         onBack={() => setAsking(false)}
         onStart={onStart}
         onDownload={(hit) => onDownload(hit, color)}
+        onImportPgn={onImportPgn}
+        onImportStudy={onImportStudy}
       />
     )
   }

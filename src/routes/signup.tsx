@@ -4,8 +4,10 @@ import { AuthFrame } from '@/components/AuthFrame'
 import { ShellSkeleton } from '@/components/ShellSkeleton'
 import { SignupForm } from '@/components/SignupForm'
 import { useAuth } from '@/lib/auth'
+import { titleHead } from '@/lib/pageTitle'
 
 export const Route = createFileRoute('/signup')({
+  head: () => titleHead('Sign up'),
   component: SignupPage,
 })
 

@@ -1,0 +1,12 @@
+---
+description: "Where architecture lives: Obsidian humans vault vs LLM docs vs Cursor rules"
+alwaysApply: true
+---
+
+# Architecture docs
+
+- Humans (Obsidian, diagrams): `docs/humans/` — open the `docs/` folder as the vault, start at `docs/Home.md`.
+- Agents: `docs/llm/INDEX.md` then `SYSTEM.md` then the matching `docs/llm/_*.md`.
+- Coding constraints stay in `.cursor/rules/*.mdc`.
+
+If you change a domain invariant, update the Cursor rule **and** `docs/llm/_that-domain.md` (and the human note if the diagram is now wrong). Do not invent evals, persist Review tapes, or mix opening provenance.

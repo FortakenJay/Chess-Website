@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
-import { FittedBoardFrame } from '@/components/FittedBoardFrame'
+import { PlaySplit } from '@/components/FittedBoardFrame'
 import { OpeningChooser } from '@/components/OpeningChooser'
 import { OpeningLesson } from '@/components/OpeningLesson'
 import { PawnStructureLab } from '@/components/PawnStructureLab'
@@ -16,6 +16,8 @@ import {
 import { productBoardStyles } from '@/lib/boardTheme'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { REASON_TAG_LABEL } from '@/lib/openings/tags'
+import { humanOpeningLabel } from '@/lib/openings/nicknames'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 import type { useOpeningTrainer } from '@/lib/openings/useOpeningTrainer'
 
 type TrainerModule = 'openings' | 'structures'
@@ -34,6 +36,11 @@ function TrainerStudio({
   structure?: string
 }) {
   const [module, setModule] = useState<TrainerModule>(tab === 'structures' ? 'structures' : 'openings')
+  useSessionTitle({
+    page: 'Trainer',
+    library: username,
+    enabled: module === 'openings',
+  })
   return (
     <div>
       <SegmentedControl
@@ -52,9 +59,12 @@ function TrainerStudio({
             known={trainer.knownOpenings}
             catalog={trainer.openingOptions}
             downloading={trainer.downloading}
+            downloadingKey={trainer.downloadingKey}
             downloadError={trainer.downloadError}
             onStart={onStart}
             onDownload={(hit, side) => void trainer.downloadOpening(hit, side)}
+            onImportPgn={(pgn, side) => void trainer.importOpeningPgn(pgn, side)}
+            onImportStudy={(url, side) => void trainer.importLichessStudy(url, side)}
           />
         </div>
       ) : (
@@ -82,6 +92,27 @@ export function OpeningTrainer({
   const [recallPass, setRecallPass] = useState<boolean | null>(null)
   const [reasonPick, setReasonPick] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const nick = humanOpeningLabel(trainer.openingName).title
+  const training =
+    trainer.phase === 'lesson' ||
+    trainer.phase === 'recall' ||
+    trainer.phase === 'reason' ||
+    trainer.phase === 'done'
+  useSessionTitle({
+    library: username,
+    enabled: training,
+    activity: trainer.phase === 'select' || trainer.phase === 'loading' ? undefined : nick,
+    page:
+      trainer.phase === 'lesson'
+        ? 'Lesson'
+        : trainer.phase === 'recall' && trainer.total
+          ? `${trainer.index + 1}/${trainer.total}`
+          : trainer.phase === 'reason'
+            ? 'Why'
+            : trainer.phase === 'done' && trainer.total
+              ? 'Done'
+              : 'Trainer',
+  })
 
   const item = trainer.item
   const fen = playedFen ?? item?.parentFen ?? ''
@@ -160,6 +191,9 @@ export function OpeningTrainer({
     return (
       <OpeningLesson
         card={trainer.knowledgeCard}
+        generation={trainer.generation}
+        onPauseGeneration={trainer.pauseGeneration}
+        onResumeGeneration={trainer.resumeGeneration}
         onBack={() => {
           resetItemState()
           trainer.chooseOpening()
@@ -232,32 +266,28 @@ export function OpeningTrainer({
     locked || trainer.phase !== 'recall' ? {} : legalMoveStyles(item.parentFen, selectedSquare)
 
   return (
-    <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
-      <div className="flex min-h-0 min-w-0 flex-col border border-line bg-surface">
-        <div className="shrink-0 border-b border-line px-3 py-2 font-mono text-sm">
-          {orientation === 'black' ? 'Black' : 'White'} to move
-        </div>
-        <FittedBoardFrame>
-          <Chessboard
-            options={{
-              position: fen,
-              boardOrientation: orientation,
-              allowDragging: !locked,
-              onPieceDrag: ({ square }) => {
-                if (square && !locked) setSelectedSquare(square)
-              },
-              onPieceDrop: ({ sourceSquare, targetSquare }) => playMove(sourceSquare, targetSquare),
-              onSquareClick: ({ square }) => onSquareClick(square),
-              squareStyles,
-              ...productBoardStyles,
-              boardStyle: { width: '100%', height: '100%' },
-            }}
-          />
-        </FittedBoardFrame>
-      </div>
-
-      <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-        <Panel>
+    <PlaySplit
+      boardLabel={<>{orientation === 'black' ? 'Black' : 'White'} to move</>}
+      board={
+        <Chessboard
+          options={{
+            position: fen,
+            boardOrientation: orientation,
+            allowDragging: !locked,
+            onPieceDrag: ({ square }) => {
+              if (square && !locked) setSelectedSquare(square)
+            },
+            onPieceDrop: ({ sourceSquare, targetSquare }) => playMove(sourceSquare, targetSquare),
+            onSquareClick: ({ square }) => onSquareClick(square),
+            squareStyles,
+            ...productBoardStyles,
+            boardStyle: { width: '100%', height: '100%' },
+          }}
+        />
+      }
+      panel={
+        <>
+        <Panel padding="md">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
             {trainer.index + 1} / {trainer.total}
           </p>
@@ -278,7 +308,7 @@ export function OpeningTrainer({
           </Button>
         </Panel>
 
-        <Panel>
+        <Panel padding="md">
           {trainer.phase === 'recall' && recallPass == null ? (
             <p className="text-sm text-ink">Play your repertoire move.</p>
           ) : null}
@@ -340,7 +370,8 @@ export function OpeningTrainer({
             </div>
           ) : null}
         </Panel>
-      </aside>
-    </div>
+        </>
+      }
+    />
   )
 }

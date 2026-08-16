@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
 const tileVariants = cva(
-  'flex min-h-20 flex-col justify-between border px-3 py-3 text-left transition-colors',
+  'flex min-h-20 cursor-pointer flex-col justify-between border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed',
   {
     variants: {
       active: {

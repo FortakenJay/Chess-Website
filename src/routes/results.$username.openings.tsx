@@ -2,8 +2,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { OpeningRepertoire } from '@/components/OpeningRepertoire'
 import { usePlayerData } from '@/lib/queries'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { SessionTitle } from '@/lib/useDocumentTitle'
 
 export const Route = createFileRoute('/results/$username/openings')({
+  head: ({ params }) => playerHead('Openings', params.username),
   component: ResultsOpenings,
 })
 
@@ -12,6 +15,10 @@ function ResultsOpenings() {
   const name = normalizeUsername(username)
   const query = usePlayerData(name)
   const games = query.data?.games ?? []
-  if (games.length === 0) return null
-  return <OpeningRepertoire username={name} games={games} />
+  return (
+    <>
+      <SessionTitle page="Openings" library={name} />
+      {games.length > 0 ? <OpeningRepertoire username={name} games={games} /> : null}
+    </>
+  )
 }

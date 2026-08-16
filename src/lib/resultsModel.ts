@@ -22,6 +22,7 @@ import {
   winRateByBlunders,
   type Timeframe,
 } from '@/lib/stats'
+import { playstyleFrom } from '@/lib/playstyle'
 import type { Tables } from '@/lib/supabase/database.types'
 
 export function useResultsModel(
@@ -39,6 +40,8 @@ export function useResultsModel(
       inTimeframe(attempt.attempted_at, timeframe),
     )
     const byPhase = sumPhaseStats(filteredGames)
+    const byColor = sumColorStats(filteredGames)
+    const byClock = sumClockStats(filteredGames)
     const latestGames = [...filteredGames].sort((a, b) => {
       const byDate = dateKey(b.played_on).localeCompare(dateKey(a.played_on))
       return byDate || a.game_link.localeCompare(b.game_link)
@@ -63,10 +66,11 @@ export function useResultsModel(
       winRate: winRateByBlunders(filteredGames),
       timeClass: timeClassStats(filteredGames),
       ratingBands: opponentRatingBandStats(filteredGames),
-      byColor: sumColorStats(filteredGames),
-      byClock: sumClockStats(filteredGames),
+      byColor,
+      byClock,
       drillWeeks: drillWeekly(filteredAttempts),
       drillByMotif: drillAccuracyByMotif(filteredPositions, filteredAttempts),
+      playstyle: playstyleFrom(filteredGames, filteredPositions, byColor, byClock),
     }
   }, [attempts, games, positions, timeframe])
 }

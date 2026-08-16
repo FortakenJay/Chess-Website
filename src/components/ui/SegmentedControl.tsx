@@ -2,7 +2,7 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
 export const segmentItemVariants = cva(
-  'inline-flex min-h-11 items-center border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.06em]',
+  'inline-flex min-h-11 cursor-pointer items-center border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.06em] disabled:cursor-not-allowed',
   {
     variants: {
       active: {

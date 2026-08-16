@@ -28,6 +28,8 @@ import { cn } from '@/lib/cn'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 import { productBoardStyles } from '@/lib/boardTheme'
+import { humanOpeningLabel } from '@/lib/openings/nicknames'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 
 type ExploreMove = {
   san: string
@@ -365,8 +367,8 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   }, [analysis.gameLink])
 
   return (
-    <div className="grid h-full min-h-0 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] lg:overflow-hidden">
-      <section className="flex min-h-[min(70vw,28rem)] flex-col border border-line bg-surface lg:min-h-0">
+    <div className="grid min-h-0 gap-3 lg:h-full lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] lg:overflow-hidden">
+      <section className="flex flex-col border border-line bg-surface lg:min-h-0">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2 text-sm">
           <div className="flex min-w-0 items-center gap-2">
             <PlayerAvatar username={analysis.opponent} src={oppAvatar} size={28} />
@@ -388,7 +390,8 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 items-stretch gap-2 p-2 sm:p-3">
+        <div className="relative aspect-square w-full lg:aspect-auto lg:min-h-0 lg:flex-1">
+          <div className="absolute inset-0 flex items-stretch gap-2 p-2 sm:p-3">
           <div
             className="relative flex w-4 shrink-0 flex-col-reverse overflow-hidden border border-line bg-ink sm:w-5"
             title={`Eval ${displayEval}`}
@@ -421,12 +424,13 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
               }}
             />
           </FittedBoardFrame>
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-t border-line px-2 py-2">
           <button
             type="button"
-            className={cn(btnNav, 'px-2 py-1 font-mono text-xs')}
+            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
             onClick={() => setCursor(0)}
             aria-label="Start"
           >
@@ -434,7 +438,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           </button>
           <button
             type="button"
-            className={cn(btnNav, 'px-2 py-1 font-mono text-xs')}
+            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
             onClick={stepBack}
             aria-label="Previous move"
           >
@@ -449,7 +453,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                   type="button"
                   onClick={() => setCursor(ply.ply + 1)}
                   className={cn(
-                    'shrink-0 px-1.5 py-1 font-mono text-xs',
+                    'inline-flex min-h-11 shrink-0 items-center px-2.5 font-mono text-xs',
                     selected ? moveActive : moveIdle,
                     !selected && ply.isUserMove && qualityClass(ply.quality),
                     !selected && !ply.isUserMove && 'text-muted',
@@ -463,7 +467,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           </div>
           <button
             type="button"
-            className={cn(btnNav, 'px-2 py-1 font-mono text-xs')}
+            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
             onClick={stepForward}
             aria-label="Next move"
           >
@@ -471,7 +475,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           </button>
           <button
             type="button"
-            className={cn(btnNav, 'px-2 py-1 font-mono text-xs')}
+            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
             onClick={() => setCursor(evalCurve.length - 1)}
             aria-label="End"
           >
@@ -572,7 +576,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                     setShowBest(true)
                   }}
                   className={cn(
-                    'grid w-full grid-cols-[3rem_minmax(0,1fr)] gap-2 border px-2 py-1.5 text-left font-mono text-xs',
+                    'grid min-h-11 w-full grid-cols-[3rem_minmax(0,1fr)] items-center gap-2 border px-2 py-2 text-left font-mono text-xs',
                     activeLine === index && showBest
                       ? 'border-bone bg-surface-2 text-ink hover:bg-surface-2'
                       : 'quiet border-line text-ink hover:bg-surface-2',
@@ -635,7 +639,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                       type="button"
                       onClick={() => setCursor(ply.ply + 1)}
                       className={cn(
-                        'px-1.5 py-0.5 text-left',
+                        'min-h-11 px-2 text-left',
                         cursor === ply.ply + 1 ? moveActive : moveIdle,
                         cursor !== ply.ply + 1 && ply.isUserMove && qualityClass(ply.quality),
                         cursor !== ply.ply + 1 && !ply.isUserMove && 'text-ink',
@@ -668,28 +672,28 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           <div className="sticky bottom-0 z-10 flex gap-2 border-t border-line bg-surface p-2 sm:p-3">
             <button
               type="button"
-              className={cn(btnNav, 'flex-1 py-2 font-mono text-sm')}
+              className={cn(btnNav, 'min-h-11 flex-1 font-mono text-sm')}
               onClick={() => setCursor(0)}
             >
               ≪
             </button>
             <button
               type="button"
-              className={cn(btnNavStrong, 'flex-1 py-2 font-mono text-sm')}
+              className={cn(btnNavStrong, 'min-h-11 flex-1 font-mono text-sm')}
               onClick={stepBack}
             >
               ‹
             </button>
             <button
               type="button"
-              className={cn(btnNav, 'flex-1 py-2 font-mono text-sm')}
+              className={cn(btnNav, 'min-h-11 flex-1 font-mono text-sm')}
               onClick={stepForward}
             >
               ›
             </button>
             <button
               type="button"
-              className={cn(btnNav, 'flex-1 py-2 font-mono text-sm')}
+              className={cn(btnNav, 'min-h-11 flex-1 font-mono text-sm')}
               onClick={() => setCursor(evalCurve.length - 1)}
             >
               ≫
@@ -709,6 +713,16 @@ export function GameReview({
   onBack: () => void
 }) {
   const [tab, setTab] = useState<ReviewTab>('report')
+  const opening = analysis.openingName
+    ? humanOpeningLabel(analysis.openingName, analysis.openingEco).title
+    : analysis.opponent
+      ? `vs ${analysis.opponent}`
+      : undefined
+  useSessionTitle({
+    page: 'Review',
+    library: analysis.username,
+    activity: opening,
+  })
 
   const tabs: Array<{ id: ReviewTab; label: string }> = [
     { id: 'report', label: 'Report' },
@@ -717,12 +731,12 @@ export function GameReview({
   ]
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex flex-col lg:min-h-0 lg:flex-1">
       <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
-          className="quiet px-2 py-1 font-mono text-xs text-muted hover:bg-surface-2 hover:text-ink"
+          className="quiet inline-flex min-h-11 items-center px-3 font-mono text-xs text-muted hover:bg-surface-2 hover:text-ink"
         >
           ← Games
         </button>
@@ -744,7 +758,7 @@ export function GameReview({
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
             className={cn(
-              'px-4 py-2 font-mono text-xs uppercase tracking-wider',
+              'inline-flex min-h-11 items-center px-4 font-mono text-xs uppercase tracking-wider',
               tab === item.id ? chipActive : chipIdle,
             )}
           >
@@ -753,15 +767,15 @@ export function GameReview({
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="lg:min-h-0 lg:flex-1 lg:overflow-hidden">
         {tab === 'report' ? (
-          <div className="h-full overflow-y-auto overscroll-contain">
+          <div className="lg:h-full lg:overflow-y-auto lg:overscroll-contain">
             <ReviewReport analysis={analysis} onStartReview={() => setTab('analysis')} />
           </div>
         ) : null}
         {tab === 'analysis' ? <AnalysisPanel analysis={analysis} /> : null}
         {tab === 'insights' ? (
-          <div className="h-full overflow-y-auto overscroll-contain">
+          <div className="lg:h-full lg:overflow-y-auto lg:overscroll-contain">
             <ReviewInsights analysis={analysis} />
           </div>
         ) : null}

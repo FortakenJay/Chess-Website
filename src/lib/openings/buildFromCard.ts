@@ -54,7 +54,7 @@ export function buildFromCard(
   return {
     side: card.side,
     center_type: mapCenter(card.center.type),
-    nodes: buildNodesFromSans(sans, card.side, card.move_order_logic, idFactory),
+    nodes: buildNodesFromSans(sans, card.side, card.move_order_logic, idFactory, card.commentaries),
     targets: targetsFromCard(card),
   }
 }

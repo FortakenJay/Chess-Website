@@ -256,9 +256,105 @@ export type Database = {
           },
         ]
       }
+      opening_explorer_cache: {
+        Row: {
+          corpus: string
+          fen: string
+          fetched_at: string
+          payload: Json
+          rating_band: string
+        }
+        Insert: {
+          corpus: string
+          fen: string
+          fetched_at?: string
+          payload: Json
+          rating_band: string
+        }
+        Update: {
+          corpus?: string
+          fen?: string
+          fetched_at?: string
+          payload?: Json
+          rating_band?: string
+        }
+        Relationships: []
+      }
+      opening_generation_jobs: {
+        Row: {
+          created_at: string
+          cursor: Json | null
+          done_count: number
+          error: string | null
+          generator_version: number
+          id: string
+          opening_id: string | null
+          opening_name: string
+          pack_key: string
+          paused: boolean
+          rating_band: string
+          requested_scope: Json
+          side: string
+          stage: string
+          total_count: number
+          updated_at: string
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          cursor?: Json | null
+          done_count?: number
+          error?: string | null
+          generator_version: number
+          id?: string
+          opening_id?: string | null
+          opening_name: string
+          pack_key: string
+          paused?: boolean
+          rating_band?: string
+          requested_scope?: Json
+          side: string
+          stage?: string
+          total_count?: number
+          updated_at?: string
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          cursor?: Json | null
+          done_count?: number
+          error?: string | null
+          generator_version?: number
+          id?: string
+          opening_id?: string | null
+          opening_name?: string
+          pack_key?: string
+          paused?: boolean
+          rating_band?: string
+          requested_scope?: Json
+          side?: string
+          stage?: string
+          total_count?: number
+          updated_at?: string
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'opening_generation_jobs_opening_id_fkey'
+            columns: ['opening_id']
+            isOneToOne: false
+            referencedRelation: 'openings'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       opening_nodes: {
         Row: {
           alternatives: Json
+          commentary: Json | null
           explorer_stats: Json | null
           fen: string
           frequency_weight: number
@@ -274,6 +370,7 @@ export type Database = {
         }
         Insert: {
           alternatives?: Json
+          commentary?: Json | null
           explorer_stats?: Json | null
           fen: string
           frequency_weight?: number
@@ -289,6 +386,7 @@ export type Database = {
         }
         Update: {
           alternatives?: Json
+          commentary?: Json | null
           explorer_stats?: Json | null
           fen?: string
           frequency_weight?: number
@@ -319,14 +417,47 @@ export type Database = {
           },
         ]
       }
+      opening_packs: {
+        Row: {
+          created_at: string
+          generator_version: number
+          opening_name: string
+          pack_key: string
+          payload: Json
+          rating_band: string
+          side: string
+        }
+        Insert: {
+          created_at?: string
+          generator_version: number
+          opening_name: string
+          pack_key: string
+          payload: Json
+          rating_band: string
+          side: string
+        }
+        Update: {
+          created_at?: string
+          generator_version?: number
+          opening_name?: string
+          pack_key?: string
+          payload?: Json
+          rating_band?: string
+          side?: string
+        }
+        Relationships: []
+      }
       openings: {
         Row: {
           center_type: string | null
           created_at: string
           eco: string | null
+          generation_status: string | null
+          generator_version: number | null
           id: string
           knowledge_card: Json
           name: string
+          pack_key: string | null
           parent_id: string | null
           side: string
           structure_family: string | null
@@ -337,9 +468,12 @@ export type Database = {
           center_type?: string | null
           created_at?: string
           eco?: string | null
+          generation_status?: string | null
+          generator_version?: number | null
           id?: string
           knowledge_card?: Json
           name: string
+          pack_key?: string | null
           parent_id?: string | null
           side: string
           structure_family?: string | null
@@ -350,9 +484,12 @@ export type Database = {
           center_type?: string | null
           created_at?: string
           eco?: string | null
+          generation_status?: string | null
+          generator_version?: number | null
           id?: string
           knowledge_card?: Json
           name?: string
+          pack_key?: string | null
           parent_id?: string | null
           side?: string
           structure_family?: string | null

@@ -3,13 +3,14 @@ import { useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { productBoardStyles } from '@/lib/boardTheme'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
-import { FittedBoardFrame } from '@/components/FittedBoardFrame'
+import { PlaySplit } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
 import { evaluateFen } from '@/lib/analyzeClient'
-import type { Classification } from '@/lib/analysis/types'
+import type { Classification, Motif, Phase } from '@/lib/analysis/types'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
 import { useAuth } from '@/lib/auth'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import type { Tables } from '@/lib/supabase/database.types'
 
@@ -37,7 +38,13 @@ export function DrillBoard({
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
 
   const position = positions[index]
-  const adhoc = position.id.startsWith('adhoc') || !position.san
+  const drillActivity = position
+    ? (position.motif && MOTIF_LABEL[position.motif as Motif]) ||
+      PHASE_LABEL[position.phase as Phase] ||
+      position.classification
+    : undefined
+  useSessionTitle({ page: 'Drill', library: username, activity: drillActivity })
+  const adhoc = !position || position.id.startsWith('adhoc') || !position.san
   const sideToMove = position?.fen_before.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = sideToMove === 'Black' ? 'black' : 'white'
 
@@ -142,32 +149,30 @@ export function DrillBoard({
   }
 
   return (
-    <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
-      <div className="flex min-h-0 min-w-0 flex-col border border-line bg-surface">
-        <div className="shrink-0 border-b border-line px-3 py-1.5 font-mono text-sm font-medium">
-          {sideToMove} to move
-        </div>
-        <FittedBoardFrame>
-          <Chessboard
-            options={{
-              position: fen,
-              boardOrientation: orientation,
-              allowDragging: !reveal && !thinking,
-              onPieceDrag: ({ square }) => {
-                if (square && !reveal && !thinking) setSelectedSquare(square)
-              },
-              onPieceDrop: ({ sourceSquare, targetSquare }) =>
-                makeMove(sourceSquare, targetSquare),
-              onSquareClick: ({ square }) => onSquareClick(square),
-              squareStyles,
-              ...productBoardStyles,
-              boardStyle: { width: '100%', height: '100%' },
-            }}
-          />
-        </FittedBoardFrame>
-      </div>
-      <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:max-h-full">
-        <Panel className="shrink-0">
+    <PlaySplit
+      panelWidth="narrow"
+      boardLabel={<>{sideToMove} to move</>}
+      board={
+        <Chessboard
+          options={{
+            position: fen,
+            boardOrientation: orientation,
+            allowDragging: !reveal && !thinking,
+            onPieceDrag: ({ square }) => {
+              if (square && !reveal && !thinking) setSelectedSquare(square)
+            },
+            onPieceDrop: ({ sourceSquare, targetSquare }) =>
+              makeMove(sourceSquare, targetSquare),
+            onSquareClick: ({ square }) => onSquareClick(square),
+            squareStyles,
+            ...productBoardStyles,
+            boardStyle: { width: '100%', height: '100%' },
+          }}
+        />
+      }
+      panel={
+        <>
+        <Panel className="shrink-0" padding="md">
           <div className="flex items-center justify-between gap-3 font-mono text-xs uppercase tracking-wider text-muted">
             <span>Session</span>
             <span>
@@ -199,7 +204,7 @@ export function DrillBoard({
             </>
           )}
         </Panel>
-        <Panel className="shrink-0 text-sm">
+        <Panel className="shrink-0 text-sm" padding="md">
           {!reveal && !thinking ? (
             <p className="text-muted">Play a move. Nothing is shown until you do.</p>
           ) : null}
@@ -239,14 +244,15 @@ export function DrillBoard({
           ) : null}
         </Panel>
         <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">
-          <Button variant="ghost" onClick={retry} disabled={!reveal}>
+          <Button variant="ghost" className="w-full" onClick={retry} disabled={!reveal}>
             Try again
           </Button>
-          <Button onClick={next} disabled={!reveal || positions.length < 2}>
+          <Button className="w-full" onClick={next} disabled={!reveal || positions.length < 2}>
             Next position
           </Button>
         </div>
-      </aside>
-    </div>
+        </>
+      }
+    />
   )
 }

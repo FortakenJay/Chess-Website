@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { MiniBoard } from '@/components/MiniBoard'
 import { Button, Panel } from '@/components/ui'
 import { usePlayerData } from '@/lib/queries'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 import {
   PAWN_STRUCTURES,
   drillsFor,
@@ -193,6 +194,11 @@ export function PawnStructureLab({
   )
   const selectedLeak = leaks.find((row) => row.id === selectedId)
   const drills = drillsFor(selectedId)
+  useSessionTitle({
+    library: username,
+    activity: structure.name,
+    page: mode === 'drill' ? 'Breaks' : 'Structures',
+  })
 
   if (mode === 'drill') {
     return <StructureDrill drills={drills} onExit={() => setMode('lesson')} />

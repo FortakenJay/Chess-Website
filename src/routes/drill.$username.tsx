@@ -5,7 +5,11 @@ import { AppShell } from '@/components/AppShell'
 import { DrillBoard } from '@/components/DrillBoard'
 import { BoardPageSkeleton, PageHeader } from '@/components/ui'
 import { usePlayerData } from '@/lib/queries'
+import { MOTIF_LABEL } from '@/lib/stats'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
+import type { Motif } from '@/lib/analysis/types'
 import type { Tables } from '@/lib/supabase/database.types'
 
 type DrillSearch = {
@@ -24,6 +28,7 @@ type DrillSearch = {
 }
 
 export const Route = createFileRoute('/drill/$username')({
+  head: ({ params }) => playerHead('Drill', params.username),
   validateSearch: (search: Record<string, unknown>): DrillSearch => ({
     position: typeof search.position === 'string' ? search.position : undefined,
     fen: typeof search.fen === 'string' ? search.fen : undefined,
@@ -132,6 +137,12 @@ function DrillPage() {
     () => selectPositions(query.data?.positions ?? [], search, name),
     [query.data?.positions, search, name],
   )
+  useSessionTitle({
+    page: 'Drill',
+    library: name,
+    enabled: positions.length === 0,
+    activity: search.motif ? MOTIF_LABEL[search.motif as Motif] : undefined,
+  })
 
   return (
     <AppShell username={name} dense={positions.length > 0}>

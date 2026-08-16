@@ -1,0 +1,22 @@
+# LEAK
+
+> Engine-verified chess error analysis for a Chess.com account.
+
+## For agents
+
+Read in order:
+
+- [docs/llm/INDEX.md](docs/llm/INDEX.md)
+- [docs/llm/SYSTEM.md](docs/llm/SYSTEM.md)
+- [docs/llm/FILEMAP.md](docs/llm/FILEMAP.md)
+- [docs/llm/SCHEMA.md](docs/llm/SCHEMA.md)
+- [docs/llm/ROUTES.md](docs/llm/ROUTES.md)
+- [docs/llm/DECISIONS.md](docs/llm/DECISIONS.md)
+
+Then the matching domain file under `docs/llm/_*.md`.
+
+Coding constraints live in `.cursor/rules/*.mdc`. If docs and rules disagree, code + rules win; update the vault in the same change.
+
+## For humans
+
+Obsidian vault: open the `docs/` folder (not the git root). Start at [docs/Home.md](docs/Home.md).

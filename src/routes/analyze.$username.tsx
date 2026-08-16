@@ -7,8 +7,11 @@ import { Button, ButtonLink, ErrorText, PageHeader } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { useBackgroundSync } from '@/lib/backgroundSync'
 import { normalizeUsername } from '@/lib/username'
+import { playerHead } from '@/lib/pageTitle'
+import { useSessionTitle } from '@/lib/useDocumentTitle'
 
 export const Route = createFileRoute('/analyze/$username')({
+  head: ({ params }) => playerHead('Analyze', params.username),
   component: AnalyzePage,
 })
 
@@ -20,6 +23,11 @@ function AnalyzePage() {
   const owner = profile?.chess_com_username === name
   const startedFor = useRef<string | null>(null)
   const busy = sync.phase === 'checking' || sync.phase === 'syncing'
+  useSessionTitle({
+    page: 'Analyze',
+    library: name,
+    activity: busy ? 'Syncing' : undefined,
+  })
 
   useEffect(() => {
     if (!ready || !user || !owner) return

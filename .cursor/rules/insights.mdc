@@ -37,6 +37,11 @@ alwaysApply: false
 **Chose:** Convert accuracy and conversion percentages to fixed letter-grade cutoffs.
 **Why:** ⚠️ NEEDS INPUT — `src/lib/grades.ts` defines the cutoffs without explaining them.
 
+## Overview playstyle
+**Chose:** Derive Overview playstyle from stored `strategy_stats` (open / closed / semi-closed RMS accuracy) plus color, clock, motif kind, and time class. Headline is relative accuracy of the best sampled center type versus the worst (≥40 moves, ≥3% gap). Traits need a real split (2 pt error-rate, 3 pt accuracy, 60% motif share) and one-decimal labels. Hide the panel until a structure sample or trait exists.
+**Considered:** A peer RPC or Review `peerPercentile`. Showing every 0.9-point or 57/43 split as style.
+**Why:** Structure buckets already persist on games; inventing evals or explorer frequencies is forbidden; no opening peer RPC exists. Tiny gaps are float noise, not a playstyle.
+
 ## Chart outlier handling
 **Chose:** Exclude unanalyzed or mate-inflated rows through `usableAccuracy` and `usableAcpl`.
 **Considered:** Plotting those rows.
