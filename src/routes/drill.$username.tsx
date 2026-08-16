@@ -11,6 +11,7 @@ import type { Tables } from '@/lib/supabase/database.types'
 type DrillSearch = {
   position?: string
   fen?: string
+  fens?: string
   ids?: string
   motif?: string
   motifKind?: string
@@ -26,6 +27,7 @@ export const Route = createFileRoute('/drill/$username')({
   validateSearch: (search: Record<string, unknown>): DrillSearch => ({
     position: typeof search.position === 'string' ? search.position : undefined,
     fen: typeof search.fen === 'string' ? search.fen : undefined,
+    fens: typeof search.fens === 'string' ? search.fens : undefined,
     ids: typeof search.ids === 'string' ? search.ids : undefined,
     motif: typeof search.motif === 'string' ? search.motif : undefined,
     motifKind: typeof search.motifKind === 'string' ? search.motifKind : undefined,
@@ -46,12 +48,12 @@ export const Route = createFileRoute('/drill/$username')({
   component: DrillPage,
 })
 
-function adhocFromFen(username: string, fen: string): Tables<'flagged_positions'> | null {
+function adhocFromFen(username: string, fen: string, id = 'adhoc'): Tables<'flagged_positions'> | null {
   try {
     const board = new Chess(fen)
     const color = board.turn() === 'b' ? 'black' : 'white'
     return {
-      id: 'adhoc',
+      id,
       username,
       played_on: new Date().toISOString().slice(0, 10),
       opponent: 'analysis',
@@ -80,6 +82,12 @@ function selectPositions(
   search: DrillSearch,
   username: string,
 ) {
+  if (search.fens) {
+    return search.fens
+      .split(';')
+      .map((fen, index) => adhocFromFen(username, fen.trim(), `adhoc-${index}`))
+      .filter((row): row is Tables<'flagged_positions'> => row != null)
+  }
   if (search.fen) {
     const adhoc = adhocFromFen(username, search.fen)
     return adhoc ? [adhoc] : []
@@ -127,7 +135,7 @@ function DrillPage() {
 
   return (
     <AppShell username={name} dense={positions.length > 0}>
-      {query.isLoading && !search.fen ? (
+      {query.isLoading && !search.fen && !search.fens ? (
         <BoardPageSkeleton label="Loading drill positions" className="mt-0" />
       ) : positions.length > 0 ? (
         <DrillBoard username={name} positions={positions} />

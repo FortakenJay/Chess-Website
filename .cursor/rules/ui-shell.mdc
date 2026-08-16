@@ -1,0 +1,49 @@
+---
+description: "UI shell: design tokens, responsive chrome, navigation, boards, and motion"
+alwaysApply: false
+---
+
+# UI shell & design system — decisions
+
+## Visual language
+**Chose:** Extend the landing page's training-room visual system across the product: near-black canvas, charcoal surfaces, paper text, green action/success, bone secondary emphasis, red-orange danger, Anton display type, Instrument Sans body type, JetBrains Mono utility type, sharp corners, and semantic Tailwind tokens.
+**Considered:** Keeping the landing page as a visually isolated marketing surface.
+**Why:** The shared product styling in `styles.css`, `AppShell.tsx`, and `src/components/ui` now aliases the landing palette and typography so auth, dashboards, analysis, charts, and drills feel like one product.
+
+## Data visualization
+**Chose:** Use green for improvement/primary actions, red-orange for harmful outcomes, bone for secondary series, paper for neutral primary data, muted gray for axes, and hairline charcoal grids. Use square line caps and visible point markers instead of soft gradients.
+**Why:** These roles preserve the landing page's graph language while keeping move-quality colors semantically distinct.
+
+## Mobile-first layout
+**Chose:** Treat the narrow single-column layout as default and add room at `sm`, `md`, and `lg`; keep controls at least 44px high.
+**Considered:** Desktop-first layout.
+**Why:** `.agents/skills/mobile-first-ui/SKILL.md` explicitly defines phone-first structure and 44px tap targets.
+
+## Viewport and safe areas
+**Chose:** Use safe-area environment variables, `viewport-fit=cover`, and dynamic viewport units.
+**Considered:** `100vh` and sub-16px mobile form controls.
+**Why:** `styles.css` says iOS zooms focused controls below 16px; the mobile guide warns that `100vh` jumps in iOS Safari.
+
+## Board sizing
+**Chose:** On dense play pages, lock chrome to `100dvh`, omit the footer, and size the square board from the smaller available container dimension.
+**Considered:** Sizing the board from width alone.
+**Why:** `FittedBoardFrame` says: “Square board that fits the leftover box — never sized from width alone.”
+
+## Navigation overflow
+**Chose:** Keep analysis and Results navigation on one horizontally scrolling row at narrow widths.
+**Considered:** Wrapping navigation into multiple rows.
+**Why:** The mobile UI guide explicitly says: “Do not wrap six nav links — scroll them.”
+
+## Chess roadmap
+**Chose:** Named chess topics with real study positions on Strategy and Endgame nodes. Playing a game does not mark a node done. Practice links open a board (canonical FEN) or the matching structure lab — never the empty opening trainer.
+**Considered:** Auto-completing from game counts, family-only nodes, or linking strategy/endgames to opening trainer / empty results.
+**Why:** Those destinations had no lesson. A node that cannot be played is a dead card.
+
+## Press feedback
+**Chose:** Apply subtle press scaling to normal buttons while exempting quiet, list, and review controls.
+**Considered:** Universal press scaling.
+**Why:** `styles.css` describes press scale as glitchy on dense/list controls; `reviewUi.ts` asks for “stable hover, no press-scale glitches.”
+
+## Shared primitives
+**Chose:** Centralize buttons, panels, status states, filters, sections, and skeletons under `src/components/ui`.
+**Why:** ⚠️ NEEDS INPUT — the component boundary is clear, but no rationale for the primitive set was found.

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   Bar,
   BarChart,
@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Panel } from '@/components/ui'
+import { Panel, SegmentedControl } from '@/components/ui'
 import type {
   ClockStats,
   ColorStats,
@@ -23,22 +23,24 @@ import type {
   QualityStats,
 } from '@/lib/analysis/types'
 import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
+import { chartTheme } from '@/lib/chartTheme'
 import {
   ENDGAME_LABEL,
   errorRate,
   MOTIF_LABEL,
+  openingRepertoire,
   PHASE_LABEL,
   QUALITY_LABEL,
 } from '@/lib/stats'
 import type { Tables } from '@/lib/supabase/database.types'
 
-const axis = { fill: '#8b8f9a', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }
-const accAxis = { ...axis, fill: '#ececec' }
-const acplAxis = { ...axis, fill: '#e5484d' }
-const grid = { stroke: '#2a2d36' }
-const tooltipCursor = { fill: 'rgba(236, 236, 236, 0.06)' }
-const ACC_COLOR = '#ececec'
-const ACPL_COLOR = '#e5484d'
+const axis = chartTheme.axis
+const accAxis = { ...axis, fill: chartTheme.primary }
+const acplAxis = { ...axis, fill: chartTheme.negative }
+const grid = chartTheme.grid
+const tooltipCursor = chartTheme.cursor
+const ACC_COLOR = chartTheme.primary
+const ACPL_COLOR = chartTheme.negative
 const QUALITY_ORDER: MoveQuality[] = [
   'brilliant',
   'great',
@@ -66,7 +68,7 @@ function Frame({
   return (
     <Panel>
       <div className="mb-4">
-        <h3 className="text-pretty text-xs uppercase tracking-[0.14em] text-muted">{title}</h3>
+        <h3 className="text-pretty font-display text-xl uppercase leading-none text-ink">{title}</h3>
         {hint ? <p className="mt-1 font-mono text-[11px] text-muted/80">{hint}</p> : null}
       </div>
       {variant === 'chart' ? <div className="h-52 sm:h-56">{children}</div> : children}
@@ -100,7 +102,7 @@ function NamedBarList({
             </span>
             <div className="col-span-2 h-2 bg-surface-2 sm:col-span-1 sm:order-2" aria-hidden>
               <div
-                className="h-full bg-[#ececec]"
+                className="h-full bg-ink"
                 style={{ width, backgroundColor: row.color }}
               />
             </div>
@@ -113,7 +115,7 @@ function NamedBarList({
 
 function TooltipShell({ label, children }: { label?: string; children: ReactNode }) {
   return (
-    <div className="border border-line bg-surface px-2.5 py-1.5 font-mono text-xs text-ink">
+    <div className="border border-line bg-canvas px-2.5 py-1.5 font-mono text-xs text-ink">
       {label != null && label !== '' ? <div className="text-muted">{label}</div> : null}
       {children}
     </div>
@@ -133,7 +135,7 @@ function RateTooltip({
   return (
     <TooltipShell label={label}>
       {payload.map((p) => (
-        <div key={p.name} className={p.name === 'blunder' ? 'text-blunder' : 'text-ink'}>
+        <div key={p.name} className={p.name === 'blunder' ? 'text-blunder-text' : 'text-ink'}>
           {p.name}: {p.value}%
         </div>
       ))}
@@ -199,7 +201,7 @@ function ValueTooltip({
       {payload.map((p) => (
         <div
           key={String(p.name)}
-          className={p.name === 'Slip size' ? 'text-blunder' : 'text-ink'}
+          className={p.name === 'Slip size' ? 'text-blunder-text' : 'text-ink'}
         >
           {p.name}: {p.value}
           {suffix}
@@ -225,7 +227,7 @@ function MoveDistributionTooltip({
   const point = payload[0]
   return (
     <TooltipShell label={`Moves ${label ?? ''}`}>
-      <div className="text-blunder">{point?.value ?? 0} blunders</div>
+      <div className="text-blunder-text">{point?.value ?? 0} blunders</div>
       <div className="text-ink">{point?.payload?.share ?? 0}% of all blunders</div>
     </TooltipShell>
   )
@@ -245,8 +247,8 @@ export function PhaseChart({ stats }: { stats: PhaseStats }) {
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="blunder+mistake" fill="#ececec" maxBarSize={48} />
-          <Bar dataKey="blunder" name="blunder" fill="#e5484d" maxBarSize={48} />
+          <Bar dataKey="error" name="blunder+mistake" fill={chartTheme.primary} maxBarSize={48} />
+          <Bar dataKey="blunder" name="blunder" fill={chartTheme.negative} maxBarSize={48} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -304,8 +306,8 @@ export function ColorChart({ stats }: { stats: ColorStats }) {
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="blunder+mistake" fill="#ececec" maxBarSize={64} />
-          <Bar dataKey="blunder" name="blunder" fill="#e5484d" maxBarSize={64} />
+          <Bar dataKey="error" name="blunder+mistake" fill={chartTheme.primary} maxBarSize={64} />
+          <Bar dataKey="blunder" name="blunder" fill={chartTheme.negative} maxBarSize={64} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -344,8 +346,8 @@ export function ClockChart({ stats }: { stats: ClockStats }) {
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="blunder+mistake" fill="#ececec" maxBarSize={48} />
-          <Bar dataKey="blunder" name="blunder" fill="#e5484d" maxBarSize={48} />
+          <Bar dataKey="error" name="blunder+mistake" fill={chartTheme.primary} maxBarSize={48} />
+          <Bar dataKey="blunder" name="blunder" fill={chartTheme.negative} maxBarSize={48} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -379,12 +381,12 @@ export function TrendChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Line type="linear" dataKey="error" name="error" stroke="#ececec" strokeWidth={1.5} dot={false} />
+          <Line type="linear" dataKey="error" name="error" stroke={chartTheme.primary} strokeWidth={2} dot={false} />
           <Line
             type="linear"
             dataKey="blunder"
             name="blunder"
-            stroke="#e5484d"
+            stroke={chartTheme.negative}
             strokeWidth={1.5}
             dot={false}
           />
@@ -417,7 +419,7 @@ export function MoveHistogram({ positions }: { positions: Tables<'flagged_positi
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} allowDecimals={false} />
           <Tooltip content={<MoveDistributionTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="count" fill="#e5484d" maxBarSize={28} />
+          <Bar dataKey="count" fill={chartTheme.negative} maxBarSize={28} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -442,7 +444,7 @@ export function WinRateChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<ValueTooltip suffix="%" />} cursor={tooltipCursor} />
-          <Bar dataKey="rate" name="win rate" fill="#ececec" maxBarSize={48} />
+          <Bar dataKey="rate" name="win rate" fill={chartTheme.positive} maxBarSize={48} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -470,7 +472,7 @@ export function DrillTrendChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Line type="linear" dataKey="error" name="solved" stroke="#ececec" strokeWidth={1.5} dot={false} />
+          <Line type="linear" dataKey="error" name="solved" stroke={chartTheme.positive} strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </Frame>
@@ -614,8 +616,8 @@ export function EndgameTypeChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="blunder+mistake" fill="#ececec" maxBarSize={40} />
-          <Bar dataKey="blunder" name="blunder" fill="#e5484d" maxBarSize={40} />
+          <Bar dataKey="error" name="blunder+mistake" fill={chartTheme.primary} maxBarSize={40} />
+          <Bar dataKey="blunder" name="blunder" fill={chartTheme.negative} maxBarSize={40} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -668,41 +670,59 @@ function OpeningMeter({
 }
 
 export function OpeningRepertoireChart({
-  rows,
+  games,
 }: {
-  rows: Array<{ eco: string; name: string; games: number; winPct: number; errorPct: number }>
+  games: Tables<'games'>[]
 }) {
-  if (rows.length === 0) {
-    return (
-      <Frame title="Opening repertoire" variant="panel">
-        <p className="text-sm text-muted text-pretty">No opening names yet. Re-sync to pull opening headers.</p>
-      </Frame>
-    )
-  }
+  const whiteCount = games.filter((game) => game.color === 'white').length
+  const blackCount = games.filter((game) => game.color === 'black').length
+  const [color, setColor] = useState<'white' | 'black'>(blackCount > whiteCount ? 'black' : 'white')
+  const rows = useMemo(
+    () => openingRepertoire(games.filter((game) => game.color === color)),
+    [color, games],
+  )
+
   return (
     <Frame
       title="Opening repertoire"
       hint="Most-played lines. Error rate is blunders and mistakes in the opening."
       variant="panel"
     >
-      <ul className="flex flex-col gap-3.5">
-        {rows.slice(0, 8).map((row) => (
-          <li key={row.name}>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 truncate text-sm text-ink" title={row.name}>
-                {row.name}
-              </span>
-              <span className="shrink-0 font-mono text-[11px] tabular text-muted">
-                {row.games} {row.games === 1 ? 'game' : 'games'}
-              </span>
-            </div>
-            <div className="mt-1.5 grid grid-cols-2 gap-3">
-              <OpeningMeter label="errors" value={row.errorPct} color="#e5484d" />
-              <OpeningMeter label="wins" value={row.winPct} color="#ececec" />
-            </div>
-          </li>
-        ))}
-      </ul>
+      <SegmentedControl
+        label="Opening color"
+        value={color}
+        onChange={setColor}
+        className="mt-0 sm:mt-0"
+        options={[
+          { value: 'white', label: 'White' },
+          { value: 'black', label: 'Black' },
+        ]}
+      />
+      {rows.length === 0 ? (
+        <p className="mt-4 text-sm text-muted text-pretty">
+          No opening names as {color === 'white' ? 'White' : 'Black'} yet. Re-sync to pull opening
+          headers.
+        </p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-3.5">
+          {rows.slice(0, 8).map((row) => (
+            <li key={row.name}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 truncate text-sm text-ink" title={row.name}>
+                  {row.name}
+                </span>
+                <span className="shrink-0 font-mono text-[11px] tabular text-muted">
+                  {row.games} {row.games === 1 ? 'game' : 'games'}
+                </span>
+              </div>
+              <div className="mt-1.5 grid grid-cols-2 gap-3">
+                <OpeningMeter label="errors" value={row.errorPct} color={chartTheme.negative} />
+                <OpeningMeter label="wins" value={row.winPct} color={chartTheme.positive} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Frame>
   )
 }
@@ -728,7 +748,7 @@ export function TimeClassChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="blunder+mistake" fill="#ececec" maxBarSize={48} />
+          <Bar dataKey="error" name="blunder+mistake" fill={chartTheme.primary} maxBarSize={48} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -760,7 +780,7 @@ export function RatingBandChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} unit="%" />
           <Tooltip content={<RateTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="error" name="blunder+mistake" fill="#ececec" maxBarSize={40} />
+          <Bar dataKey="error" name="blunder+mistake" fill={chartTheme.primary} maxBarSize={40} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>
@@ -791,7 +811,7 @@ export function MotifKindChart({
           <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
           <YAxis tick={axis} axisLine={false} tickLine={false} allowDecimals={false} />
           <Tooltip content={<CountTooltip />} cursor={tooltipCursor} />
-          <Bar dataKey="count" fill="#ececec" maxBarSize={64} />
+          <Bar dataKey="count" fill={chartTheme.primary} maxBarSize={64} />
         </BarChart>
       </ResponsiveContainer>
     </Frame>

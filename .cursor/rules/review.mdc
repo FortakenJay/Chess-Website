@@ -1,0 +1,39 @@
+---
+description: "ephemeral game review: inputs, in-memory analysis, report data, and review UI"
+alwaysApply: false
+---
+
+# Ephemeral game review — decisions
+
+## Persistence boundary
+**Chose:** Analyze selected games, Chess.com URLs, and pasted PGN in memory without writing review results to the database.
+**Considered:** The persisted library-analysis path.
+**Why:** Review UI says “Nothing is written to the database,” and `AnalyzeOptions.includePlies` is documented as “never persisted.”
+
+## Full move tape
+**Chose:** Enable `includePlies` for Review while leaving it off for normal persisted sync.
+**Why:** The option exists specifically for the “free Chess.com-style review” tape (source: `src/lib/analyzeClient.ts`).
+
+## Fast game-list metadata
+**Chose:** Parse PGN headers without running the engine to populate the review game list.
+**Considered:** Full analysis before listing games.
+**Why:** `parseGameMeta.ts` says: “Fast PGN header parse — no engine. Used for the free review game list.”
+
+## PGN identity fallback
+**Chose:** When pasted PGN lacks the username, ask the user for a color and rewrite the headers for analysis identity.
+**Considered:** Rejecting PGN without a matching White/Black header.
+**Why:** `gameFromPgn` explicitly allows this case and describes it as a username override for analysis identity.
+
+## Review percentile
+**Chose:** Map accuracy to a synthetic 5–95 percentile in `reportStats.peerPercentile`; do not reuse it for Results peer cohorts.
+**Considered:** Real rating-band cohort RPCs, which are used by Results instead.
+**Why:** ⚠️ NEEDS INPUT — no rationale was found, and the current “VS rating band” UI can imply real peer data.
+
+## Interactive analysis budget
+**Chose:** Use a 60ms movetime budget for Review rather than the persisted node budget.
+**Why:** ⚠️ NEEDS INPUT — `review.$username.tsx` sets the value without explaining it.
+
+## Review control motion
+**Chose:** Share review-control classes and suppress press scaling on dense rows.
+**Considered:** Global button press scaling.
+**Why:** `reviewUi.ts` says the classes provide “stable hover, no press-scale glitches.”

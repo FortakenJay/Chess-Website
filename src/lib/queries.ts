@@ -81,7 +81,7 @@ export function usePlayerData(username: string) {
     staleTime: 30_000,
     gcTime: 1000 * 60 * 60 * 24,
     refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   })
 }

@@ -1,0 +1,47 @@
+---
+description: "analysis engine: Stockfish runtime, scoring, classification, and persisted outputs"
+alwaysApply: false
+---
+
+# Analysis engine — decisions
+
+## Search budgets
+**Chose:** Use a 12,000-node, MultiPV-4 budget for persisted analysis and movetime for interactive evaluation.
+**Considered:** Movetime search is retained for the interactive path.
+**Why:** ⚠️ NEEDS INPUT — the two paths are explicit in `src/lib/analysis/engine.ts`, but no rationale for the budget values was found.
+
+## Browser engine fallback
+**Chose:** Try the Stockfish WASM worker first; remember a failed WASM initialization and fall back to ASM.
+**Considered:** ASM-only execution, implemented as the fallback.
+**Why:** `createBrowserEngine()` records the failure so a known-broken WASM load is not retried; `engine.ts` also documents worker/private-mode storage constraints.
+
+## Analysis isolation
+**Chose:** Analyze in a dedicated worker and fall back to the main thread when workers are unavailable or fail.
+**Considered:** Main-thread Stockfish, implemented as the fallback.
+**Why:** ⚠️ NEEDS INPUT — no rationale for preferring the worker was found.
+
+## Move and game accuracy
+**Chose:** Calculate move accuracy from winning-chance drop and aggregate game accuracy with RMS error.
+**Considered:** Raw ACPL for moves and arithmetic mean for games.
+**Why:** Comments in `classify.ts` say win%-drop is closer to Chess.com than raw ACPL, while arithmetic mean reads roughly 5–15 points high.
+
+## Opening-book matching
+**Chose:** Match the resulting board-position portion of FEN against the ECO set through move 10.
+**Considered:** Full FEN including clocks and en-passant state.
+**Why:** `openingBook.ts` says board-only matching avoids clock/EP mismatches and supports transpositions. The move-10 cutoff is ⚠️ NEEDS INPUT.
+
+## Leak tier versus cosmetic labels
+**Chose:** Persist only the leak classification used by drills; keep brilliant, great, and book labels on the in-memory display tape.
+**Why:** `FlaggedPosition` is documented as “Persisted leak tier; cosmetic overrides never enter drills” (source: `src/lib/analysis/types.ts`).
+
+## Review move tape
+**Chose:** Build full plies only when `includePlies` is requested and never persist that tape.
+**Why:** The `AnalyzeOptions.includePlies` comment explicitly says “never persisted” (source: `src/lib/analyzeClient.ts`).
+
+## Analysis schema version
+**Chose:** Mark rows stale when their `analysis_version` is missing or lower than the current version.
+**Why:** The type comment says to bump the version when persisted JSON shape or scoring rules change.
+
+## Phase and strategy thresholds
+**Chose:** Opening through move 10, endgame at non-pawn material 13 or below, and strategy themes derived from the engine-best move.
+**Why:** ⚠️ NEEDS INPUT — the implementation and tests lock this behavior, but no rationale for these thresholds or the best-move basis was found.

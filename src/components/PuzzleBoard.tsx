@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import { useEffect, useReducer, useRef, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { productBoardStyles } from '@/lib/boardTheme'
 import { FittedBoardFrame } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
@@ -215,8 +216,7 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
                 makeMove(sourceSquare, targetSquare),
               onSquareClick: ({ square }) => onSquareClick(square),
               squareStyles,
-              darkSquareStyle: { backgroundColor: '#3d4450' },
-              lightSquareStyle: { backgroundColor: '#9aa0a8' },
+              ...productBoardStyles,
               boardStyle: { width: '100%', height: '100%' },
             }}
           />
@@ -267,7 +267,7 @@ export function PuzzleBoard({ puzzles }: { puzzles: PracticePuzzle[] }) {
             </p>
           ) : null}
           {failed ? (
-            <p className="text-blunder">Not the solution line. Highlighted is the key move.</p>
+            <p className="text-blunder-text">Not the solution line. Highlighted is the key move.</p>
           ) : null}
           {solved ? <p className="text-ink">Solved.</p> : null}
         </Panel>

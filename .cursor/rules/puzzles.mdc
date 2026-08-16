@@ -1,0 +1,40 @@
+---
+description: "puzzles: catalog sources, selection, caching, rating fit, and board behavior"
+alwaysApply: false
+---
+
+# Puzzles — decisions
+
+## Catalog composition
+**Chose:** Merge a shared Supabase catalog, static Lichess seed, on-demand Lichess batches, and Chess.com puzzles; support optional bulk dump import.
+**Why:** ⚠️ NEEDS INPUT — scripts and loaders establish the multi-source design, but no rationale for using both providers was found.
+
+## Catalog write boundary
+**Chose:** Allow public reads and service-role-only catalog writes.
+**Considered:** Authenticated client writes.
+**Why:** The security migration explicitly revokes authenticated writes and says catalog writes use the service role.
+
+## Serving and cache threshold
+**Chose:** Cache by filter and Elo window; stop remote expansion when the database supplies at least 24 matches.
+**Why:** ⚠️ NEEDS INPUT — `DB_SATISFIED` and `puzzleCacheKey` implement this, but no rationale for 24 was found.
+
+## Rating fit
+**Chose:** Default to an Elo-suited window, provide easier/harder windows, and sort by distance from the user’s selected rating.
+**Why:** ⚠️ NEEDS INPUT — `weakness.ts` and `load.ts` establish the windows and ordering without explaining the numeric bands.
+
+## Weakness focus
+**Chose:** Select the user’s highest-error phase only when that phase has at least six analyzed moves.
+**Why:** ⚠️ NEEDS INPUT — the sample floor is implemented without rationale.
+
+## Source relaxation
+**Chose:** Relax filters stepwise when the requested catalog slice is empty.
+**Why:** ⚠️ NEEDS INPUT — `src/lib/puzzles/load.ts` defines the fallback sequence but does not explain its ordering.
+
+## Phase classification
+**Chose:** Prefer Lichess phase themes, then use a FEN-only fallback with analysis-shared thresholds.
+**Considered:** Importing chess.js for the fallback.
+**Why:** `puzzles/themes.ts` says: “Fen-only phase fallback (no chess.js) — thresholds shared with analysis/phase.ts.”
+
+## Opponent reply timing
+**Chose:** Wait 500ms before automatically playing the puzzle reply.
+**Why:** ⚠️ NEEDS INPUT — `PuzzleBoard.tsx` sets the delay without explaining it.

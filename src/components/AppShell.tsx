@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { BrandLogo } from '@/components/BrandLogo'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { useAuth } from '@/lib/auth'
@@ -19,7 +19,10 @@ function AnalysisNav({
   className?: string
   linkClassName?: string
 }) {
-  const linkClass = cn('inline-flex min-h-11 shrink-0 items-center hover:text-ink', linkClassName)
+  const linkClass = cn(
+    'inline-flex min-h-11 shrink-0 items-center border-b-2 border-transparent font-mono text-[11px] uppercase tracking-[0.08em] hover:border-line hover:text-ink',
+    linkClassName,
+  )
 
   return (
     <nav className={className} aria-label="Analysis">
@@ -27,7 +30,8 @@ function AnalysisNav({
         to="/results/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'text-ink' }}
+        activeOptions={{ exact: false }}
+        activeProps={{ className: 'border-accent text-ink' }}
       >
         Results
       </Link>
@@ -35,7 +39,7 @@ function AnalysisNav({
         to="/positions/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'text-ink' }}
+        activeProps={{ className: 'border-accent text-ink' }}
       >
         Positions
       </Link>
@@ -43,7 +47,7 @@ function AnalysisNav({
         to="/drill/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'text-ink' }}
+        activeProps={{ className: 'border-accent text-ink' }}
       >
         Drill
       </Link>
@@ -51,15 +55,31 @@ function AnalysisNav({
         to="/puzzles/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'text-ink' }}
+        activeProps={{ className: 'border-accent text-ink' }}
       >
         Puzzles
+      </Link>
+      <Link
+        to="/trainer/$username"
+        params={{ username }}
+        className={linkClass}
+        activeProps={{ className: 'border-accent text-ink' }}
+      >
+        Trainer
+      </Link>
+      <Link
+        to="/roadmap/$username"
+        params={{ username }}
+        className={linkClass}
+        activeProps={{ className: 'border-accent text-ink' }}
+      >
+        Roadmap
       </Link>
       <Link
         to="/review/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'text-ink' }}
+        activeProps={{ className: 'border-accent text-ink' }}
       >
         Review
       </Link>
@@ -68,7 +88,7 @@ function AnalysisNav({
           to="/analyze/$username"
           params={{ username }}
           className={linkClass}
-          activeProps={{ className: 'text-ink' }}
+          activeProps={{ className: 'border-accent text-ink' }}
         >
           Sync
         </Link>
@@ -91,7 +111,6 @@ export function AppShell({
 }) {
   const { ready, user, profile } = useAuth()
   const sync = useBackgroundSync()
-  const navigate = useNavigate()
   const owner = Boolean(
     username && profile?.chess_com_username === username.toLowerCase(),
   )
@@ -103,8 +122,8 @@ export function AppShell({
 
   return (
     <div
-      className={`flex flex-col bg-canvas text-ink ${
-        dense ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
+      className={`app-shell flex w-full max-w-full flex-col overflow-x-clip bg-canvas text-ink ${
+        dense ? 'app-shell-dense h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
       }`}
     >
       <a
@@ -119,16 +138,22 @@ export function AppShell({
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-20 shrink-0 border-b border-line bg-canvas/90 pt-[var(--safe-top)] backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 py-2 pl-[max(1rem,var(--safe-left))] pr-[max(1rem,var(--safe-right))] sm:gap-4 sm:py-3">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-line bg-canvas/95 pt-[var(--safe-top)] backdrop-blur-md">
+        <div
+          className="mx-auto flex max-w-6xl items-center justify-between gap-3 py-2 sm:gap-4 sm:py-3"
+          style={{
+            paddingLeft: 'max(1rem, var(--safe-left))',
+            paddingRight: 'max(1rem, var(--safe-right))',
+          }}
+        >
           <div className="flex min-w-0 items-center gap-3 sm:gap-6">
             <BrandLogo />
             {username ? (
               <AnalysisNav
                 username={username}
                 owner={owner}
-                className="hidden items-center text-sm text-muted lg:flex"
-                linkClassName="px-2"
+                className="hidden items-center text-muted lg:flex"
+                linkClassName="px-2.5"
               />
             ) : null}
           </div>
@@ -166,11 +191,11 @@ export function AppShell({
             ) : user ? (
               <button
                 type="button"
-                className="inline-flex min-h-11 items-center border border-line px-3 text-sm text-ink hover:bg-surface-2"
+                className="inline-flex min-h-11 items-center border border-line px-3 font-mono text-xs uppercase tracking-[0.06em] text-ink hover:border-accent hover:bg-surface-2"
                 onClick={() => {
                   void (async () => {
                     await getBrowserClient().auth.signOut()
-                    await navigate({ to: '/' })
+                    window.location.assign('/')
                   })()
                 }}
               >
@@ -180,7 +205,7 @@ export function AppShell({
               <>
                 <Link
                   to="/login"
-                  className="inline-flex min-h-11 items-center px-3 text-sm text-muted hover:text-ink"
+                  className="inline-flex min-h-11 items-center px-3 font-mono text-xs uppercase tracking-[0.06em] text-muted hover:text-ink"
                   activeProps={{ className: 'text-ink' }}
                 >
                   Log in
@@ -188,8 +213,8 @@ export function AppShell({
                 {hideSignup ? null : (
                   <Link
                     to="/signup"
-                    className="control inline-flex min-h-11 items-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink"
-                    activeProps={{ className: 'bg-transparent text-ink' }}
+                    className="control inline-flex min-h-11 items-center border border-accent bg-accent px-3 font-mono text-xs uppercase tracking-[0.06em] text-ink hover:bg-accent-low"
+                    activeProps={{ className: 'bg-accent-low text-ink' }}
                   >
                     Sign up
                   </Link>
@@ -202,7 +227,7 @@ export function AppShell({
           <AnalysisNav
             username={username}
             owner={owner}
-            className="mx-auto flex max-w-6xl gap-0 overflow-x-auto border-t border-line px-[max(0.5rem,var(--safe-left))] text-sm text-muted [scrollbar-width:none] [-ms-overflow-style:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+            className="mx-auto flex max-w-6xl gap-0 overflow-x-auto border-t border-line bg-surface/45 px-2 text-muted [scrollbar-width:none] [-ms-overflow-style:none] lg:hidden [&::-webkit-scrollbar]:hidden"
             linkClassName="px-3"
           />
         ) : null}
@@ -210,41 +235,51 @@ export function AppShell({
       <main
         id="main"
         tabIndex={-1}
-        className={`mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col pl-[max(1rem,var(--safe-left))] pr-[max(1rem,var(--safe-right))] ${
+        className={`mx-auto box-border flex min-h-0 min-w-0 w-full max-w-6xl flex-1 flex-col ${
           dense ? 'overflow-hidden py-2' : 'py-5 sm:py-8'
         }`}
+        style={{
+          paddingLeft: 'max(1rem, var(--safe-left))',
+          paddingRight: 'max(1rem, var(--safe-right))',
+        }}
       >
         {children}
       </main>
       {dense ? null : (
-      <footer className="border-t border-line pb-[max(1.5rem,var(--safe-bottom))]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 py-6 pl-[max(1rem,var(--safe-left))] pr-[max(1rem,var(--safe-right))] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <div>
-            <BrandLogo size="sm" />
-            <p className="mt-1 text-xs text-muted">Find the pattern. Fix the move.</p>
-          </div>
-          <nav aria-label="Footer" className="flex flex-wrap items-center gap-1 text-sm text-muted">
-            <Link to="/" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
-              Home
-            </Link>
-            <Link to="/review" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
-              Free review
-            </Link>
-            <Link to="/preview" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
-              Preview
-            </Link>
-            {linkedUsername ? (
-              <Link
-                to="/results/$username"
-                params={{ username: linkedUsername }}
-                className="inline-flex min-h-11 items-center px-2 hover:text-ink"
-              >
-                Results
+        <footer className="border-t border-line bg-canvas/95 pb-[max(1.5rem,var(--safe-bottom))]">
+          <div
+            className="mx-auto flex max-w-6xl flex-col gap-4 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+            style={{
+              paddingLeft: 'max(1rem, var(--safe-left))',
+              paddingRight: 'max(1rem, var(--safe-right))',
+            }}
+          >
+            <div>
+              <BrandLogo size="sm" />
+              <p className="mt-1 text-xs text-muted">Find the pattern. Fix the move.</p>
+            </div>
+            <nav aria-label="Footer" className="flex flex-wrap items-center gap-1 text-sm text-muted">
+              <Link to="/" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
+                Home
               </Link>
-            ) : null}
-          </nav>
-        </div>
-      </footer>
+              <Link to="/review" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
+                Free review
+              </Link>
+              <Link to="/preview" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
+                Preview
+              </Link>
+              {linkedUsername ? (
+                <Link
+                  to="/results/$username"
+                  params={{ username: linkedUsername }}
+                  className="inline-flex min-h-11 items-center px-2 hover:text-ink"
+                >
+                  Results
+                </Link>
+              ) : null}
+            </nav>
+          </div>
+        </footer>
       )}
     </div>
   )

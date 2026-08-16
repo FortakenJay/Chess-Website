@@ -22,16 +22,29 @@ import { detectMotif } from './motifs'
 import { isBookMove } from './openingBook'
 import { phaseOf } from './phase'
 import {
+  applyEndgameResult,
+  classifyEndgameEntry,
+  classifyPositionStructure,
+  classifyStrategyThemes,
+  recordEndgameAccuracy,
+  recordStrategyMove,
+} from './strategy'
+import {
+  ANALYSIS_VERSION,
   emptyClockStats,
+  emptyEndgameAccuracyStats,
+  emptyEndgameConversion,
   emptyEndgameStats,
   emptyPhaseAcpl,
   emptyPhaseStats,
   emptyQualityStats,
+  emptyStrategyStats,
   isOmissionMotif,
   type AnalyzedPly,
   type AnalysisBudget,
   type EngineEval,
   type EngineLine,
+  type EndgameEntry,
   type GameAnalysis,
   type MoveQuality,
   type Side,
@@ -161,6 +174,9 @@ export async function analyzeGame(
   const clockStats = emptyClockStats()
   const qualityStats = emptyQualityStats()
   const endgameStats = emptyEndgameStats()
+  const endgameAccuracyStats = emptyEndgameAccuracyStats()
+  const strategyStats = emptyStrategyStats()
+  const endgameConversion = emptyEndgameConversion()
   const phaseAcpl = emptyPhaseAcpl()
   const opponentQualityStats = emptyQualityStats()
   const opponentPhaseStats = emptyPhaseStats()
@@ -183,6 +199,8 @@ export async function analyzeGame(
   let seenEndgame = false
   let endgameUp = false
   let endgameOpportunities = 0
+  let endgameEntry: EndgameEntry | null = null
+  let endgameEntryEp = 0
 
   const includePlies = Boolean(options?.includePlies)
   const replay = new Chess()
@@ -324,15 +342,31 @@ export async function analyzeGame(
         const eg = endgameStats[endgameType]
         eg.total += 1
         if (classification !== 'fine') eg[classification] += 1
+        recordEndgameAccuracy(endgameAccuracyStats, endgameType, accuracy)
       }
 
       if (!seenEndgame && phase === 'endgame') {
         seenEndgame = true
+        endgameEntryEp = epBefore
+        endgameEntry = classifyEndgameEntry(epBefore)
         const imbalance = materialImbalance(fenBefore, userIsWhite ? 'w' : 'b')
         if (imbalance >= 3) {
           endgameUp = true
           endgameOpportunities = 1
         }
+      }
+
+      if (quality !== 'book') {
+        recordStrategyMove(
+          strategyStats,
+          classifyPositionStructure(fenBefore),
+          classifyStrategyThemes({
+            fenBefore,
+            bestUci: evalBefore.bestMove,
+            side: color,
+          }),
+          accuracy,
+        )
       }
 
       if (classification === 'blunder') blunderCount += 1
@@ -488,10 +522,19 @@ export async function analyzeGame(
     accuracyPct,
     phaseAcpl,
     endgameStats,
-    endgameConversion: {
-      opportunities: endgameOpportunities,
-      conversions: endgameUp && result === 'win' ? 1 : 0,
-    },
+    endgameConversion: applyEndgameResult(
+      {
+        ...endgameConversion,
+        opportunities: endgameOpportunities,
+        conversions: endgameUp && result === 'win' ? 1 : 0,
+      },
+      endgameEntry,
+      endgameEntryEp,
+      result,
+    ),
+    endgameAccuracyStats,
+    strategyStats,
+    analysisVersion: ANALYSIS_VERSION,
     recoveryStats: { moves: recoveryMoves, errors: recoveryErrors },
     openingEco,
     openingName,

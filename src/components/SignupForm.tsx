@@ -5,8 +5,8 @@ import { useAuth } from '@/lib/auth'
 import { linkChessUsername } from '@/lib/profile'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
+import { Button, fieldControlClass, fieldLabelClass } from '@/components/ui'
 
-const fieldClass = 'min-h-11 w-full border border-line bg-canvas px-3 text-base sm:text-sm'
 const MIN_PASSWORD = 8
 const MAX_PASSWORD = 72
 
@@ -65,12 +65,12 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm text-muted">
+      <label htmlFor={id} className={fieldLabelClass}>
         {label}
       </label>
       {children}
       {error ? (
-        <p id={`${id}-error`} className="text-sm text-blunder" role="alert">
+        <p id={`${id}-error`} className="text-sm text-blunder-text" role="alert">
           {error}
         </p>
       ) : hint ? (
@@ -186,7 +186,8 @@ export function SignupForm() {
             setName(e.target.value)
             if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }))
           }}
-          className={fieldClass}
+          className={fieldControlClass}
+          placeholder="Your name"
           aria-invalid={Boolean(fieldErrors.name)}
           aria-describedby={fieldErrors.name ? 'signup-name-error' : undefined}
         />
@@ -203,7 +204,8 @@ export function SignupForm() {
             setEmail(e.target.value)
             if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }))
           }}
-          className={fieldClass}
+          className={fieldControlClass}
+          placeholder="you@example.com"
           autoComplete="email"
           inputMode="email"
           autoCapitalize="off"
@@ -229,7 +231,8 @@ export function SignupForm() {
             setUsername(e.target.value)
             if (fieldErrors.username) setFieldErrors((prev) => ({ ...prev, username: undefined }))
           }}
-          className={`${fieldClass} font-mono`}
+          className={`${fieldControlClass} font-mono`}
+          placeholder="chess.com handle"
           autoCapitalize="off"
           autoCorrect="off"
           autoComplete="off"
@@ -260,9 +263,10 @@ export function SignupForm() {
               setPassword(e.target.value)
               if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }))
             }}
-            className={`${fieldClass} pr-14`}
+            className={`${fieldControlClass} pr-14`}
             autoComplete="new-password"
             spellCheck={false}
+            placeholder={`At least ${MIN_PASSWORD} characters…`}
             aria-invalid={Boolean(fieldErrors.password)}
             aria-describedby={
               fieldErrors.password ? 'signup-password-error' : 'signup-password-hint'
@@ -293,27 +297,28 @@ export function SignupForm() {
             setConfirm(e.target.value)
             if (fieldErrors.confirm) setFieldErrors((prev) => ({ ...prev, confirm: undefined }))
           }}
-          className={fieldClass}
+          className={fieldControlClass}
           autoComplete="new-password"
           spellCheck={false}
+          placeholder="Re-enter your password…"
           aria-invalid={Boolean(fieldErrors.confirm)}
           aria-describedby={fieldErrors.confirm ? 'signup-confirm-error' : undefined}
         />
       </Field>
 
       {error ? (
-        <p className="text-sm text-blunder" role="alert">
+        <p className="text-sm text-blunder-text" role="alert">
           {error}
         </p>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="mt-1 inline-flex min-h-11 items-center justify-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
+        className="mt-1 w-full"
       >
         {pending ? 'Creating account…' : 'Create account'}
-      </button>
+      </Button>
     </form>
   )
 }

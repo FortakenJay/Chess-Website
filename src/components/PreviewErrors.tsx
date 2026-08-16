@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import { useMemo, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { productBoardStyles } from '@/lib/boardTheme'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 import type { FlaggedPosition } from '@/lib/analysis/types'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
@@ -123,8 +124,7 @@ export function PreviewErrors({ rows }: { rows: PreviewPosition[] }) {
                 squareStyles: reveal
                   ? {}
                   : legalMoveStyles(selected.fenBefore, selectedSquare),
-                darkSquareStyle: { backgroundColor: '#3d4450' },
-                lightSquareStyle: { backgroundColor: '#9aa0a8' },
+                ...productBoardStyles,
                 boardStyle: { width: '100%' },
               }}
             />
@@ -153,7 +153,7 @@ export function PreviewErrors({ rows }: { rows: PreviewPosition[] }) {
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted">Hikaru played</dt>
-                  <dd className="text-blunder">{selected.san}</dd>
+                  <dd className="text-blunder-text">{selected.san}</dd>
                 </div>
                 <p className="pt-2 text-ink">
                   {reveal.matchedBest

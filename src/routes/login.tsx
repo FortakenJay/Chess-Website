@@ -1,5 +1,6 @@
-import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { AppShell } from '@/components/AppShell'
+import { AuthFrame } from '@/components/AuthFrame'
 import { ShellSkeleton } from '@/components/ShellSkeleton'
 import { SignInForm } from '@/components/SignInForm'
 import { useAuth } from '@/lib/auth'
@@ -29,16 +30,9 @@ function LoginPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-sm pt-10">
-        <h1 className="mb-6 text-2xl font-medium tracking-tight">Log in</h1>
+      <AuthFrame kind="login">
         <SignInForm />
-        <p className="mt-6 text-sm text-muted">
-          New here?{' '}
-          <Link to="/signup" className="text-ink underline-offset-4 hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </div>
+      </AuthFrame>
     </AppShell>
   )
 }

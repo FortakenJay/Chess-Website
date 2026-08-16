@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
-export const panelVariants = cva('border border-line bg-surface', {
+export const panelVariants = cva('border border-line bg-surface/95', {
   variants: {
     padding: {
       none: 'p-0',

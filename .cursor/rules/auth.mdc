@@ -1,0 +1,29 @@
+---
+description: "auth: sessions, Chess.com identity binding, ownership, and avatars"
+alwaysApply: false
+---
+
+# Auth & identity — decisions
+
+## Session protocol
+**Chose:** Supabase email/password auth with a persisted PKCE browser session and `/auth/callback` code exchange.
+**Considered:** Magic-link auth is mentioned in the README, but the implemented forms use passwords.
+**Why:** ⚠️ NEEDS INPUT — no rationale found for password auth, and the README is stale.
+
+## Chess.com username binding
+**Chose:** Bind one unique Chess.com username to each authenticated user through `link_chess_username(p_username)`.
+**Considered:** Supplying `user_id` from the client.
+**Why:** The security migration says “Profile link without client-supplied user_id (auth.uid() only)” and the RPC derives identity from `auth.uid()` (source: `20260815000000_react_doctor_security.sql`).
+
+## Signup handoff
+**Chose:** Validate the Chess.com handle before signup, store it in user metadata, then link it after a session exists.
+**Why:** ⚠️ NEEDS INPUT — `SignupForm.tsx` and `auth.tsx` implement this sequence, but no rationale was found.
+
+## Avatar failure isolation
+**Chose:** Cache the Chess.com avatar after profile linking, but keep the linked profile when avatar storage fails.
+**Considered:** Failing the identity-link operation when avatar download or storage fails.
+**Why:** `src/lib/profile.ts` states: “Profile link still succeeds if the avatar download fails.” The server lookup also preserves the Chess.com URL when Storage is unavailable.
+
+## Owner-only mutations
+**Chose:** Show sync and owner actions only when the authenticated profile username matches the route username.
+**Why:** ⚠️ NEEDS INPUT — the UI check aligns with write RLS, but no product rationale was found.

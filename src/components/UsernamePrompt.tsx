@@ -4,6 +4,7 @@ import { lookupPlayer } from '@/lib/chesscom.functions'
 import { useAuth } from '@/lib/auth'
 import { linkChessUsername } from '@/lib/profile'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
+import { Button, fieldControlClass } from '@/components/ui'
 
 export function UsernamePrompt() {
   const { user, refreshProfile } = useAuth()
@@ -35,8 +36,9 @@ export function UsernamePrompt() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-3 border border-line bg-surface p-5">
-      <h2 className="text-sm uppercase tracking-wider text-muted">Chess.com username</h2>
+    <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4 border border-line border-l-4 border-l-accent bg-surface p-5 sm:p-7">
+      <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">Connect account</p>
+      <h2 className="font-display text-3xl uppercase leading-none text-ink">Chess.com username</h2>
       <p className="text-sm text-muted">
         We will verify the username, download your games, and save the analysis in batches.
       </p>
@@ -48,24 +50,25 @@ export function UsernamePrompt() {
         name="username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        className="min-h-11 border border-line bg-canvas px-3 font-mono text-base sm:text-sm"
+        className={`${fieldControlClass} font-mono`}
+        placeholder="chess.com handle"
         autoCapitalize="off"
         autoCorrect="off"
         autoComplete="off"
         spellCheck={false}
       />
       {error ? (
-        <p className="text-sm text-blunder" role="alert">
+        <p className="text-sm text-blunder-text" role="alert">
           {error}
         </p>
       ) : null}
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-11 items-center justify-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
+        className="w-full"
       >
         {pending ? 'Checking…' : 'Link and import games'}
-      </button>
+      </Button>
     </form>
   )
 }

@@ -18,11 +18,20 @@ import { Route as AnalyzeUsernameRouteImport } from './routes/analyze.$username'
 import { Route as ApiSyncUserRouteImport } from './routes/api/sync-user'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DrillUsernameRouteImport } from './routes/drill.$username'
+import { Route as EndgamesUsernameRouteImport } from './routes/endgames.$username'
+import { Route as OpeningsUsernameRouteImport } from './routes/openings.$username'
 import { Route as PositionsUsernameRouteImport } from './routes/positions.$username'
 import { Route as PuzzlesUsernameRouteImport } from './routes/puzzles.$username'
 import { Route as ResultsUsernameRouteImport } from './routes/results.$username'
 import { Route as ReviewIndexRouteImport } from './routes/review.index'
 import { Route as ReviewUsernameRouteImport } from './routes/review.$username'
+import { Route as RoadmapUsernameRouteImport } from './routes/roadmap.$username'
+import { Route as StrategyUsernameRouteImport } from './routes/strategy.$username'
+import { Route as TrainerUsernameRouteImport } from './routes/trainer.$username'
+import { Route as ResultsUsernameIndexRouteImport } from './routes/results.$username.index'
+import { Route as ResultsUsernameEndgamesRouteImport } from './routes/results.$username.endgames'
+import { Route as ResultsUsernameOpeningsRouteImport } from './routes/results.$username.openings'
+import { Route as ResultsUsernameStrategyRouteImport } from './routes/results.$username.strategy'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,6 +78,16 @@ const DrillUsernameRoute = DrillUsernameRouteImport.update({
   path: '/drill/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EndgamesUsernameRoute = EndgamesUsernameRouteImport.update({
+  id: '/endgames/$username',
+  path: '/endgames/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpeningsUsernameRoute = OpeningsUsernameRouteImport.update({
+  id: '/openings/$username',
+  path: '/openings/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PositionsUsernameRoute = PositionsUsernameRouteImport.update({
   id: '/positions/$username',
   path: '/positions/$username',
@@ -94,6 +113,41 @@ const ReviewUsernameRoute = ReviewUsernameRouteImport.update({
   path: '/$username',
   getParentRoute: () => ReviewRoute,
 } as any)
+const RoadmapUsernameRoute = RoadmapUsernameRouteImport.update({
+  id: '/roadmap/$username',
+  path: '/roadmap/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StrategyUsernameRoute = StrategyUsernameRouteImport.update({
+  id: '/strategy/$username',
+  path: '/strategy/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrainerUsernameRoute = TrainerUsernameRouteImport.update({
+  id: '/trainer/$username',
+  path: '/trainer/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsUsernameIndexRoute = ResultsUsernameIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ResultsUsernameRoute,
+} as any)
+const ResultsUsernameEndgamesRoute = ResultsUsernameEndgamesRouteImport.update({
+  id: '/endgames',
+  path: '/endgames',
+  getParentRoute: () => ResultsUsernameRoute,
+} as any)
+const ResultsUsernameOpeningsRoute = ResultsUsernameOpeningsRouteImport.update({
+  id: '/openings',
+  path: '/openings',
+  getParentRoute: () => ResultsUsernameRoute,
+} as any)
+const ResultsUsernameStrategyRoute = ResultsUsernameStrategyRouteImport.update({
+  id: '/strategy',
+  path: '/strategy',
+  getParentRoute: () => ResultsUsernameRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -105,11 +159,20 @@ export interface FileRoutesByFullPath {
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/drill/$username': typeof DrillUsernameRoute
+  '/endgames/$username': typeof EndgamesUsernameRoute
+  '/openings/$username': typeof OpeningsUsernameRoute
   '/positions/$username': typeof PositionsUsernameRoute
   '/puzzles/$username': typeof PuzzlesUsernameRoute
-  '/results/$username': typeof ResultsUsernameRoute
+  '/results/$username': typeof ResultsUsernameRouteWithChildren
   '/review/$username': typeof ReviewUsernameRoute
+  '/roadmap/$username': typeof RoadmapUsernameRoute
+  '/strategy/$username': typeof StrategyUsernameRoute
+  '/trainer/$username': typeof TrainerUsernameRoute
   '/review/': typeof ReviewIndexRoute
+  '/results/$username/endgames': typeof ResultsUsernameEndgamesRoute
+  '/results/$username/openings': typeof ResultsUsernameOpeningsRoute
+  '/results/$username/strategy': typeof ResultsUsernameStrategyRoute
+  '/results/$username/': typeof ResultsUsernameIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -120,11 +183,19 @@ export interface FileRoutesByTo {
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/drill/$username': typeof DrillUsernameRoute
+  '/endgames/$username': typeof EndgamesUsernameRoute
+  '/openings/$username': typeof OpeningsUsernameRoute
   '/positions/$username': typeof PositionsUsernameRoute
   '/puzzles/$username': typeof PuzzlesUsernameRoute
-  '/results/$username': typeof ResultsUsernameRoute
   '/review/$username': typeof ReviewUsernameRoute
+  '/roadmap/$username': typeof RoadmapUsernameRoute
+  '/strategy/$username': typeof StrategyUsernameRoute
+  '/trainer/$username': typeof TrainerUsernameRoute
   '/review': typeof ReviewIndexRoute
+  '/results/$username/endgames': typeof ResultsUsernameEndgamesRoute
+  '/results/$username/openings': typeof ResultsUsernameOpeningsRoute
+  '/results/$username/strategy': typeof ResultsUsernameStrategyRoute
+  '/results/$username': typeof ResultsUsernameIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -137,11 +208,20 @@ export interface FileRoutesById {
   '/api/sync-user': typeof ApiSyncUserRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/drill/$username': typeof DrillUsernameRoute
+  '/endgames/$username': typeof EndgamesUsernameRoute
+  '/openings/$username': typeof OpeningsUsernameRoute
   '/positions/$username': typeof PositionsUsernameRoute
   '/puzzles/$username': typeof PuzzlesUsernameRoute
-  '/results/$username': typeof ResultsUsernameRoute
+  '/results/$username': typeof ResultsUsernameRouteWithChildren
   '/review/$username': typeof ReviewUsernameRoute
+  '/roadmap/$username': typeof RoadmapUsernameRoute
+  '/strategy/$username': typeof StrategyUsernameRoute
+  '/trainer/$username': typeof TrainerUsernameRoute
   '/review/': typeof ReviewIndexRoute
+  '/results/$username/endgames': typeof ResultsUsernameEndgamesRoute
+  '/results/$username/openings': typeof ResultsUsernameOpeningsRoute
+  '/results/$username/strategy': typeof ResultsUsernameStrategyRoute
+  '/results/$username/': typeof ResultsUsernameIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -155,11 +235,20 @@ export interface FileRouteTypes {
     | '/api/sync-user'
     | '/auth/callback'
     | '/drill/$username'
+    | '/endgames/$username'
+    | '/openings/$username'
     | '/positions/$username'
     | '/puzzles/$username'
     | '/results/$username'
     | '/review/$username'
+    | '/roadmap/$username'
+    | '/strategy/$username'
+    | '/trainer/$username'
     | '/review/'
+    | '/results/$username/endgames'
+    | '/results/$username/openings'
+    | '/results/$username/strategy'
+    | '/results/$username/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -170,11 +259,19 @@ export interface FileRouteTypes {
     | '/api/sync-user'
     | '/auth/callback'
     | '/drill/$username'
+    | '/endgames/$username'
+    | '/openings/$username'
     | '/positions/$username'
     | '/puzzles/$username'
-    | '/results/$username'
     | '/review/$username'
+    | '/roadmap/$username'
+    | '/strategy/$username'
+    | '/trainer/$username'
     | '/review'
+    | '/results/$username/endgames'
+    | '/results/$username/openings'
+    | '/results/$username/strategy'
+    | '/results/$username'
   id:
     | '__root__'
     | '/'
@@ -186,11 +283,20 @@ export interface FileRouteTypes {
     | '/api/sync-user'
     | '/auth/callback'
     | '/drill/$username'
+    | '/endgames/$username'
+    | '/openings/$username'
     | '/positions/$username'
     | '/puzzles/$username'
     | '/results/$username'
     | '/review/$username'
+    | '/roadmap/$username'
+    | '/strategy/$username'
+    | '/trainer/$username'
     | '/review/'
+    | '/results/$username/endgames'
+    | '/results/$username/openings'
+    | '/results/$username/strategy'
+    | '/results/$username/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -203,9 +309,14 @@ export interface RootRouteChildren {
   ApiSyncUserRoute: typeof ApiSyncUserRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   DrillUsernameRoute: typeof DrillUsernameRoute
+  EndgamesUsernameRoute: typeof EndgamesUsernameRoute
+  OpeningsUsernameRoute: typeof OpeningsUsernameRoute
   PositionsUsernameRoute: typeof PositionsUsernameRoute
   PuzzlesUsernameRoute: typeof PuzzlesUsernameRoute
-  ResultsUsernameRoute: typeof ResultsUsernameRoute
+  ResultsUsernameRoute: typeof ResultsUsernameRouteWithChildren
+  RoadmapUsernameRoute: typeof RoadmapUsernameRoute
+  StrategyUsernameRoute: typeof StrategyUsernameRoute
+  TrainerUsernameRoute: typeof TrainerUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -273,6 +384,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DrillUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/endgames/$username': {
+      id: '/endgames/$username'
+      path: '/endgames/$username'
+      fullPath: '/endgames/$username'
+      preLoaderRoute: typeof EndgamesUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/openings/$username': {
+      id: '/openings/$username'
+      path: '/openings/$username'
+      fullPath: '/openings/$username'
+      preLoaderRoute: typeof OpeningsUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/positions/$username': {
       id: '/positions/$username'
       path: '/positions/$username'
@@ -308,6 +433,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReviewUsernameRouteImport
       parentRoute: typeof ReviewRoute
     }
+    '/roadmap/$username': {
+      id: '/roadmap/$username'
+      path: '/roadmap/$username'
+      fullPath: '/roadmap/$username'
+      preLoaderRoute: typeof RoadmapUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/strategy/$username': {
+      id: '/strategy/$username'
+      path: '/strategy/$username'
+      fullPath: '/strategy/$username'
+      preLoaderRoute: typeof StrategyUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trainer/$username': {
+      id: '/trainer/$username'
+      path: '/trainer/$username'
+      fullPath: '/trainer/$username'
+      preLoaderRoute: typeof TrainerUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results/$username/': {
+      id: '/results/$username/'
+      path: '/'
+      fullPath: '/results/$username/'
+      preLoaderRoute: typeof ResultsUsernameIndexRouteImport
+      parentRoute: typeof ResultsUsernameRoute
+    }
+    '/results/$username/endgames': {
+      id: '/results/$username/endgames'
+      path: '/endgames'
+      fullPath: '/results/$username/endgames'
+      preLoaderRoute: typeof ResultsUsernameEndgamesRouteImport
+      parentRoute: typeof ResultsUsernameRoute
+    }
+    '/results/$username/openings': {
+      id: '/results/$username/openings'
+      path: '/openings'
+      fullPath: '/results/$username/openings'
+      preLoaderRoute: typeof ResultsUsernameOpeningsRouteImport
+      parentRoute: typeof ResultsUsernameRoute
+    }
+    '/results/$username/strategy': {
+      id: '/results/$username/strategy'
+      path: '/strategy'
+      fullPath: '/results/$username/strategy'
+      preLoaderRoute: typeof ResultsUsernameStrategyRouteImport
+      parentRoute: typeof ResultsUsernameRoute
+    }
   }
 }
 
@@ -324,6 +498,24 @@ const ReviewRouteChildren: ReviewRouteChildren = {
 const ReviewRouteWithChildren =
   ReviewRoute._addFileChildren(ReviewRouteChildren)
 
+interface ResultsUsernameRouteChildren {
+  ResultsUsernameEndgamesRoute: typeof ResultsUsernameEndgamesRoute
+  ResultsUsernameOpeningsRoute: typeof ResultsUsernameOpeningsRoute
+  ResultsUsernameStrategyRoute: typeof ResultsUsernameStrategyRoute
+  ResultsUsernameIndexRoute: typeof ResultsUsernameIndexRoute
+}
+
+const ResultsUsernameRouteChildren: ResultsUsernameRouteChildren = {
+  ResultsUsernameEndgamesRoute: ResultsUsernameEndgamesRoute,
+  ResultsUsernameOpeningsRoute: ResultsUsernameOpeningsRoute,
+  ResultsUsernameStrategyRoute: ResultsUsernameStrategyRoute,
+  ResultsUsernameIndexRoute: ResultsUsernameIndexRoute,
+}
+
+const ResultsUsernameRouteWithChildren = ResultsUsernameRoute._addFileChildren(
+  ResultsUsernameRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
@@ -334,9 +526,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSyncUserRoute: ApiSyncUserRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   DrillUsernameRoute: DrillUsernameRoute,
+  EndgamesUsernameRoute: EndgamesUsernameRoute,
+  OpeningsUsernameRoute: OpeningsUsernameRoute,
   PositionsUsernameRoute: PositionsUsernameRoute,
   PuzzlesUsernameRoute: PuzzlesUsernameRoute,
-  ResultsUsernameRoute: ResultsUsernameRoute,
+  ResultsUsernameRoute: ResultsUsernameRouteWithChildren,
+  RoadmapUsernameRoute: RoadmapUsernameRoute,
+  StrategyUsernameRoute: StrategyUsernameRoute,
+  TrainerUsernameRoute: TrainerUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

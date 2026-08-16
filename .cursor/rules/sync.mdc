@@ -1,0 +1,34 @@
+---
+description: "sync: retention, scan modes, browser backfill, and cron ingest"
+alwaysApply: false
+---
+
+# Sync & library ingest — decisions
+
+## Execution contexts
+**Chose:** Run full library backfill and manual sync in the browser; run scheduled sync incrementally on the server.
+**Why:** The README explicitly documents that heavy backfill runs in the browser and cron analyzes only games after `sync_state.last_game_end_time`. Why this split was chosen is ⚠️ NEEDS INPUT.
+
+## Retention window
+**Chose:** Limit fetching, analysis, and database retention to a rolling two-year window.
+**Why:** `src/lib/sync/plan.ts` and the purge migrations explicitly keep the application and database windows aligned. Why two years was selected is ⚠️ NEEDS INPUT.
+
+## Scan modes
+**Chose:** `full` scans retained archive months, `incremental` scans months that may contain newer games, and `reanalyze` revisits retained months while the caller selects stale rows.
+**Why:** The mode contracts are documented on `monthsToScan` in `src/lib/sync/plan.ts`.
+
+## Incremental timestamp boundary
+**Chose:** Apply the retention floor and pass `cutoff - 1` to Chess.com’s exclusive timestamp filter.
+**Why:** `src/lib/sync/runSync.ts` documents that the remote filter uses exclusive `>` while the desired local boundary is inclusive.
+
+## Cron guardrails
+**Chose:** Stop cron work after `MAX_SYNC_MS` (default 8 seconds) and scan at most two months when no prior timestamp exists.
+**Why:** ⚠️ NEEDS INPUT — `src/routes/api/sync-user.ts` establishes both limits but does not explain the values.
+
+## Batch sizes
+**Chose:** Download two archive months per batch and save ten analyzed games per batch.
+**Why:** ⚠️ NEEDS INPUT — the constants are explicit in `src/lib/sync/plan.ts`, but no rationale was found.
+
+## Purge failure behavior
+**Chose:** Attempt expired-game cleanup before sync without blocking sync when cleanup fails.
+**Why:** ⚠️ NEEDS INPUT — `src/lib/sync/runSync.ts` implements best-effort purge, but no rationale was found.

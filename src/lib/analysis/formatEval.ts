@@ -38,16 +38,16 @@ export const QUALITY_LABEL: Record<MoveQuality, string> = {
 }
 
 export const QUALITY_COLOR: Record<MoveQuality, string> = {
-  brilliant: '#1baca6',
-  great: '#81b64c',
-  book: '#a78bfa',
-  best: '#81b64c',
-  excellent: '#81b64c',
-  good: '#95b776',
-  miss: '#e5484d',
-  inaccuracy: '#e8c547',
-  mistake: '#f5a524',
-  blunder: '#e5484d',
+  brilliant: 'var(--color-quality-brilliant)',
+  great: 'var(--color-quality-great)',
+  book: 'var(--color-quality-book)',
+  best: 'var(--color-quality-best)',
+  excellent: 'var(--color-quality-excellent)',
+  good: 'var(--color-quality-good)',
+  miss: 'var(--color-quality-miss)',
+  inaccuracy: 'var(--color-inaccuracy)',
+  mistake: 'var(--color-mistake)',
+  blunder: 'var(--color-blunder)',
 }
 
 export function coachCopy(quality: MoveQuality | null | undefined, san: string): {

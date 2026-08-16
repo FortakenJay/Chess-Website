@@ -1,0 +1,37 @@
+---
+description: "Chess.com integration: public API access, PGN parsing, identity, and filtering"
+alwaysApply: false
+---
+
+# Chess.com integration — decisions
+
+## API boundary
+**Chose:** Call Chess.com’s public player, stats, archive, and monthly-game endpoints through TanStack server functions.
+**Why:** ⚠️ NEEDS INPUT — `src/lib/chesscom.functions.ts` establishes the server boundary, but no rationale was found for it over direct browser calls.
+
+## HTTP behavior
+**Chose:** Send a configurable product User-Agent and retry failed or rate-limited requests with backoff.
+**Why:** ⚠️ NEEDS INPUT — `src/lib/chesscom.ts` and `.env.example` define this behavior, but no in-repo policy rationale was found.
+
+## Game identity
+**Chose:** Normalize Chess.com game URLs to the pathname and use `(username, game_link)` as the game upsert key.
+**Considered:** Keeping the full URL.
+**Why:** The normalization comment says: “Keep path only — live/daily ids are unique enough” (source: `src/lib/chesscom.ts`).
+
+## PGN header parsing
+**Chose:** Parse headers with lightweight regular expressions inside the Chess.com client instead of importing chess.js at module top level.
+**Considered:** Top-level chess.js parsing.
+**Why:** The code says this avoids pulling chess.js into the module’s SSR bundle (source: `gameFromPgn` in `src/lib/chesscom.ts`).
+
+## Supported games
+**Chose:** Import standard chess games with PGN and skip variants.
+**Why:** ⚠️ NEEDS INPUT — the filter and UI message are explicit, but no rationale for excluding variants was found.
+
+## Played date
+**Chose:** Prefer Chess.com `endTime` over PGN date headers.
+**Considered:** `[Date]` and `[UTCDate]`.
+**Why:** `src/lib/analysis/analyzeGame.ts` notes that daily games keep their start date in those PGN headers.
+
+## Primary rating
+**Chose:** Prefer blitz, then rapid, bullet, and daily when selecting a rating for puzzle matching.
+**Why:** ⚠️ NEEDS INPUT — the order is documented in `src/lib/chesscom.ts`, but its rationale was not found.

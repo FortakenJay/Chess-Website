@@ -6,6 +6,11 @@ import {
   emptyPhaseAcpl,
   emptyQualityStats,
 } from './analysis/types'
+import {
+  parseEndgameAccuracyStats,
+  parseEndgameConversion,
+  parseStrategyStats,
+} from './analysis/strategy'
 import { GAME_RETENTION_YEARS } from '@/lib/sync/plan'
 import type { Database, Json } from './supabase/database.types'
 
@@ -48,6 +53,9 @@ export async function persistGames(
     phase_acpl: game.phaseAcpl as unknown as Json,
     endgame_stats: game.endgameStats as unknown as Json,
     endgame_conversion: game.endgameConversion as unknown as Json,
+    endgame_accuracy_stats: game.endgameAccuracyStats as unknown as Json,
+    strategy_stats: game.strategyStats as unknown as Json,
+    analysis_version: game.analysisVersion,
     recovery_stats: game.recoveryStats as unknown as Json,
     opening_eco: game.openingEco,
     opening_name: game.openingName,
@@ -179,11 +187,10 @@ async function recomputePeriods(
       accuracyPct: Number(row.accuracy_pct) || 0,
       phaseAcpl: (row.phase_acpl as GameAnalysis['phaseAcpl']) ?? emptyPhaseAcpl(),
       endgameStats: (row.endgame_stats as GameAnalysis['endgameStats']) ?? emptyEndgameStats(),
-      endgameConversion:
-        (row.endgame_conversion as GameAnalysis['endgameConversion']) ?? {
-          opportunities: 0,
-          conversions: 0,
-        },
+      endgameConversion: parseEndgameConversion(row.endgame_conversion),
+      endgameAccuracyStats: parseEndgameAccuracyStats(row.endgame_accuracy_stats),
+      strategyStats: parseStrategyStats(row.strategy_stats),
+      analysisVersion: Number(row.analysis_version) || 0,
       recoveryStats:
         (row.recovery_stats as GameAnalysis['recoveryStats']) ?? { moves: 0, errors: 0 },
       openingEco: row.opening_eco,

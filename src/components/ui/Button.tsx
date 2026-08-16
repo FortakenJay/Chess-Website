@@ -4,15 +4,14 @@ import { Link, type LinkProps } from '@tanstack/react-router'
 import { cn } from '@/lib/cn'
 
 export const buttonVariants = cva(
-  'inline-flex min-h-11 items-center justify-center disabled:opacity-40',
+  'inline-flex min-h-11 items-center justify-center px-4 font-mono text-xs uppercase tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-40',
   {
     variants: {
       variant: {
-        primary:
-          'border border-ink bg-ink px-4 text-sm text-canvas hover:bg-surface-2 hover:text-ink',
-        secondary: 'border border-ink px-4 text-sm hover:bg-surface-2 hover:text-ink',
-        ghost: 'border border-line px-4 text-sm hover:bg-surface-2 hover:text-ink',
-        quiet: 'px-4 text-sm text-muted hover:bg-surface-2 hover:text-ink',
+        primary: 'border border-accent bg-accent text-ink hover:bg-accent-low',
+        secondary: 'border border-ink text-ink hover:border-accent hover:bg-surface-2',
+        ghost: 'border border-line text-muted hover:border-muted hover:bg-surface-2 hover:text-ink',
+        quiet: 'border border-transparent text-muted hover:bg-surface-2 hover:text-ink',
       },
     },
     defaultVariants: {

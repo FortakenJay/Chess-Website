@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { isAnalysisStale } from '@/lib/analysis/types'
 import { analyzeGames } from '@/lib/analyzeClient'
 import { useAuth } from '@/lib/auth'
 import { cachePlayerAvatar, listArchives, listMonthGames } from '@/lib/chesscom.functions'
@@ -224,12 +225,13 @@ async function syncGames(
             await fetchAllRows((from, to) =>
               supabase
                 .from('games')
-                .select('game_link')
+                .select('game_link, analysis_version')
                 .eq('username', username)
-                .is('analysis_budget', null)
                 .range(from, to),
             )
-          ).map((row) => row.game_link),
+          )
+            .filter((row) => isAnalysisStale(row.analysis_version))
+            .map((row) => row.game_link),
         )
       : null
 

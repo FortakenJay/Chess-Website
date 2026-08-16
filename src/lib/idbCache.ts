@@ -1,5 +1,5 @@
 /** Shared IndexedDB helpers + schema version for all LEAK client caches. */
-export const LEAK_CACHE_SCHEMA_VERSION = 5
+export const LEAK_CACHE_SCHEMA_VERSION = 6
 
 export function canUseIdb() {
   return typeof indexedDB !== 'undefined'

@@ -26,8 +26,8 @@ export function Section({
   className?: string
 }) {
   return (
-    <section className={cn('mt-10', className)}>
-      <h2 className="border-b border-line pb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+    <section className={cn('mt-12', className)}>
+      <h2 className="border-b border-line pb-3 font-display text-xl uppercase leading-none tracking-[-0.01em] text-ink sm:text-2xl">
         {title}
       </h2>
       <div className={cn(sectionBodyVariants({ columns }))}>{children}</div>

@@ -1,0 +1,43 @@
+---
+description: "insights: Results information architecture, aggregation, peers, and charts"
+alwaysApply: false
+---
+
+# Insights & results — decisions
+
+## Information architecture
+**Chose:** Nest Overview, Openings, Strategy, and Endgames under `/results/$username`; keep one top-level Results link and redirect legacy routes.
+**Why:** ⚠️ NEEDS INPUT — routes and `ResultsSectionNav` establish this structure, but no rationale was found.
+
+## Accuracy aggregation
+**Chose:** Use RMS accuracy for game, strategy, and endgame aggregates; use ACPL fallback where only legacy opening aggregates exist.
+**Considered:** Arithmetic mean for move accuracy.
+**Why:** `averageAccuracy` says arithmetic mean reads about 5–15 points high versus Chess.com (source: `src/lib/analysis/classify.ts`). Opening fallback is labeled for legacy ACPL-only aggregates.
+
+## Peer comparisons
+**Chose:** Use real SQL cohort RPCs for Strategy and Endgames and render `—` when the RPC returns null.
+**Considered:** The synthetic `reportStats.peerPercentile` formula used by Review.
+**Why:** The migration enforces minimum samples and `InsightStats` preserves null as `—`; no opening peer RPC exists. The particular sample thresholds are ⚠️ NEEDS INPUT.
+
+## Opening peer gap
+**Chose:** Omit similar-rating from openings. Strategy and Endgames keep the cohort column because those RPCs exist.
+**Considered:** An empty `—` column as a placeholder.
+**Why:** A blank peer column reads as missing data, not as an honest gap.
+
+## Opening repertoire color
+**Chose:** Split most-played opening lists by White vs Black. Mixed-color lists hid which side the line was played from.
+**Considered:** An “all games” combined list.
+**Why:** Italian as White and Sicilian as Black are different repertoires. The control is a two-way swap, same as the trainer.
+
+## Game-type normalization
+**Chose:** Normalize filters into Overall, Bullet, Blitz, Rapid, Daily, and Other, and pass the same class to peer RPCs.
+**Why:** ⚠️ NEEDS INPUT — implementation and tests establish the buckets, but no rationale was found.
+
+## Letter grades
+**Chose:** Convert accuracy and conversion percentages to fixed letter-grade cutoffs.
+**Why:** ⚠️ NEEDS INPUT — `src/lib/grades.ts` defines the cutoffs without explaining them.
+
+## Chart outlier handling
+**Chose:** Exclude unanalyzed or mate-inflated rows through `usableAccuracy` and `usableAcpl`.
+**Considered:** Plotting those rows.
+**Why:** `classify.ts` says a 0% / 5000-ACPL game would otherwise flatten the chart.

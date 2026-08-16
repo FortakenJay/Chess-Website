@@ -25,19 +25,19 @@ function StandBar({
     <div>
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-sm">{label}</span>
-        <span className={cn('font-mono text-xs', warn ? 'text-blunder' : 'text-[#e8c547]')}>
+        <span className={cn('font-mono text-xs', warn ? 'text-blunder-text' : 'text-inaccuracy')}>
           {percentileLabel(percentile)}
         </span>
       </div>
       <div className="relative h-2 bg-surface-2">
         <div
-          className={cn('absolute inset-y-0 left-0', warn ? 'bg-blunder/50' : 'bg-[#e8c547]/30')}
+          className={cn('absolute inset-y-0 left-0', warn ? 'bg-blunder/50' : 'bg-inaccuracy/30')}
           style={{ width: `${left}%` }}
         />
         <span
           className={cn(
             'absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full',
-            warn ? 'bg-blunder' : 'bg-[#e8c547]',
+            warn ? 'bg-blunder' : 'bg-inaccuracy',
           )}
           style={{ left: `calc(${left}% - 5px)` }}
         />
@@ -73,17 +73,17 @@ function AccuracyChart({ analysis }: { analysis: GameAnalysis }) {
   return (
     <div className="border border-line bg-surface-2 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-4 font-mono text-[11px]">
-        <span className="text-[#e8c547]">
+        <span className="text-inaccuracy">
           {analysis.username} · {analysis.accuracyPct.toFixed(1)}
         </span>
         <span className="text-muted">
           {analysis.opponent} · {(analysis.opponentAccuracyPct ?? 0).toFixed(1)}
         </span>
-        <span className="text-blunder">blunders</span>
+        <span className="text-blunder-text">blunders</span>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} className="h-28 w-full" role="img" aria-label="Accuracy per move">
-        <polyline fill="none" stroke="#6b6e76" strokeWidth="1.5" points={points(oppPlies)} />
-        <polyline fill="none" stroke="#e8c547" strokeWidth="1.8" points={points(userPlies)} />
+        <polyline fill="none" stroke="var(--color-fine)" strokeWidth="1.5" points={points(oppPlies)} />
+        <polyline fill="none" stroke="var(--chart-secondary)" strokeWidth="2" points={points(userPlies)} />
         {userPlies.map((ply, i) => {
           if (ply.quality !== 'blunder') return null
           const x = (i / Math.max(1, userPlies.length - 1)) * w

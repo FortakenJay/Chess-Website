@@ -1,4 +1,5 @@
 import { accuracyFromAcpl, averageAccuracy } from './classify'
+import { QUALITY_COLOR } from './formatEval'
 import { phaseOf } from './phase'
 import type {
   AnalyzedPly,
@@ -27,16 +28,16 @@ const SCORECARD: Array<{
   symbol: string
   color: string
 }> = [
-  { quality: 'brilliant', label: 'Brilliant', symbol: '!!', color: '#1baca6' },
-  { quality: 'great', label: 'Great', symbol: '!', color: '#81b64c' },
-  { quality: 'book', label: 'Book', symbol: '♟', color: '#a78bfa' },
-  { quality: 'best', label: 'Best', symbol: '★', color: '#81b64c' },
-  { quality: 'excellent', label: 'Excellent', symbol: '!', color: '#95b776' },
-  { quality: 'good', label: 'Good', symbol: '✓', color: '#b0b4bc' },
-  { quality: 'miss', label: 'Miss', symbol: '✕', color: '#e5484d' },
-  { quality: 'inaccuracy', label: 'Inaccuracy', symbol: '?!', color: '#e8c547' },
-  { quality: 'mistake', label: 'Mistake', symbol: '?', color: '#f5a524' },
-  { quality: 'blunder', label: 'Blunder', symbol: '??', color: '#e5484d' },
+  { quality: 'brilliant', label: 'Brilliant', symbol: '!!', color: QUALITY_COLOR.brilliant },
+  { quality: 'great', label: 'Great', symbol: '!', color: QUALITY_COLOR.great },
+  { quality: 'book', label: 'Book', symbol: '♟', color: QUALITY_COLOR.book },
+  { quality: 'best', label: 'Best', symbol: '★', color: QUALITY_COLOR.best },
+  { quality: 'excellent', label: 'Excellent', symbol: '!', color: QUALITY_COLOR.excellent },
+  { quality: 'good', label: 'Good', symbol: '✓', color: QUALITY_COLOR.good },
+  { quality: 'miss', label: 'Miss', symbol: '✕', color: QUALITY_COLOR.miss },
+  { quality: 'inaccuracy', label: 'Inaccuracy', symbol: '?!', color: QUALITY_COLOR.inaccuracy },
+  { quality: 'mistake', label: 'Mistake', symbol: '?', color: QUALITY_COLOR.mistake },
+  { quality: 'blunder', label: 'Blunder', symbol: '??', color: QUALITY_COLOR.blunder },
 ]
 
 /** Rough performance Elo from accuracy, anchored to the player's rating. */

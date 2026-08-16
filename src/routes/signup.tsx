@@ -1,5 +1,6 @@
-import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { AppShell } from '@/components/AppShell'
+import { AuthFrame } from '@/components/AuthFrame'
 import { ShellSkeleton } from '@/components/ShellSkeleton'
 import { SignupForm } from '@/components/SignupForm'
 import { useAuth } from '@/lib/auth'
@@ -29,19 +30,9 @@ function SignupPage() {
 
   return (
     <AppShell hideSignup>
-      <div className="mx-auto max-w-md pt-10">
-        <h1 className="text-2xl font-medium tracking-tight">Create an account</h1>
-        <p className="mt-2 mb-6 text-sm text-muted">
-          Use your email and password. Link a Chess.com username so analysis follows this account.
-        </p>
+      <AuthFrame kind="signup">
         <SignupForm />
-        <p className="mt-6 text-sm text-muted">
-          Already have an account?{' '}
-          <Link to="/login" className="text-ink underline-offset-4 hover:underline">
-            Log in
-          </Link>
-        </p>
-      </div>
+      </AuthFrame>
     </AppShell>
   )
 }

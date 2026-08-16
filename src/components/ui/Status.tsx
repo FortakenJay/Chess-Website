@@ -7,7 +7,7 @@ export const emptyStateVariants = cva('mt-6 text-sm text-muted', {
   variants: {
     tone: {
       muted: '',
-      alert: 'text-blunder',
+      alert: 'text-blunder-text',
     },
   },
   defaultVariants: {
@@ -37,7 +37,7 @@ export function ErrorText({
   className?: string
 }) {
   return (
-    <p className={cn('mt-4 text-sm text-blunder', className)} role="alert">
+    <p className={cn('mt-4 text-sm text-blunder-text', className)} role="alert">
       {children}
     </p>
   )

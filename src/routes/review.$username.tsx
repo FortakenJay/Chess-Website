@@ -432,7 +432,7 @@ function ReviewUsernamePage() {
               <button
                 type="button"
                 onClick={() => abortRef.current?.abort()}
-                className="inline-flex min-h-11 items-center justify-center border border-blunder/40 px-3 font-mono text-xs text-blunder hover:bg-blunder/10"
+                className="inline-flex min-h-11 items-center justify-center border border-blunder/40 px-3 font-mono text-xs uppercase tracking-[0.06em] text-blunder-text hover:bg-blunder/10"
               >
                 Stop
               </button>

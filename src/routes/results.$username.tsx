@@ -1,25 +1,17 @@
-import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
-import { lazy, Suspense, useState } from 'react'
+import { createFileRoute, Link, Navigate, Outlet } from '@tanstack/react-router'
 import { AppShell } from '@/components/AppShell'
-import {
-  ButtonLink,
-  EmptyState,
-  PageHeader,
-  ResultsSkeleton,
-  SegmentedControl,
-} from '@/components/ui'
+import { ResultsSectionNav } from '@/components/ResultsSectionNav'
+import { ButtonLink, EmptyState, PageHeader, ResultsSkeleton } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { usePlayerData } from '@/lib/queries'
-import { useResultsModel } from '@/lib/resultsModel'
-import { TIMEFRAME_LABEL, type Timeframe } from '@/lib/stats'
 import { normalizeUsername } from '@/lib/username'
 
-const ResultsCharts = lazy(() =>
-  import('@/components/ResultsCharts').then((mod) => ({ default: mod.ResultsCharts })),
-)
+export const Route = createFileRoute('/results/$username')({
+  component: ResultsLayout,
+})
 
 /** ISO timestamps from Supabase are already UTC; avoid Intl during render. */
-function formatUtcStamp(iso: string) {
+export function formatUtcStamp(iso: string) {
   const normalized = iso.endsWith('Z') ? iso : `${iso}Z`
   const date = new Date(normalized)
   if (Number.isNaN(date.getTime())) return iso
@@ -31,22 +23,13 @@ function formatUtcStamp(iso: string) {
   return `${y}-${m}-${d} ${hh}:${mm}`
 }
 
-export const Route = createFileRoute('/results/$username')({
-  component: ResultsPage,
-})
-
-function ResultsPage() {
+function ResultsLayout() {
   const { username } = Route.useParams()
   const name = normalizeUsername(username)
   const { profile } = useAuth()
   const owner = profile?.chess_com_username === name
   const query = usePlayerData(name)
-  const [timeframe, setTimeframe] = useState<Timeframe>('month')
-
   const games = query.data?.games ?? []
-  const positions = query.data?.positions ?? []
-  const attempts = query.data?.attempts ?? []
-  const model = useResultsModel(games, positions, attempts, timeframe)
   const lastSyncedAt = query.data?.sync?.last_synced_at ?? null
   const lastSyncLabel = lastSyncedAt ? formatUtcStamp(lastSyncedAt) : null
 
@@ -103,19 +86,8 @@ function ResultsPage() {
 
       {games.length > 0 ? (
         <>
-          <SegmentedControl
-            label="Results timeframe"
-            value={timeframe}
-            onChange={setTimeframe}
-            options={(Object.keys(TIMEFRAME_LABEL) as Timeframe[]).map((value) => ({
-              value,
-              label: TIMEFRAME_LABEL[value],
-            }))}
-          />
-
-          <Suspense fallback={<ResultsSkeleton className="mt-6" />}>
-            <ResultsCharts model={model} timeframe={timeframe} />
-          </Suspense>
+          <ResultsSectionNav username={name} />
+          <Outlet />
         </>
       ) : null}
     </AppShell>

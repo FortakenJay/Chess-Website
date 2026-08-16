@@ -2,12 +2,12 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
 export const segmentItemVariants = cva(
-  'inline-flex min-h-11 items-center px-3 font-mono text-xs',
+  'inline-flex min-h-11 items-center border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.06em]',
   {
     variants: {
       active: {
-        true: 'bg-ink text-canvas',
-        false: 'text-muted hover:bg-surface-2 hover:text-ink',
+        true: 'border-accent bg-surface-2 text-ink',
+        false: 'border-transparent text-muted hover:border-line hover:bg-surface-2 hover:text-ink',
       },
     },
     defaultVariants: {
@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string>({
 }) {
   return (
     <div
-      className={cn('mt-4 flex flex-wrap gap-1 border-b border-line pb-3 sm:mt-8', className)}
+      className={cn('mt-4 flex flex-wrap gap-0 border-b border-line sm:mt-8', className)}
       role="group"
       aria-label={label}
     >

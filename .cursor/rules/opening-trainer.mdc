@@ -1,0 +1,59 @@
+---
+description: "opening trainer: repertoire provenance, dual-score scheduling, explorer sync, and drills"
+alwaysApply: false
+---
+
+# Opening trainer — decisions
+
+## Dual-score progress
+**Chose:** Track recall and understanding independently and schedule from `min(recall_ease, understanding_ease)`.
+**Why:** The test states that the weaker score keeps a node due (source: `src/lib/openings/openings.test.ts`); schema and `schedule.ts` preserve both scores separately.
+
+## Move and explanation provenance
+**Chose:** Repertoire PGN supplies moves; Lichess Explorer supplies frequencies and deviation nodes; authored cards supply explanations only.
+**Considered:** Allowing authored explanation content to supply deviations, evaluations, or statistics.
+**Why:** The migration header separates repertoire moves, explorer frequency, and explanation fields. Seed comments say “Explanations only. No evals, no frequencies,” and the validator rejects evals and author-filled deviations.
+
+## Reason model
+**Chose:** Use a constrained reason-tag enum, requiring concrete moves or squares for prophylaxis, break preparation/stopping, and square control.
+**Why:** SQL and app validators enforce the same enum; tests specifically reject targetless prophylaxis (sources: migration, `tags.ts`, `validate.ts`, and `openings.test.ts`).
+
+## Initial drill scope
+**Chose:** Ship repertoire-move recall followed by reason-tag multiple choice: eight recall items with reasons on five.
+**Why:** `session.ts` documents “8 recall items; MCQ on the first 5,” and tests lock the composition. Why other planned modes are deferred is ⚠️ NEEDS INPUT — no staged-scope document exists in the repo.
+
+## Opening choice
+**Chose:** Show openings the player already plays first, filtered by White or Black. Learning something new asks which opening they want, then matches annotated catalog lines for that color. If the catalog misses, search `@chess-openings/eco.json` and download the named line into a personal opening (or an in-memory try if they are not signed in). Families and center types are teaching copy, not a dumped catalog.
+**Considered:** Automatically starting the first shared opening, listing every unplayed catalog card, or refusing any opening that was not hand-seeded.
+**Why:** A dumped catalog mixed never-played lines with the player's repertoire. Color is the first repertoire choice; asking keeps the opening explicit. Refusing unknown names made “Learn a new opening” a dead search.
+
+## Lessons before drills
+**Chose:** Foundations and newly downloaded lines open a Pawnbreak-shaped lesson (idea, both-side plans, walkable line, after-the-book jobs, traps, quizzes) before move recall. Weak-spot drills skip the lesson. After a session, the same after-the-book jobs stay on screen.
+**Considered:** Jumping straight into recall, or treating the Results openings table as the teacher.
+**Why:** Reciting the first eight moves does not say what to do when theory ends. The Results table is stats. Authored cards (Vienna as the quality bar) carry the teaching; downloaded lines reuse family/structure copy and honest heuristic tags from the SAN itself — no evals, no invented explorer deviations.
+
+## Downloaded lines
+**Chose:** Server-side ECO search plus optional Lichess most-played extension of short named lines, then `lessonFromOpening`. If a seed card already matches the name/ECO/side, use the authored card instead of the stub.
+**Considered:** Client-side GitHub fetches, or writing explorer frequencies onto the knowledge card.
+**Why:** Explorer and eco.json need a User-Agent and stay off the browser. Provenance stays: PGN/ECO supplies moves, explorer may lengthen the mainline, authored or heuristic text supplies explanations only.
+
+## Pawn structures
+**Chose:** Teach named pawn skeletons as a second trainer tab. Structure identity is the pawn-only FEN (pieces stripped). Fuzzy-match against canonical must/absent pawn squares so wing-pawn noise still tags the same structure. Drills ask which break and whether the moment is right. Games tag by opening name/ECO; leak positions tag by FEN match. Roadmap deep-links with `?tab=structures&structure=`.
+**Considered:** Phase-based error rates only, or requiring a full PGN replay to tag every game.
+**Why:** “You leak Carlsbad positions” is actionable. Games do not store PGN, so name/ECO is the game-level proxy; flagged-position FENs give the sharper skeleton match. The roadmap was sending people to the opening chooser instead.
+
+## Trainable nodes
+**Chose:** Train only the user’s repertoire moves that have at least one validated reason tag; exclude explorer-only nodes.
+**Why:** ⚠️ NEEDS INPUT — `trainableNodes` enforces this contract, but no rationale was found.
+
+## Explorer expansion
+**Chose:** Query Lichess rating bands around the user and add unseen replies at 1.5% frequency or higher without inventing reasons.
+**Why:** The explorer script explicitly says it stores replies and “does not invent reasons.” The ±100 band and 1.5% threshold are ⚠️ NEEDS INPUT.
+
+## Shared and personal catalogs
+**Chose:** Read shared openings (`username IS NULL`) alongside personal openings; save progress only for authenticated users.
+**Why:** ⚠️ NEEDS INPUT — RLS and `useOpeningTrainer.ts` implement this access model without explaining the product choice.
+
+## Distractors
+**Chose:** Generate deterministic wrong choices from same-opening reason tags first, then the remaining enum.
+**Why:** ⚠️ NEEDS INPUT — `distractors.ts` and its test establish the algorithm, but no rationale was found.

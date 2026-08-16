@@ -23,8 +23,8 @@ const GRADE_LABEL: Record<PerformanceGrade, string> = {
 }
 
 function resultClass(result: GameMeta['result']) {
-  if (result === 'win') return 'text-[#81b64c]'
-  if (result === 'loss') return 'text-blunder'
+  if (result === 'win') return 'text-accent'
+  if (result === 'loss') return 'text-blunder-text'
   return 'text-mistake'
 }
 
@@ -75,8 +75,8 @@ function GradeBadge({ grade }: { grade: PerformanceGrade }) {
     <span
       className={cn(
         'inline-flex h-8 w-8 items-center justify-center font-mono text-xs font-medium',
-        grade === 'underperforming' && 'rounded-full bg-[#c9a227] text-canvas',
-        grade === 'strong' && 'bg-[#81b64c] text-canvas',
+        grade === 'underperforming' && 'bg-inaccuracy text-canvas',
+        grade === 'strong' && 'bg-accent text-ink',
         grade === 'solid' && 'border border-line text-muted',
       )}
       title={grade}

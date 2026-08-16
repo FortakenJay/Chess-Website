@@ -1,7 +1,7 @@
 import type { Classification } from '@/lib/analysis/types'
 
 const STYLES: Record<Exclude<Classification, 'fine'>, string> = {
-  blunder: 'text-blunder border-blunder/40',
+  blunder: 'text-blunder-text border-blunder/40',
   mistake: 'text-mistake border-mistake/40',
   inaccuracy: 'text-inaccuracy border-inaccuracy/40',
 }

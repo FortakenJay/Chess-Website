@@ -1,27 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --font-display: "Anton", "Arial Narrow", sans-serif;
+  --font-sans: "Instrument Sans", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
 
-  --color-canvas: #0b0c0e;
-  --color-surface: #12141a;
-  --color-surface-2: #181b22;
-  --color-line: #2a2d36;
-  --color-ink: #ececec;
-  --color-muted: #8b8f9a;
-  --color-blunder: #e5484d;
-  --color-mistake: #f5a524;
-  --color-inaccuracy: #e8c547;
-  --color-fine: #6b6e76;
+  --color-canvas: #0d0d0d;
+  --color-surface: #171717;
+  --color-surface-2: #20201f;
+  --color-line: #33322f;
+  --color-ink: #edeae4;
+  --color-muted: #aaa69e;
+  --color-accent: #2e7d42;
+  --color-accent-low: #1b4a28;
+  --color-bone: #e8c9a0;
+  --color-blunder: #c4452d;
+  --color-blunder-text: #e3745e;
+  --color-mistake: #d98a37;
+  --color-inaccuracy: #d0b43f;
+  --color-fine: #77746e;
+  --color-board-light: #e8c9a0;
+  --color-board-dark: #1b4a28;
+  --color-quality-brilliant: #4aa6a1;
+  --color-quality-great: #4e9660;
+  --color-quality-book: #ad95d6;
+  --color-quality-best: #2e7d42;
+  --color-quality-excellent: #71a579;
+  --color-quality-good: #aaa69e;
+  --color-quality-miss: #e3745e;
 }
 
 :root {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+  --chart-axis: #aaa69e;
+  --chart-grid: #33322f;
+  --chart-cursor: rgb(237 234 228 / 0.06);
+  --chart-primary: #edeae4;
+  --chart-positive: #2e7d42;
+  --chart-positive-low: #1b4a28;
+  --chart-negative: #c4452d;
+  --chart-secondary: #e8c9a0;
 }
 
 html {
@@ -41,8 +64,34 @@ body {
   font-feature-settings: "ss01" 0;
 }
 
+.font-display {
+  font-family: var(--font-display);
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell:not(.app-shell-dense)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cpath d='M45 45l6 6m0-6l-6 6' stroke='%23edeae4' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+.app-shell > header,
+.app-shell > main,
+.app-shell > footer {
+  position: relative;
+  z-index: 1;
 }
 
 .skeleton-bone {
@@ -94,6 +143,11 @@ textarea {
   touch-action: manipulation;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--color-muted) 72%, transparent);
+}
+
 /* iOS zooms any focused control under 16px. Keep fields readable on phones. */
 @media (max-width: 639px) {
   input,
@@ -131,12 +185,12 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 /* Dense / list controls: press scale feels glitchy on small hit targets. */
@@ -146,7 +200,7 @@ button.no-press:active:not(:disabled) {
 }
 
 a.control:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -171,6 +225,6 @@ a.control:active {
 }
 
 ::selection {
-  background: #2a2d36;
-  color: #ececec;
+  background: var(--color-accent-low);
+  color: var(--color-ink);
 }

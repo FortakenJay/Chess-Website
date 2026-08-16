@@ -1,0 +1,26 @@
+---
+description: "platform: framework, hosting, query defaults, and engine assets"
+alwaysApply: false
+---
+
+# Platform — decisions
+
+## Application framework
+**Chose:** TanStack Start with TanStack Router/Query, Vite, Nitro, and React 19.
+**Why:** ⚠️ NEEDS INPUT — no rationale found, this is just the current implementation.
+
+## Hosting and scheduled work
+**Chose:** Vercel hosts the Nitro output and invokes `/api/sync-user` daily at `0 6 * * *`.
+**Why:** ⚠️ NEEDS INPUT — `vercel.json`, `vite.config.ts`, and `package.json` establish the deployment, but no rationale for Vercel, Nitro, or the schedule was found.
+
+## Browser and cron workload split
+**Chose:** Library backfill and “Sync now” run Stockfish in the browser; the server cron only performs incremental analysis after `sync_state.last_game_end_time`.
+**Why:** The README explicitly documents this workload split; `src/lib/backgroundSync.tsx` and `src/routes/api/sync-user.ts` implement it. Why this split was preferred over server-side backfill is ⚠️ NEEDS INPUT.
+
+## Query freshness
+**Chose:** Global queries use a 30-second stale time and do not refetch on focus; player data forces a fresh load on mount and focus.
+**Why:** ⚠️ NEEDS INPUT — `src/router.tsx` and `src/lib/queries.ts` show the exception, but no rationale was found.
+
+## Shipped engine assets
+**Chose:** Copy Stockfish 18 `lite-single` WASM and ASM builds into `public/engine` during `postinstall`.
+**Why:** ⚠️ NEEDS INPUT — `scripts/copy-engine.mjs` establishes the asset pipeline, but no rationale for the lite build was found.

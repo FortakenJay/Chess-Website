@@ -1,0 +1,35 @@
+---
+description: "landing and marketing: logged-out routing, visual system, motion, and conversion paths"
+alwaysApply: false
+---
+
+# Landing & marketing — decisions
+
+## Logged-out surface
+**Chose:** Render a standalone marketing page for logged-out visitors; redirect linked users directly to Results.
+**Why:** ⚠️ NEEDS INPUT — `src/routes/index.tsx` establishes the split, but no rationale for bypassing the app shell was found.
+
+## Marketing-specific visual system
+**Chose:** Use a zinc-black, indigo, and violet landing palette separate from the application’s canvas tokens.
+**Why:** ⚠️ NEEDS INPUT — `LandingPage.tsx` and `landing.css` make the divergence clear, but no rationale was found.
+
+## Hero depth
+**Chose:** Build the hero parallax with CSS perspective and `translateZ` layers.
+**Considered:** JavaScript scroll listeners.
+**Why:** The header comment in `landing.css` explicitly says “CSS 3D parallax (no scroll listeners).”
+
+## Chess metaphor
+**Chose:** Show an Italian position on the hero board and animate selected pieces lifting away as “leaks.”
+**Why:** `LandingBoardPieces.tsx` documents the position and calls the lifted pieces “the leaks.”
+
+## Motion accessibility
+**Chose:** Remove positional animation and flatten the parallax scene for reduced-motion users; remove glass effects for reduced-transparency users.
+**Why:** ⚠️ NEEDS INPUT — the accessibility fallbacks are explicit in `landing.css`, but no rationale comment was found.
+
+## Conversion paths
+**Chose:** Lead with Sign up, then offer Free game review and a fixed-player Preview.
+**Why:** ⚠️ NEEDS INPUT — the CTA hierarchy is implemented in `LandingPage.tsx` without documented rationale.
+
+## Product proof
+**Chose:** Reuse an actual chess position, classification badge, and guess-before-reveal preview rather than static marketing screenshots.
+**Why:** ⚠️ NEEDS INPUT — `HeroPosition` and `/preview` implement live product artifacts, but no rationale was found.

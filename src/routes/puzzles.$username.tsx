@@ -107,7 +107,7 @@ function PuzzlesPage() {
                 type="button"
                 className={`inline-flex min-h-11 items-center border px-3 font-mono text-xs uppercase tracking-[0.12em] transition-colors ${
                   active
-                    ? 'border-ink bg-ink text-canvas'
+                    ? 'border-accent bg-accent-low text-ink'
                     : 'border-line bg-surface text-ink hover:bg-surface-2'
                 }`}
                 onClick={() => practice.updateFilter('motif', motif)}

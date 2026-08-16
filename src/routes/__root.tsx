@@ -30,7 +30,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
       {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap',
+        href: 'https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Sans:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap',
       },
     ],
   }),
@@ -42,7 +42,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   ),
   errorComponent: ({ error }) => (
     <div className="flex min-h-screen flex-col items-center justify-center gap-2 font-mono text-sm">
-      <p className="text-blunder">Error</p>
+      <p className="text-blunder-text">Error</p>
       <p className="text-muted">{error.message}</p>
     </div>
   ),

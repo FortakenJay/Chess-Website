@@ -37,19 +37,24 @@ export function ResultsCharts({
 
   return (
     <>
-      <Panel className="mt-6" padding="md">
+      <Panel className="relative mt-6 overflow-hidden border-l-4 border-l-blunder" padding="md">
+        <span className="pointer-events-none absolute -right-5 -top-16 font-display text-[12rem] leading-none text-ink/[0.025]" aria-hidden>
+          ×
+        </span>
         {model.headline ? (
           <>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+            <p className="relative font-mono text-[11px] uppercase tracking-[0.1em] text-blunder-text">
               Primary leak · {TIMEFRAME_LABEL[timeframe]}
             </p>
-            <p className="mt-3 max-w-3xl text-pretty text-2xl leading-snug tracking-tight md:text-3xl">
-              {PHASE_LABEL[model.headline.phase]} ·{' '}
-              <span className="font-mono tabular text-ink">{model.headline.errorPct}%</span> of
-              moves are blunders or mistakes
+            <p className="relative mt-3 max-w-3xl text-pretty font-display text-4xl uppercase leading-[0.95] tracking-[-0.02em] md:text-6xl">
+              {PHASE_LABEL[model.headline.phase]} is where the position breaks.
+            </p>
+            <p className="relative mt-4 font-mono text-sm text-muted">
+              <span className="tabular text-bone">{model.headline.errorPct}%</span> of moves are
+              blunders or mistakes
             </p>
             {model.headline.topMotif ? (
-              <p className="mt-3 max-w-2xl text-pretty text-sm text-muted">
+              <p className="relative mt-3 max-w-2xl text-pretty text-sm text-muted">
                 Among tagged blunders,{' '}
                 {MOTIF_LABEL[model.headline.topMotif] ??
                   model.headline.topMotif.replaceAll('_', ' ')}{' '}
@@ -110,7 +115,7 @@ export function ResultsCharts({
       </Section>
 
       <Section title="Context">
-        <OpeningRepertoireChart rows={model.openings} />
+        <OpeningRepertoireChart games={model.filteredGames} />
         <TimeClassChart rows={model.timeClass} />
         <RatingBandChart rows={model.ratingBands} />
         <ColorChart stats={model.byColor} />

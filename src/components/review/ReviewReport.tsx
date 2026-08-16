@@ -19,8 +19,8 @@ import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 const PHASES: Phase[] = ['opening', 'middlegame', 'endgame']
 
 function coachTone(grade: CoachGrade) {
-  if (grade === 'great' || grade === 'good') return 'bg-[#81b64c] text-canvas'
-  if (grade === 'average') return 'bg-[#f5a524] text-canvas'
+  if (grade === 'great' || grade === 'good') return 'bg-accent text-ink'
+  if (grade === 'average') return 'bg-mistake text-canvas'
   return 'bg-blunder text-ink'
 }
 
@@ -89,7 +89,7 @@ export function ReviewReport({
     <div className="mx-auto flex max-h-[calc(100dvh-9rem)] max-w-md flex-col overflow-hidden border border-line bg-surface">
       <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-end gap-2 border-b border-line px-3 py-2.5">
         <div className="min-w-0 text-left">
-          <p className="truncate font-mono text-[10px] uppercase tracking-wider text-[#e8c547]">You</p>
+          <p className="truncate font-mono text-[10px] uppercase tracking-wider text-bone">You</p>
           <p className="flex items-center gap-1.5 truncate font-mono text-xs text-muted">
             <PlayerAvatar username={youName} src={youAvatar} size={18} />
             <span translate="no">{youName}</span>

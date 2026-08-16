@@ -75,7 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setReady(true)
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, next) => {
+      if (event === 'TOKEN_REFRESHED') {
+        setSession(next)
+        return
+      }
       setSession(next)
       if (next) await refreshProfile()
       else setProfile(null)

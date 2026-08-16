@@ -1,0 +1,36 @@
+---
+description: "persistence: Supabase storage, RLS, versioning, and client caches"
+alwaysApply: false
+---
+
+# Persistence & data access — decisions
+
+## Stored analysis shape
+**Chose:** Store aggregate game metrics and separate flagged positions; do not store PGN or the review move tape.
+**Why:** The review option is explicitly documented as “never persisted” in `src/lib/analyzeClient.ts`. Why PGN itself is omitted is ⚠️ NEEDS INPUT.
+
+## Public reads and owner writes
+**Chose:** Allow anonymous reads of public analysis rows while requiring `username = linked_username()` for user-owned writes.
+**Why:** The README supports public username previews, and the initial schema enforces owner writes. A formal security rationale is ⚠️ NEEDS INPUT.
+
+## Shared catalog writes
+**Chose:** Make the puzzle catalog publicly readable but writable only through the service-role client.
+**Considered:** Authenticated client writes.
+**Why:** The security migration says “Puzzle catalog: public read only. Writes use service role (bypasses RLS)” (source: `20260815000000_react_doctor_security.sql`).
+
+## Analysis versioning
+**Chose:** Persist `analysis_version`; treat null or older versions as stale and eligible for reanalysis.
+**Why:** `src/lib/analysis/types.ts` says to bump the version when persisted JSON shape or scoring rules change.
+
+## Peer-stat minimum samples
+**Chose:** Rating-band peer RPCs return null below their player and move/game sample thresholds.
+**Why:** The SQL and Insights UI establish null as the contract, but the specific thresholds and ±100 band are ⚠️ NEEDS INPUT.
+
+## Resilient browser cache
+**Chose:** Cache player data in versioned IndexedDB and allow quota/private-mode failures without breaking the app.
+**Considered:** Treating cache write failure as an application error.
+**Why:** `src/lib/playerCache.ts` states: “Quota or private-mode failures should not break the app.”
+
+## Batch persistence and period rollups
+**Chose:** Persist in 200-row chunks, refresh flagged rows by game link, and maintain `period_summary` alongside client aggregation.
+**Why:** ⚠️ NEEDS INPUT — no rationale found for the chunk size, refresh strategy, or duplicate rollup path.

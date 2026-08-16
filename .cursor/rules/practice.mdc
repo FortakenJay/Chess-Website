@@ -1,0 +1,35 @@
+---
+description: "practice: flagged positions, guess-before-reveal drills, and attempt tracking"
+alwaysApply: false
+---
+
+# Practice — decisions
+
+## Guess before reveal
+**Chose:** Keep the engine best move and historical move hidden until the user commits a legal move.
+**Considered:** Revealing the answer before the attempt.
+**Why:** The README defines the product as “a drill board that does not reveal the answer until you move.”
+
+## Drill corpus
+**Chose:** Drill only persisted inaccuracy, mistake, and blunder positions; exclude cosmetic labels such as brilliant and book.
+**Why:** `FlaggedPosition` is documented as “Persisted leak tier; cosmetic overrides never enter drills” (source: `src/lib/analysis/types.ts`).
+
+## Attempt scoring
+**Chose:** Record whether the attempt matches the engine best move and whether it repeats the historical mistake.
+**Why:** ⚠️ NEEDS INPUT — `DrillBoard.tsx` and `drill_attempts` preserve both dimensions, but no rationale was found.
+
+## Position identity
+**Chose:** Uniquely identify flagged positions by `(username, game_link, move_number)`.
+**Why:** ⚠️ NEEDS INPUT — the schema and `persist.ts` use this key, but no rationale was found.
+
+## Piece selection
+**Chose:** Clicking another friendly piece switches selection instead of attempting to move onto that square.
+**Why:** `src/lib/legalMoves.ts` identifies this as the Chess.com/Lichess interaction style.
+
+## Positions-to-drill handoff
+**Chose:** Preserve table filters in a deep link to the drill route.
+**Why:** The README calls for a browsable list of flagged positions; which filters are intentionally first-class is ⚠️ NEEDS INPUT.
+
+## Attempt ownership
+**Chose:** Let anyone practice public positions but persist drill attempts only for the linked owner.
+**Why:** ⚠️ NEEDS INPUT — the ownership guard is implemented, but no rationale was found.

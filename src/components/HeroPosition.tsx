@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { productBoardStyles } from '@/lib/boardTheme'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 
 const FEN = '2r3k1/5ppp/4p3/p7/1p2nP2/1P2P3/P5PP/2R3K1 b - - 0 28'
@@ -28,8 +29,7 @@ export function HeroPosition() {
               boardOrientation: 'black',
               allowDragging: false,
               squareStyles: SQUARE_STYLES,
-              darkSquareStyle: { backgroundColor: '#3d4450' },
-              lightSquareStyle: { backgroundColor: '#9aa0a8' },
+              ...productBoardStyles,
               boardStyle: { width: '100%' },
             }}
           />
@@ -38,7 +38,7 @@ export function HeroPosition() {
       <figcaption className="flex flex-wrap items-center gap-2 border-t border-line px-3 py-2.5">
         <ClassificationBadge value="blunder" />
         <span className="font-mono text-xs text-muted">Move 28, Black</span>
-        <span className="font-mono text-xs text-blunder">played Ne4</span>
+        <span className="font-mono text-xs text-blunder-text">played Ne4</span>
         <span className="font-mono text-xs text-muted">engine Rxc1</span>
       </figcaption>
     </figure>

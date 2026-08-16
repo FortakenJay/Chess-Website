@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/cn'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
+import { productBoardStyles } from '@/lib/boardTheme'
 
 type ExploreMove = {
   san: string
@@ -39,15 +40,15 @@ type ReviewTab = 'report' | 'analysis' | 'insights'
 
 function qualityClass(quality: MoveQuality | null | undefined) {
   if (!quality) return 'text-muted'
-  if (quality === 'blunder') return 'text-blunder'
+  if (quality === 'blunder') return 'text-blunder-text'
   if (quality === 'mistake') return 'text-mistake'
   if (quality === 'inaccuracy') return 'text-inaccuracy'
-  if (quality === 'miss') return 'text-blunder'
-  if (quality === 'brilliant') return 'text-[#1baca6]'
+  if (quality === 'miss') return 'text-quality-miss'
+  if (quality === 'brilliant') return 'text-quality-brilliant'
   if (quality === 'great' || quality === 'best' || quality === 'excellent') {
-    return 'text-[#81b64c]'
+    return 'text-quality-great'
   }
-  if (quality === 'book') return 'text-[#a78bfa]'
+  if (quality === 'book') return 'text-quality-book'
   return 'text-ink'
 }
 
@@ -107,7 +108,7 @@ function EvalGraph({
           aria-label="Evaluation graph"
         >
           <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke="currentColor" className="text-line" strokeWidth="1" />
-          <polyline fill="none" stroke="#ececec" strokeWidth="1.5" points={points} />
+          <polyline fill="none" stroke="var(--chart-primary)" strokeWidth="2" points={points} />
           {leaks.map((ply) => {
             const x = ((ply.ply + 1) / last) * w
             const y = h / 2 - (Math.max(-maxAbs, Math.min(maxAbs, ply.evalCp)) / maxAbs) * (h / 2 - 4)
@@ -118,7 +119,7 @@ function EvalGraph({
             y1="0"
             x2={(cursor / last) * w}
             y2={h}
-            stroke="#e8c547"
+            stroke="var(--chart-secondary)"
             strokeWidth="1.5"
           />
         </svg>
@@ -415,8 +416,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                   ...(fen ? legalMoveStyles(fen, selectedSquare) : {}),
                 },
                 arrows: arrowStyles,
-                darkSquareStyle: { backgroundColor: '#3d4450' },
-                lightSquareStyle: { backgroundColor: '#9aa0a8' },
+                ...productBoardStyles,
                 boardStyle: { width: '100%', height: '100%' },
               }}
             />
@@ -490,7 +490,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                 Line {explore.map((move) => move.san).join(' ')}
               </p>
             ) : currentPly?.isUserMove && currentPly.bestSan && currentPly.quality !== 'best' ? (
-              <p className="mt-2 font-mono text-xs text-[#81b64c]">Best was {currentPly.bestSan}</p>
+              <p className="mt-2 font-mono text-xs text-accent">Best was {currentPly.bestSan}</p>
             ) : null}
           </div>
           <span className="shrink-0 border border-line bg-surface-2 px-2 py-1 font-mono text-sm tabular">
@@ -574,7 +574,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                   className={cn(
                     'grid w-full grid-cols-[3rem_minmax(0,1fr)] gap-2 border px-2 py-1.5 text-left font-mono text-xs',
                     activeLine === index && showBest
-                      ? 'border-[#e8c547] bg-surface-2 text-ink hover:bg-surface-2'
+                      ? 'border-bone bg-surface-2 text-ink hover:bg-surface-2'
                       : 'quiet border-line text-ink hover:bg-surface-2',
                   )}
                 >

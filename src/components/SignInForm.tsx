@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { getBrowserClient } from '@/lib/supabase/browser'
-
-const fieldClass = 'min-h-11 w-full border border-line bg-canvas px-3 text-base sm:text-sm'
+import { Button, fieldControlClass, fieldLabelClass } from '@/components/ui'
 
 export function SignInForm() {
   const [email, setEmail] = useState('')
@@ -26,7 +25,7 @@ export function SignInForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
-      <label htmlFor="auth-email" className="text-sm text-muted">
+      <label htmlFor="auth-email" className={fieldLabelClass}>
         Email
       </label>
       <input
@@ -38,10 +37,10 @@ export function SignInForm() {
         spellCheck={false}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className={fieldClass}
+        className={fieldControlClass}
         placeholder="you@example.com"
       />
-      <label htmlFor="auth-password" className="text-sm text-muted">
+      <label htmlFor="auth-password" className={fieldLabelClass}>
         Password
       </label>
       <input
@@ -52,20 +51,21 @@ export function SignInForm() {
         autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className={fieldClass}
+        className={fieldControlClass}
+        placeholder="Enter your password…"
       />
       {error ? (
-        <p className="text-sm text-blunder" role="alert">
+        <p className="text-sm text-blunder-text" role="alert">
           {error}
         </p>
       ) : null}
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="mt-1 inline-flex min-h-11 items-center justify-center border border-ink bg-ink px-3 text-sm text-canvas hover:bg-transparent hover:text-ink disabled:opacity-50"
+        className="mt-1 w-full"
       >
         {pending ? 'Signing in…' : 'Log in'}
-      </button>
+      </Button>
     </form>
   )
 }

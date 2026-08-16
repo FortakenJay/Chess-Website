@@ -77,6 +77,45 @@ export type ClockStats = Record<ClockBucket, BucketStats>
 export type EndgameTypeStats = Record<EndgameType, BucketStats>
 export type PhaseAcpl = Record<Phase, { totalLoss: number; moves: number }>
 
+/** Bump when persisted analysis JSON shape or scoring rules change. */
+export const ANALYSIS_VERSION = 1
+
+export type PositionStructure = 'open' | 'closed' | 'semi_closed'
+export type StrategyMetric =
+  | 'activePiece'
+  | 'attacking'
+  | 'defending'
+  | 'overall'
+  | 'pawnStructure'
+  | 'space'
+export type EndgameTheme = 'pawn' | 'rook' | 'queen' | 'other' | 'overall'
+export type EndgameEntry = 'better' | 'equal' | 'worse'
+
+export type AccuracyBucket = {
+  moves: number
+  squaredError: number
+}
+
+export type StrategyGroup = Record<StrategyMetric, AccuracyBucket>
+export type StrategyStats = Record<'all' | PositionStructure, StrategyGroup>
+export type EndgameAccuracyStats = Record<EndgameTheme, AccuracyBucket>
+
+export type EndgameEntryBucket = {
+  games: number
+  wins: number
+  draws: number
+  losses: number
+  expectedScore: number
+}
+
+export type EndgameConversion = {
+  opportunities: number
+  conversions: number
+  better: EndgameEntryBucket
+  equal: EndgameEntryBucket
+  worse: EndgameEntryBucket
+}
+
 export type FlaggedPosition = {
   username: string
   playedOn: string
@@ -142,7 +181,10 @@ export type GameAnalysis = {
   accuracyPct: number
   phaseAcpl: PhaseAcpl
   endgameStats: EndgameTypeStats
-  endgameConversion: { opportunities: number; conversions: number }
+  endgameConversion: EndgameConversion
+  endgameAccuracyStats: EndgameAccuracyStats
+  strategyStats: StrategyStats
+  analysisVersion: number
   recoveryStats: { moves: number; errors: number }
   openingEco: string | null
   openingName: string | null
@@ -233,6 +275,58 @@ export function emptyPhaseAcpl(): PhaseAcpl {
   }
 }
 
+export function emptyAccuracyBucket(): AccuracyBucket {
+  return { moves: 0, squaredError: 0 }
+}
+
+export function emptyStrategyGroup(): StrategyGroup {
+  return {
+    activePiece: emptyAccuracyBucket(),
+    attacking: emptyAccuracyBucket(),
+    defending: emptyAccuracyBucket(),
+    overall: emptyAccuracyBucket(),
+    pawnStructure: emptyAccuracyBucket(),
+    space: emptyAccuracyBucket(),
+  }
+}
+
+export function emptyStrategyStats(): StrategyStats {
+  return {
+    all: emptyStrategyGroup(),
+    open: emptyStrategyGroup(),
+    closed: emptyStrategyGroup(),
+    semi_closed: emptyStrategyGroup(),
+  }
+}
+
+export function emptyEndgameAccuracyStats(): EndgameAccuracyStats {
+  return {
+    pawn: emptyAccuracyBucket(),
+    rook: emptyAccuracyBucket(),
+    queen: emptyAccuracyBucket(),
+    other: emptyAccuracyBucket(),
+    overall: emptyAccuracyBucket(),
+  }
+}
+
+export function emptyEndgameEntryBucket(): EndgameEntryBucket {
+  return { games: 0, wins: 0, draws: 0, losses: 0, expectedScore: 0 }
+}
+
+export function emptyEndgameConversion(): EndgameConversion {
+  return {
+    opportunities: 0,
+    conversions: 0,
+    better: emptyEndgameEntryBucket(),
+    equal: emptyEndgameEntryBucket(),
+    worse: emptyEndgameEntryBucket(),
+  }
+}
+
 export function isOmissionMotif(motif: Motif | null | undefined): boolean {
   return Boolean(motif?.startsWith('missed_'))
+}
+
+export function isAnalysisStale(version: number | null | undefined) {
+  return (version ?? 0) < ANALYSIS_VERSION
 }

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { analyzeGame } from '../src/lib/analysis/analyzeGame.ts'
 import { DEFAULT_ANALYSIS_BUDGET } from '../src/lib/analysis/engine.ts'
 import { createNodeEngine } from '../src/lib/analysis/engine.node.ts'
+import { isAnalysisStale } from '../src/lib/analysis/types.ts'
 import { fetchArchives, fetchMonthGames } from '../src/lib/chesscom.ts'
 import { fetchAllRows, markSyncState, persistGames } from '../src/lib/persist.ts'
 import { getServiceClient } from '../src/lib/supabase/admin.ts'
@@ -100,12 +101,13 @@ async function main() {
               await fetchAllRows((from, to) =>
                 supabase
                   .from('games')
-                  .select('game_link')
+                  .select('game_link, analysis_version')
                   .eq('username', username)
-                  .is('analysis_budget', null)
                   .range(from, to),
               )
-            ).map((row) => row.game_link),
+            )
+              .filter((row) => isAnalysisStale(row.analysis_version))
+              .map((row) => row.game_link),
           )
 
       console.log(

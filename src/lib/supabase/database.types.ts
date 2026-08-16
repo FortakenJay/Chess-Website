@@ -139,6 +139,9 @@ export type Database = {
           total_moves: number
           user_rating: number | null
           username: string
+          strategy_stats: Json | null
+          endgame_accuracy_stats: Json | null
+          analysis_version: number | null
         }
         Insert: {
           accuracy_pct?: number
@@ -168,6 +171,9 @@ export type Database = {
           total_moves?: number
           user_rating?: number | null
           username: string
+          strategy_stats?: Json | null
+          endgame_accuracy_stats?: Json | null
+          analysis_version?: number | null
         }
         Update: {
           accuracy_pct?: number
@@ -197,8 +203,171 @@ export type Database = {
           total_moves?: number
           user_rating?: number | null
           username?: string
+          strategy_stats?: Json | null
+          endgame_accuracy_stats?: Json | null
+          analysis_version?: number | null
         }
         Relationships: []
+      }
+      node_progress: {
+        Row: {
+          due_at: string
+          lapses: number
+          last_recall_pass: boolean | null
+          last_understanding_pass: boolean | null
+          node_id: string
+          recall_ease: number
+          streak: number
+          understanding_ease: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          due_at?: string
+          lapses?: number
+          last_recall_pass?: boolean | null
+          last_understanding_pass?: boolean | null
+          node_id: string
+          recall_ease?: number
+          streak?: number
+          understanding_ease?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          due_at?: string
+          lapses?: number
+          last_recall_pass?: boolean | null
+          last_understanding_pass?: boolean | null
+          node_id?: string
+          recall_ease?: number
+          streak?: number
+          understanding_ease?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'node_progress_node_id_fkey'
+            columns: ['node_id']
+            isOneToOne: false
+            referencedRelation: 'opening_nodes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      opening_nodes: {
+        Row: {
+          alternatives: Json
+          explorer_stats: Json | null
+          fen: string
+          frequency_weight: number
+          id: string
+          is_mine: boolean
+          opening_id: string
+          parent_node_id: string | null
+          ply: number
+          reason_tags: string[]
+          reason_text: string | null
+          san: string
+          source: string
+        }
+        Insert: {
+          alternatives?: Json
+          explorer_stats?: Json | null
+          fen: string
+          frequency_weight?: number
+          id?: string
+          is_mine: boolean
+          opening_id: string
+          parent_node_id?: string | null
+          ply: number
+          reason_tags?: string[]
+          reason_text?: string | null
+          san?: string
+          source?: string
+        }
+        Update: {
+          alternatives?: Json
+          explorer_stats?: Json | null
+          fen?: string
+          frequency_weight?: number
+          id?: string
+          is_mine?: boolean
+          opening_id?: string
+          parent_node_id?: string | null
+          ply?: number
+          reason_tags?: string[]
+          reason_text?: string | null
+          san?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'opening_nodes_opening_id_fkey'
+            columns: ['opening_id']
+            isOneToOne: false
+            referencedRelation: 'openings'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'opening_nodes_parent_node_id_fkey'
+            columns: ['parent_node_id']
+            isOneToOne: false
+            referencedRelation: 'opening_nodes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      openings: {
+        Row: {
+          center_type: string | null
+          created_at: string
+          eco: string | null
+          id: string
+          knowledge_card: Json
+          name: string
+          parent_id: string | null
+          side: string
+          structure_family: string | null
+          theory_load: number
+          username: string | null
+        }
+        Insert: {
+          center_type?: string | null
+          created_at?: string
+          eco?: string | null
+          id?: string
+          knowledge_card?: Json
+          name: string
+          parent_id?: string | null
+          side: string
+          structure_family?: string | null
+          theory_load?: number
+          username?: string | null
+        }
+        Update: {
+          center_type?: string | null
+          created_at?: string
+          eco?: string | null
+          id?: string
+          knowledge_card?: Json
+          name?: string
+          parent_id?: string | null
+          side?: string
+          structure_family?: string | null
+          theory_load?: number
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'openings_parent_id_fkey'
+            columns: ['parent_id']
+            isOneToOne: false
+            referencedRelation: 'openings'
+            referencedColumns: ['id']
+          },
+        ]
       }
       period_summary: {
         Row: {
@@ -299,6 +468,50 @@ export type Database = {
         }
         Relationships: []
       }
+      structure_targets: {
+        Row: {
+          my_breaks: string[]
+          my_good_squares: string[]
+          my_problem_piece: string | null
+          opening_id: string
+          tempo_traps: string[]
+          their_breaks: string[]
+          their_good_squares: string[]
+          their_problem_piece: string | null
+          typical_endgame: string | null
+        }
+        Insert: {
+          my_breaks?: string[]
+          my_good_squares?: string[]
+          my_problem_piece?: string | null
+          opening_id: string
+          tempo_traps?: string[]
+          their_breaks?: string[]
+          their_good_squares?: string[]
+          their_problem_piece?: string | null
+          typical_endgame?: string | null
+        }
+        Update: {
+          my_breaks?: string[]
+          my_good_squares?: string[]
+          my_problem_piece?: string | null
+          opening_id?: string
+          tempo_traps?: string[]
+          their_breaks?: string[]
+          their_good_squares?: string[]
+          their_problem_piece?: string | null
+          typical_endgame?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'structure_targets_opening_id_fkey'
+            columns: ['opening_id']
+            isOneToOne: true
+            referencedRelation: 'openings'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       sync_state: {
         Row: {
           last_game_end_time: number | null
@@ -329,6 +542,25 @@ export type Database = {
       }
       purge_expired_games: {
         Args: { retention_years?: number }
+        Returns: Json
+      }
+      normalize_time_class: {
+        Args: { value: string | null }
+        Returns: string
+      }
+      strategy_peer_stats: {
+        Args: {
+          viewed_username: string
+          p_time_class?: string | null
+          p_structure?: string | null
+        }
+        Returns: Json
+      }
+      endgame_peer_stats: {
+        Args: {
+          viewed_username: string
+          p_time_class?: string | null
+        }
         Returns: Json
       }
     }

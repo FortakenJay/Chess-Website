@@ -14,8 +14,8 @@ export function BrandLogo({
     <Link
       to="/"
       className={cn(
-        'inline-flex min-h-11 items-center gap-2 font-mono tracking-[0.2em] text-ink',
-        size === 'sm' ? 'text-xs' : 'text-sm',
+        'inline-flex min-h-11 items-center gap-2 font-display uppercase tracking-[0.08em] text-ink',
+        size === 'sm' ? 'text-base' : 'text-lg',
         className,
       )}
       aria-label="LEAK home"

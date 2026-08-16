@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
 export const selectFieldVariants = cva(
-  'flex flex-col gap-1 text-[11px] uppercase tracking-[0.14em] text-muted',
+  'flex flex-col gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted',
   {
     variants: {
       size: {
@@ -17,7 +17,7 @@ export const selectFieldVariants = cva(
 )
 
 export const selectControlVariants = cva(
-  'min-h-11 w-full border border-line bg-canvas px-3 font-mono text-sm text-ink outline-none sm:text-xs',
+  'min-h-11 w-full border border-line bg-canvas px-3 font-mono text-sm text-ink outline-none hover:border-muted focus:border-accent sm:text-xs',
   {
     variants: {
       size: {

@@ -16,3 +16,4 @@ export {
 export { FilterBar } from './FilterBar'
 export { SegmentedControl, segmentItemVariants } from './SegmentedControl'
 export { FilterTile } from './FilterTile'
+export { fieldControlClass, fieldLabelClass } from './FormField'

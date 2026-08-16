@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js'
 import { useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { productBoardStyles } from '@/lib/boardTheme'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 import { FittedBoardFrame } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
@@ -36,7 +37,7 @@ export function DrillBoard({
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
 
   const position = positions[index]
-  const adhoc = position?.id === 'adhoc' || !position?.san
+  const adhoc = position.id.startsWith('adhoc') || !position.san
   const sideToMove = position?.fen_before.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = sideToMove === 'Black' ? 'black' : 'white'
 
@@ -97,7 +98,7 @@ export function DrillBoard({
         correct: s.correct + (matchedBest ? 1 : 0),
         total: s.total + 1,
       }))
-      if (owner && position.id && position.id !== 'adhoc') {
+      if (owner && position.id && !position.id.startsWith('adhoc')) {
         await getBrowserClient().from('drill_attempts').insert({
           username,
           position_id: position.id,
@@ -159,8 +160,7 @@ export function DrillBoard({
                 makeMove(sourceSquare, targetSquare),
               onSquareClick: ({ square }) => onSquareClick(square),
               squareStyles,
-              darkSquareStyle: { backgroundColor: '#3d4450' },
-              lightSquareStyle: { backgroundColor: '#9aa0a8' },
+              ...productBoardStyles,
               boardStyle: { width: '100%', height: '100%' },
             }}
           />
@@ -208,18 +208,18 @@ export function DrillBoard({
             <dl className="space-y-2 font-mono text-xs">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">This try</dt>
-                <dd className={reveal.matchedBest ? 'text-[#81b64c]' : 'text-ink'}>
+                <dd className={reveal.matchedBest ? 'text-accent' : 'text-ink'}>
                   {reveal.attemptSan}
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">Best move</dt>
-                <dd className="text-[#81b64c]">{reveal.bestSan}</dd>
+                <dd className="text-accent">{reveal.bestSan}</dd>
               </div>
               {adhoc ? null : (
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">In that game</dt>
-                  <dd className="text-blunder">{position.san}</dd>
+                  <dd className="text-blunder-text">{position.san}</dd>
                 </div>
               )}
               <div className="pt-2 text-pretty text-ink">

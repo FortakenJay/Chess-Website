@@ -22,7 +22,7 @@ export function ProgressPanel({
         </span>
       </div>
       <div className="mt-3 h-1.5 w-full bg-surface-2">
-        <div className="h-full bg-ink transition-[width] duration-300" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-accent transition-[width] duration-300" style={{ width: `${pct}%` }} />
       </div>
       {detail ? <p className="mt-3 font-mono text-xs text-muted text-pretty">{detail}</p> : null}
     </Panel>
