@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Navigate, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
 import { AppShell } from '@/components/AppShell'
 import { ResultsSectionNav } from '@/components/ResultsSectionNav'
 import { ButtonLink, EmptyState, PageHeader, ResultsSkeleton } from '@/components/ui'
@@ -69,20 +69,24 @@ function ResultsLayout() {
 
       {!query.isLoading && games.length === 0 ? (
         <EmptyState className="mt-10 max-w-lg">
-          No stored analysis for this username.
+          <EmptyState.Title>No stored analysis</EmptyState.Title>
           {owner ? (
-            <p className="mt-3 text-pretty">
-              <Link to="/analyze/$username" params={{ username: name }} className="text-ink underline">
-                Run the first backfill
-              </Link>{' '}
-              — Stockfish runs in this browser.
-            </p>
+            <EmptyState.Body>
+              Run the first backfill. Stockfish runs in this browser.
+            </EmptyState.Body>
           ) : (
-            <p className="mt-3 text-pretty">
+            <EmptyState.Body>
               Sign in and link this Chess.com username to analyze it. Preview only shows data that
               already exists.
-            </p>
+            </EmptyState.Body>
           )}
+          {owner ? (
+            <EmptyState.Actions>
+              <ButtonLink to="/analyze/$username" params={{ username: name }} variant="primary">
+                Run the first backfill
+              </ButtonLink>
+            </EmptyState.Actions>
+          ) : null}
         </EmptyState>
       ) : null}
 

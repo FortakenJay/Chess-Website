@@ -2,6 +2,8 @@ import { Chess, type Square } from 'chess.js'
 import { toWhiteRelative } from './classify'
 import type { AnalysisBudget, EngineEval, EngineLine } from './types'
 
+export const ENGINE_DISPLAY_NAME = 'Stockfish 18 Lite'
+
 export const DEFAULT_ANALYSIS_BUDGET: AnalysisBudget = {
   kind: 'nodes',
   value: 12_000,
@@ -44,6 +46,24 @@ const SKIP_WASM_KEY = 'leak:skip-wasm-engine'
 function absoluteUrl(path: string) {
   const origin = self.location.origin
   return origin && origin !== 'null' ? `${origin}${path}` : path
+}
+
+function goCommand(search: number | Pick<AnalysisBudget, 'kind' | 'value'>) {
+  if (typeof search === 'number') return `go movetime ${Math.max(1, Math.round(search))}`
+  const value = Math.max(1, Math.round(search.value))
+  if (search.kind === 'depth') return `go depth ${value}`
+  if (search.kind === 'movetime') return `go movetime ${value}`
+  return `go nodes ${value}`
+}
+
+function timeoutForGo(cmd: string) {
+  const depth = /go depth (\d+)/.exec(cmd)
+  if (depth) return Math.max(45_000, Number(depth[1]) * 4_000)
+  const nodes = /go nodes (\d+)/.exec(cmd)
+  if (nodes) return Math.max(20_000, Math.round(Number(nodes[1]) / 2) + 10_000)
+  const movetime = /go movetime (\d+)/.exec(cmd)
+  if (movetime) return Number(movetime[1]) + 10_000
+  return 15_000
 }
 
 function wasmWorkerUrl() {
@@ -176,6 +196,7 @@ export class UciEngine {
     fen: string,
     search: number | Pick<AnalysisBudget, 'kind' | 'value'> = 200,
     multipv = 3,
+    onInfo?: (info: { depth: number }) => void,
   ): Promise<EngineLine[]> {
     const run = async () => {
       await this.init()
@@ -185,12 +206,17 @@ export class UciEngine {
 
       const byPv = new Map<number, { cp?: number; mate?: number; pv: string[] }>()
       let bestMove = '0000'
+      let lastDepth = 0
 
-      const go =
-        typeof search === 'number'
-          ? `go movetime ${search}`
-          : `go ${search.kind} ${Math.max(1, Math.round(search.value))}`
+      const go = goCommand(search)
       await this.waitFor(go, (line) => {
+        if (line.startsWith('info ')) {
+          const depthMatch = / depth (\d+)/.exec(line)
+          if (depthMatch) {
+            lastDepth = Number(depthMatch[1])
+            onInfo?.({ depth: lastDepth })
+          }
+        }
         if (line.startsWith('info ') && line.includes(' score ') && line.includes(' pv ')) {
           const multipvMatch = / multipv (\d+)/.exec(line)
           const idx = multipvMatch ? Number(multipvMatch[1]) : 1
@@ -225,6 +251,7 @@ export class UciEngine {
           bestMove: first,
           pvUci: raw.pv,
           pvSan: uciPvToSan(fen, raw.pv),
+          depth: lastDepth || undefined,
         })
       }
       return lines
@@ -242,7 +269,7 @@ export class UciEngine {
     this.port.quit()
   }
 
-  private waitFor(cmd: string, done: (line: string) => boolean, timeoutMs = 15_000) {
+  private waitFor(cmd: string, done: (line: string) => boolean, timeoutMs = timeoutForGo(cmd)) {
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         unsub()

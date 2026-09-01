@@ -29,6 +29,7 @@ flowchart TB
   Expand --> Relax[stepwise filter relax]
   Serve --> Board[PuzzleBoard]
   Board -->|500ms| Reply[auto opponent reply]
+  Board -->|solved or failed| Analyze[play on + engine arrows]
 ```
 
 ## Fit
@@ -36,3 +37,5 @@ flowchart TB
 Default Elo-suited window, plus easier / harder. Weakness focus uses the user's highest-error phase only when that phase has ≥ 6 analyzed moves.
 
 Phase: prefer Lichess themes, else FEN-only fallback sharing [[Analysis]] cutoffs — no chess.js in that fallback.
+
+After a solve or fail, the same board becomes an analysis board: play legal moves, toggle Stockfish, see arrows and a live depth readout. Shared prefs with [[Review]] (default depth 30).

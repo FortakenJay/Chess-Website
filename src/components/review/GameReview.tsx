@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
-import { ButtonLink } from '@/components/ui'
-import type { AnalyzedPly, EngineLine, GameAnalysis, MoveQuality } from '@/lib/analysis/types'
+import { Button, ButtonLink, Chip, IconButton } from '@/components/ui'
+import type { AnalyzedPly, GameAnalysis, MoveQuality } from '@/lib/analysis/types'
 import {
   coachCopy,
   evalBarWhitePct,
@@ -10,25 +10,18 @@ import {
   QUALITY_COLOR,
   QUALITY_LABEL,
 } from '@/lib/analysis/formatEval'
-import { evaluateLines } from '@/lib/analyzeClient'
+import { EnginePanel } from '@/components/EnginePanel'
 import { FittedBoardFrame } from '@/components/FittedBoardFrame'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ReviewInsights } from '@/components/review/ReviewInsights'
 import { ReviewReport } from '@/components/review/ReviewReport'
-import {
-  btnNav,
-  btnNavStrong,
-  btnPrimary,
-  chipActive,
-  chipIdle,
-  moveActive,
-  moveIdle,
-} from '@/components/review/reviewUi'
+import { moveActive, moveIdle } from '@/components/review/reviewUi'
 import { cn } from '@/lib/cn'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 import { productBoardStyles } from '@/lib/boardTheme'
 import { humanOpeningLabel } from '@/lib/openings/nicknames'
+import { useLiveEngine } from '@/lib/analysis/useLiveEngine'
 import { useSessionTitle } from '@/lib/useDocumentTitle'
 
 type ExploreMove = {
@@ -52,11 +45,6 @@ function qualityClass(quality: MoveQuality | null | undefined) {
   }
   if (quality === 'book') return 'text-quality-book'
   return 'text-ink'
-}
-
-function formatLineMoves(line: EngineLine, maxMoves = 8): string {
-  const sans = line.pvSan.length ? line.pvSan : line.pvUci
-  return sans.slice(0, maxMoves).join(' ')
 }
 
 function isLeakPly(ply: AnalyzedPly) {
@@ -161,13 +149,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   const youAvatar = usePlayerAvatar(analysis.username)
   const oppAvatar = usePlayerAvatar(analysis.opponent)
   const [cursor, setCursor] = useState(0)
-  const [showBest, setShowBest] = useState(false)
-  const [activeLine, setActiveLine] = useState(0)
-  const [engineLines, setEngineLines] = useState<EngineLine[]>([])
-  const [linesLoading, setLinesLoading] = useState(false)
   const [engineEnabled, setEngineEnabled] = useState(true)
-  const [engineTime, setEngineTime] = useState(280)
-  const [engineMultiPv, setEngineMultiPv] = useState(3)
   const [explore, setExplore] = useState<ExploreMove[]>([])
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
 
@@ -176,6 +158,8 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   const fen = explore.at(-1)?.fenAfter ?? gameFen
   const exploring = explore.length > 0
   const orientation = analysis.color === 'black' ? 'black' : 'white'
+  const engine = useLiveEngine(fen ?? null, engineEnabled)
+  const engineLines = engine.lines
 
   const topLine = engineLines[0]
   const displayEval = topLine
@@ -221,29 +205,9 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
     } satisfies Record<string, CSSProperties>
   }, [currentPly, explore])
 
-  const arrowStyles = useMemo(() => {
-    if (!showBest) return undefined
-    const line = engineLines[activeLine] ?? engineLines[0]
-    const bestUci = line?.bestMove ?? currentPly?.bestUci
-    if (!bestUci || bestUci.length < 4) return undefined
-    const colors = [
-      'rgba(129, 182, 76, 0.9)',
-      'rgba(149, 183, 118, 0.75)',
-      'rgba(107, 110, 118, 0.7)',
-    ]
-    return [
-      {
-        startSquare: bestUci.slice(0, 2),
-        endSquare: bestUci.slice(2, 4),
-        color: colors[activeLine] ?? colors[0]!,
-      },
-    ]
-  }, [showBest, engineLines, activeLine, currentPly?.bestUci])
+  const arrowStyles = engine.arrows.length ? engine.arrows : undefined
 
   useEffect(() => {
-    setShowBest(false)
-    setActiveLine(0)
-    setEngineLines([])
     setExplore([])
     setSelectedSquare(null)
   }, [cursor])
@@ -292,35 +256,6 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
     }
     setCursor((c) => Math.min(evalCurve.length - 1, c + 1))
   }
-
-  useEffect(() => {
-    if (!fen || !engineEnabled) {
-      setLinesLoading(false)
-      setEngineLines([])
-      setShowBest(false)
-      return
-    }
-    let cancelled = false
-    setLinesLoading(true)
-    const handle = window.setTimeout(() => {
-      void evaluateLines(fen, engineTime, engineMultiPv)
-        .then((lines) => {
-          if (cancelled) return
-          setEngineLines(lines.slice(0, engineMultiPv))
-          setShowBest(true)
-        })
-        .catch(() => {
-          if (!cancelled) setEngineLines([])
-        })
-        .finally(() => {
-          if (!cancelled) setLinesLoading(false)
-        })
-    }, 120)
-    return () => {
-      cancelled = true
-      window.clearTimeout(handle)
-    }
-  }, [engineEnabled, engineMultiPv, engineTime, fen])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -428,22 +363,12 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-t border-line px-2 py-2">
-          <button
-            type="button"
-            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
-            onClick={() => setCursor(0)}
-            aria-label="Start"
-          >
+          <IconButton label="Start" onClick={() => setCursor(0)}>
             ≪
-          </button>
-          <button
-            type="button"
-            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
-            onClick={stepBack}
-            aria-label="Previous move"
-          >
+          </IconButton>
+          <IconButton label="Previous move" onClick={stepBack}>
             ‹
-          </button>
+          </IconButton>
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto px-1">
             {plies.map((ply) => {
               const selected = cursor === ply.ply + 1
@@ -465,22 +390,12 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
               )
             })}
           </div>
-          <button
-            type="button"
-            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
-            onClick={stepForward}
-            aria-label="Next move"
-          >
+          <IconButton label="Next move" onClick={stepForward}>
             ›
-          </button>
-          <button
-            type="button"
-            className={cn(btnNav, 'inline-flex min-h-11 min-w-11 items-center justify-center font-mono text-xs')}
-            onClick={() => setCursor(evalCurve.length - 1)}
-            aria-label="End"
-          >
+          </IconButton>
+          <IconButton label="End" onClick={() => setCursor(evalCurve.length - 1)}>
             ≫
-          </button>
+          </IconButton>
         </div>
       </section>
 
@@ -503,113 +418,26 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
         </div>
 
         <div className="shrink-0 space-y-2 border-b border-line px-3 py-3 sm:px-4">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-muted">
-                {engineEnabled ? `Top ${engineMultiPv} ${engineMultiPv === 1 ? 'line' : 'lines'}` : 'Engine paused'}
-              </p>
-              <p className="mt-1 font-mono text-[11px] text-muted">
-                Acc {Math.round(analysis.accuracyPct)}% · ACPL {analysis.acpl}
-              </p>
-            </div>
-            <button
-              type="button"
-              aria-pressed={engineEnabled}
-              onClick={() => setEngineEnabled((enabled) => !enabled)}
-              className={cn(
-                'inline-flex min-h-11 items-center border px-3 font-mono text-xs',
-                engineEnabled ? chipActive : chipIdle,
-              )}
-            >
-              Engine {engineEnabled ? 'on' : 'off'}
-            </button>
-          </div>
-          <details className="border border-line bg-canvas">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 font-mono text-xs text-muted marker:content-none [&::-webkit-details-marker]:hidden">
-              Engine settings
-              <span aria-hidden>+</span>
-            </summary>
-            <div className="grid grid-cols-2 gap-3 border-t border-line p-3">
-              <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-muted">
-                Search
-                <select
-                  value={engineTime}
-                  onChange={(event) => setEngineTime(Number(event.target.value))}
-                  className="min-h-11 border border-line bg-canvas px-3 text-base text-ink sm:text-xs"
-                >
-                  <option value={120}>Fast</option>
-                  <option value={280}>Balanced</option>
-                  <option value={700}>Deep</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-muted">
-                Lines
-                <select
-                  value={engineMultiPv}
-                  onChange={(event) => setEngineMultiPv(Number(event.target.value))}
-                  className="min-h-11 border border-line bg-canvas px-3 text-base text-ink sm:text-xs"
-                >
-                  {[1, 2, 3, 4, 5].map((count) => (
-                    <option key={count} value={count}>
-                      {count}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </details>
-          {!engineEnabled ? (
-            <p className="py-2 text-sm text-muted">
-              Engine is off. Browsing and move playback still work.
-            </p>
-          ) : null}
-          {linesLoading && engineLines.length === 0 ? (
-            <p className="font-mono text-xs text-muted">Calculating…</p>
-          ) : null}
-          <ul className="space-y-1.5">
-            {engineLines.map((line, index) => (
-              <li key={line.multipv}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLine(index)
-                    setShowBest(true)
-                  }}
-                  className={cn(
-                    'grid min-h-11 w-full grid-cols-[3rem_minmax(0,1fr)] items-center gap-2 border px-2 py-2 text-left font-mono text-xs',
-                    activeLine === index && showBest
-                      ? 'border-bone bg-surface-2 text-ink hover:bg-surface-2'
-                      : 'quiet border-line text-ink hover:bg-surface-2',
-                  )}
-                >
-                  <span className="tabular text-muted">{formatEval(line.cp, line.mate)}</span>
-                  <span className="truncate text-ink">{formatLineMoves(line)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <p className="font-mono text-[11px] text-muted">
+            Acc {Math.round(analysis.accuracyPct)}% · ACPL {analysis.acpl}
+          </p>
+          <EnginePanel
+            engine={engine}
+            enabled={engineEnabled}
+            onEnabledChange={setEngineEnabled}
+          />
           <div className="flex flex-col gap-2">
-            {engineEnabled ? (
-              <button
-                type="button"
-                disabled={engineLines.length === 0}
-                onClick={() => setShowBest((v) => !v)}
-                className={cn(btnPrimary, 'w-full min-h-11 px-3 text-sm')}
-              >
-                {showBest ? 'Hide arrow' : 'See best move'}
-              </button>
-            ) : null}
             {exploring ? (
-              <button
-                type="button"
+              <Button
+                variant="quiet"
+                className="w-full"
                 onClick={() => {
                   setExplore([])
                   setSelectedSquare(null)
                 }}
-                className={cn(btnNav, 'w-full min-h-11 px-3 text-sm')}
               >
                 Back to game
-              </button>
+              </Button>
             ) : null}
             {fen ? (
               <ButtonLink
@@ -670,34 +498,23 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
           <EvalGraph curve={evalCurve} plies={plies} cursor={cursor} onSelect={setCursor} />
 
           <div className="sticky bottom-0 z-10 flex gap-2 border-t border-line bg-surface p-2 sm:p-3">
-            <button
-              type="button"
-              className={cn(btnNav, 'min-h-11 flex-1 font-mono text-sm')}
-              onClick={() => setCursor(0)}
-            >
+            <IconButton label="Start" className="flex-1" onClick={() => setCursor(0)}>
               ≪
-            </button>
-            <button
-              type="button"
-              className={cn(btnNavStrong, 'min-h-11 flex-1 font-mono text-sm')}
+            </IconButton>
+            <IconButton
+              label="Previous move"
+              variant="primary"
+              className="quiet flex-1"
               onClick={stepBack}
             >
               ‹
-            </button>
-            <button
-              type="button"
-              className={cn(btnNav, 'min-h-11 flex-1 font-mono text-sm')}
-              onClick={stepForward}
-            >
+            </IconButton>
+            <IconButton label="Next move" className="flex-1" onClick={stepForward}>
               ›
-            </button>
-            <button
-              type="button"
-              className={cn(btnNav, 'min-h-11 flex-1 font-mono text-sm')}
-              onClick={() => setCursor(evalCurve.length - 1)}
-            >
+            </IconButton>
+            <IconButton label="End" className="flex-1" onClick={() => setCursor(evalCurve.length - 1)}>
               ≫
-            </button>
+            </IconButton>
           </div>
         </div>
       </section>
@@ -733,13 +550,9 @@ export function GameReview({
   return (
     <div className="flex flex-col lg:min-h-0 lg:flex-1">
       <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="quiet inline-flex min-h-11 items-center px-3 font-mono text-xs text-muted hover:bg-surface-2 hover:text-ink"
-        >
+        <Button variant="quiet" onClick={onBack}>
           ← Games
-        </button>
+        </Button>
         <p className="truncate font-mono text-xs text-muted">
           {analysis.openingName ?? analysis.openingEco ?? 'Game review'}
         </p>
@@ -751,19 +564,15 @@ export function GameReview({
         className="mb-3 flex shrink-0 flex-wrap gap-2 border-b border-line pb-2"
       >
         {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.id}
-            onClick={() => setTab(item.id)}
-            className={cn(
-              'inline-flex min-h-11 items-center px-4 font-mono text-xs uppercase tracking-wider',
-              tab === item.id ? chipActive : chipIdle,
-            )}
-          >
-            {item.label}
-          </button>
+            <Chip
+              key={item.id}
+              role="tab"
+              aria-selected={tab === item.id}
+              active={tab === item.id}
+              onClick={() => setTab(item.id)}
+            >
+              {item.label}
+            </Chip>
         ))}
       </div>
 

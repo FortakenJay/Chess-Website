@@ -17,6 +17,7 @@ MUST:
 - Dense board pages: `100dvh`, no footer, board from min leftover dimension.
 - Analysis nav: one `overflow-x-auto` row, no wrap.
 - Press-scale on normal buttons only (not quiet/list/review).
+- Interactive chrome from `src/components/ui` (`Button`, `Chip`, `TabBar`, `FormField`, `ActionRow`, `Callout`). Engine analysis chrome is `EnginePanel` (depth, arrows, lines). Do not restyle one-off controls.
 - Chart colors: green improve, red-orange harm, bone secondary, square caps.
 - Player queries refetch on mount/focus; global queries 30s stale, no focus refetch.
 

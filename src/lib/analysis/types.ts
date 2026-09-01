@@ -54,10 +54,13 @@ export type EngineLine = {
   pvUci: string[]
   /** SAN sequence for display (best-effort). */
   pvSan: string[]
+  /** Search depth reached for this info snapshot, if known. */
+  depth?: number
 }
 
 export type AnalysisBudget = {
-  kind: 'nodes'
+  /** Persisted library analysis uses `nodes`. Interactive drills may use `depth`. */
+  kind: 'nodes' | 'depth' | 'movetime'
   value: number
   multipv: number
 }

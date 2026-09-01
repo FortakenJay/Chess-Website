@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { AppShell } from '@/components/AppShell'
 import { ProgressPanel } from '@/components/ProgressPanel'
 import { ShellSkeleton } from '@/components/ShellSkeleton'
-import { Button, ButtonLink, ErrorText, PageHeader } from '@/components/ui'
+import { ActionRow, Button, ButtonLink, ErrorText, PageHeader } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { useBackgroundSync } from '@/lib/backgroundSync'
 import { normalizeUsername } from '@/lib/username'
@@ -117,8 +117,8 @@ function AnalyzePage() {
             <ErrorText>{sync.error}</ErrorText>
           </div>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button disabled={busy} onClick={sync.resyncToday}>
+        <ActionRow className="mt-4">
+          <Button variant="primary" disabled={busy} onClick={sync.resyncToday}>
             Resync today
           </Button>
           <Button variant="ghost" disabled={busy} onClick={sync.reanalyze}>
@@ -133,14 +133,12 @@ function AnalyzePage() {
               Sync library
             </Button>
           )}
-        </div>
-        <ButtonLink
-          to="/results/$username"
-          params={{ username: name }}
-          className="mt-6 inline-block"
-        >
-          {sync.phase === 'complete' ? 'Open results' : 'Continue to results'}
-        </ButtonLink>
+        </ActionRow>
+        <ActionRow className="mt-6">
+          <ButtonLink to="/results/$username" params={{ username: name }} variant="secondary">
+            {sync.phase === 'complete' ? 'Open results' : 'Continue to results'}
+          </ButtonLink>
+        </ActionRow>
       </div>
     </AppShell>
   )

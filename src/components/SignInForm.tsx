@@ -59,11 +59,7 @@ export function SignInForm() {
           {error}
         </p>
       ) : null}
-      <Button
-        type="submit"
-        disabled={pending}
-        className="mt-1 w-full"
-      >
+      <Button type="submit" variant="primary" disabled={pending} className="mt-1 w-full">
         {pending ? 'Signing in…' : 'Log in'}
       </Button>
     </form>

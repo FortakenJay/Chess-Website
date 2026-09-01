@@ -8,7 +8,11 @@ aliases:
 
 # Openings
 
-Repertoire trainer: remember the move, then say why. Foundations and downloads teach a Pawnbreak-shaped lesson first. Weak-spot drills skip the lesson.
+Repertoire trainer: remember the move, then say why. The trainer is two opening tracks plus foundations, endgames, and structures — mapped from Lotus Chess onto existing routes, not a rewrite. See [[Lotus Chess]].
+
+- **Theory** — openings you already play. Weak-spot drills skip the lesson. Dual-score scheduler.
+- **Learn** — pick a named system. Pawnbreak-shaped lesson, then a longer ply-ordered memory walk (`master`).
+- **Foundations / Endgames** — doorways into the [[Roadmap]] and leaked ending drills.
 
 ## Owns
 
@@ -39,12 +43,12 @@ Vienna Game is the teaching quality bar. Downloaded encyclopedia lines get a pla
 ```mermaid
 stateDiagram-v2
   [*] --> select
-  select --> lesson: foundations or new download
+  select --> lesson: foundations, learn/master, or new download
   select --> recall: weak-spot
   lesson --> recall
-  recall --> reason: first 5 of 8
+  recall --> reason: first 5 of 8 (theory) or first 8 of 12 (master)
   reason --> done
-  recall --> done: last 3 recall-only
+  recall --> done: remaining recall-only
 ```
 
 Dual score: `recall_ease` and `understanding_ease`. Due date uses `min` of the two — the weaker skill keeps the node due.

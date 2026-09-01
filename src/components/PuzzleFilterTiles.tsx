@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { FilterTile } from '@/components/ui'
+import { FilterTile, kickerVariants } from '@/components/ui'
 import type { PuzzleFocus, PuzzleRatingBand } from '@/lib/puzzles/types'
 
 const SVG = {
@@ -135,7 +135,7 @@ export function PuzzleFilterTiles({
   return (
     <>
       <section className="mt-8">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">Focus</h2>
+        <h2 className={kickerVariants()}>Focus</h2>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {FOCUS_TILES.map((tile) => (
             <FilterTile
@@ -151,9 +151,7 @@ export function PuzzleFilterTiles({
       </section>
 
       <section className="mt-6">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-          Difficulty vs your Elo
-        </h2>
+        <h2 className={kickerVariants()}>Difficulty vs your Elo</h2>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {BAND_TILES.map((tile) => (
             <FilterTile

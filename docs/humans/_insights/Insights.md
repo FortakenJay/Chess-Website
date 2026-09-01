@@ -28,6 +28,7 @@ flowchart TB
   Results --> Endgames
   Overview --> RMS[RMS accuracy]
   Openings --> Color[White / Black swap]
+  Openings --> Leak[score-leak rank]
   Strategy --> PeerS[strategy_peer_stats]
   Endgames --> PeerE[endgame_peer_stats]
   PeerS -->|under sample| Dash[em dash]
@@ -38,6 +39,8 @@ flowchart TB
 ## Aggregation
 
 RMS for game / strategy / endgame. Openings may fall back to ACPL on legacy rows. Filters normalize to Overall, Bullet, Blitz, Rapid, Daily, Other — same class goes into peer RPCs.
+
+Opening lists default to **score leaks**: volume × how far game win rate sits below 50%. That is Lotus-shaped “your opening scores badly,” not a Stockfish eval. Overview repertoire meters show score then errors; ≥5 games under 48% get a WR leak tag.
 
 Letter grades: accuracy 90/85/78/70/60 → A+ through D, else F. Conversion grades depend on better / equal / worse entry (see `grades.ts`).
 

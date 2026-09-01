@@ -6,9 +6,9 @@ alwaysApply: false
 # Analysis engine — decisions
 
 ## Search budgets
-**Chose:** Use a 12,000-node, MultiPV-4 budget for persisted analysis and movetime for interactive evaluation.
-**Considered:** Movetime search is retained for the interactive path.
-**Why:** ⚠️ NEEDS INPUT — the two paths are explicit in `src/lib/analysis/engine.ts`, but no rationale for the budget values was found.
+**Chose:** Use a 12,000-node, MultiPV-4 budget for persisted analysis; user-tunable **depth** (default 30, clamped 6–64, MultiPV 1–3) for interactive Review / post-solve analysis; depth 16 MultiPV 3 for position-drill **scoring** (cached, not persisted).
+**Considered:** Reusing 150ms movetime for drills; Fast/Balanced/Deep movetime for Review arrows.
+**Why:** Library analysis needs a fixed node budget so scores are comparable across hardware. Interactive analysis should match Chess.com’s depth tuner and live depth readout. Drills need a stable principal variation; shallow movetime flipped `h3`/`h4`. Depth + MultiPV cache is interactive-only and does not bump `ANALYSIS_VERSION`.
 
 ## Browser engine fallback
 **Chose:** Try the Stockfish WASM worker first; remember a failed WASM initialization and fall back to ASM.

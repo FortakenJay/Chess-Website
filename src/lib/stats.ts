@@ -325,14 +325,19 @@ export function openingRepertoire(games: Tables<'games'>[]) {
     refined.set(key, cur)
   }
   return [...refined.values()]
-    .map((row) => ({
-      eco: row.eco,
-      name: row.name,
-      games: row.games,
-      winPct: pct(row.wins, row.games),
-      errorPct: pct(row.errors, row.moves),
-    }))
-    .sort((a, b) => b.games - a.games)
+    .map((row) => {
+      const winPct = pct(row.wins, row.games)
+      return {
+        eco: row.eco,
+        name: row.name,
+        games: row.games,
+        winPct,
+        errorPct: pct(row.errors, row.moves),
+        /** Volume-weighted shortfall vs 50% score. Not an engine eval. */
+        leakWeight: row.games * Math.max(0, 50 - winPct),
+      }
+    })
+    .sort((a, b) => b.leakWeight - a.leakWeight || b.games - a.games)
     .slice(0, 12)
 }
 

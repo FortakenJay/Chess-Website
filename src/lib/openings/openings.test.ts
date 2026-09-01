@@ -158,6 +158,25 @@ describe('session', () => {
     )
   })
 
+  it('master mode walks more of the line in ply order', () => {
+    const nodes = buildFromCard(SEED_CARDS[0]!).nodes.map((node) => ({
+      ...node,
+      opening_id: 'opening-a',
+    }))
+    const foundations = buildSession(nodes, new Map(), {
+      openingId: 'opening-a',
+      mode: 'foundations',
+    })
+    const session = buildSession(nodes, new Map(), {
+      openingId: 'opening-a',
+      mode: 'master',
+    })
+    expect(session.length).toBeGreaterThanOrEqual(foundations.length)
+    expect(session.map((item) => item.node.ply)).toEqual(
+      session.map((item) => item.node.ply).sort((a, b) => a - b),
+    )
+  })
+
   it('prioritizes attempted weak positions in weak-spot mode', () => {
     const nodes = buildFromCard(SEED_CARDS[0]!).nodes
       .filter((node) => node.is_mine)

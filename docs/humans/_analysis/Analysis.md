@@ -25,7 +25,8 @@ flowchart TB
   PGN[PGN] --> Meta[headers / endTime]
   PGN --> Engine[Stockfish]
   Engine -->|persisted| Nodes[12000 nodes MultiPV 4]
-  Engine -->|Review| Time[movetime]
+  Engine -->|interactive| Depth[user depth default 30]
+  Engine -->|drill score| DrillD[depth 16 cache]
   Nodes --> Win[win% drop per move]
   Win --> Acc[move accuracy]
   Acc --> RMS[RMS game accuracy]
@@ -44,6 +45,8 @@ Move accuracy comes from **winning-chance drop**, not raw ACPL. Game / strategy 
 ## Engine fallbacks
 
 WASM worker → remember WASM failure → ASM. Worker unavailable → main thread.
+
+Interactive analysis (Review arrows, puzzle/drill play-on) uses a **depth tuner** (default 30) with live `Stockfish 18 Lite · depth n/max` text and suggestion arrows. That search is not written to Postgres and does not change `ANALYSIS_VERSION`. Drill **scoring** stays a separate depth-16 cache.
 
 ## Downstream
 

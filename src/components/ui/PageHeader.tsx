@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { ActionRow } from './ActionRow'
 import { cn } from '@/lib/cn'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 
@@ -24,7 +25,7 @@ export function PageHeader({
   return (
     <div className={cn('flex flex-col gap-5 border-l-4 border-accent pl-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:pl-5', className)}>
       <div className="min-w-0">
-        <h1 className="font-display text-3xl uppercase leading-none tracking-[-0.02em] text-ink sm:text-4xl">
+        <h1 className="font-display text-3xl uppercase leading-none tracking-[-0.02em] text-balance text-ink sm:text-4xl">
           {title}
         </h1>
         {username ? (
@@ -40,11 +41,7 @@ export function PageHeader({
         ) : null}
         {meta ? <div className="mt-1">{meta}</div> : null}
       </div>
-      {actions ? (
-        <div className="flex w-full flex-col gap-2 [&>*]:w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:[&>*]:w-auto">
-          {actions}
-        </div>
-      ) : null}
+      {actions ? <ActionRow>{actions}</ActionRow> : null}
     </div>
   )
 }

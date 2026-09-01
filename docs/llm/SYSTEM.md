@@ -22,7 +22,7 @@ MUST / MUST NOT. Violate these only with an explicit product change plus updates
 ## Analysis
 
 - MUST use win%-drop for move accuracy and RMS for game/strategy/endgame aggregates.
-- MUST use 12_000 nodes MultiPV 4 for persisted analysis; movetime for interactive Review.
+- MUST use 12_000 nodes MultiPV 4 for persisted analysis; user depth (default 30) for interactive Review/puzzle/drill analysis arrows; depth 16 MultiPV 3 for position-drill scoring (RAM cache only).
 - MUST match ECO on board-only FEN through move 10.
 - MUST classify opening through move 10; endgame when non-pawn material ≤ 13.
 - MUST try WASM worker, remember WASM failure, fall back to ASM, then main thread.
@@ -54,6 +54,7 @@ MUST / MUST NOT. Violate these only with an explicit product change plus updates
 - MUST use SQL peer RPCs for strategy/endgames; render `—` on null.
 - MUST NOT show a similar-rating column on openings.
 - MUST split opening lists White vs Black.
+- MUST rank opening graphs by volume-weighted score shortfall (game WR, not engine).
 - MUST exclude mate-inflated / unanalyzed rows from accuracy charts.
 - MUST NOT reuse Review `peerPercentile` on Results.
 - MUST derive Overview playstyle from stored `strategy_stats` (no peer RPC, no invented evals).
@@ -65,6 +66,7 @@ MUST / MUST NOT. Violate these only with an explicit product change plus updates
 - MUST identify positions by `(username, game_link, move_number)`.
 - MUST persist `drill_attempts` only for the linked owner.
 - MUST switch selection when clicking another friendly piece.
+- MUST score drills from a depth-16 MultiPV cache (prefetch upcoming FENs). Near-equal PVs match best. Do not rescore with movetime after the guess. Post-reveal analysis mode is a separate live search.
 
 ## Openings
 
@@ -75,7 +77,8 @@ MUST / MUST NOT. Violate these only with an explicit product change plus updates
 - MUST generate courses in resumable chunks (browser engine + bounded Lichess server slices). Do not rely on one long serverless request.
 - MUST schedule from `min(recall_ease, understanding_ease)`.
 - MUST train only repertoire nodes with ≥1 validated reason tag (not explorer-only).
-- MUST start foundations/downloads in lesson phase; skip lesson on weak-spot drills.
+- MUST start foundations/downloads/learn-track master in lesson phase; skip lesson on weak-spot drills.
+- MUST use 8 recall / 5 reason MCQ for theory; 12 / 8 for Learn-track master (ply then frequency).
 - MUST key download UI per hit (`openingHitKey`); do not label every row Downloading.
 - Structure identity = pawn-only FEN.
 
@@ -84,6 +87,7 @@ MUST / MUST NOT. Violate these only with an explicit product change plus updates
 - MUST cache by filter+Elo; stop remote expansion at ≥24 DB matches.
 - MUST sort by distance to selected rating.
 - MUST use FEN-only phase fallback without chess.js.
+- MUST keep the board locked until solve/fail; then allow play-on + engine arrows (Chess.com analysis mode).
 
 ## UI
 

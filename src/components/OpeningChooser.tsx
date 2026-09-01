@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Button, FilterTile, fieldControlClass, fieldLabelClass } from '@/components/ui'
+import { Button, Callout, Chip, FilterTile, Kicker, fieldControlClass, fieldLabelClass } from '@/components/ui'
 import {
   CENTER_LESSONS,
   COLOR_LESSONS,
@@ -18,6 +18,7 @@ import {
 } from '@/lib/openings/nicknames'
 import { openingHitKey, type OpeningSearchHit } from '@/lib/openings/searchCatalog'
 import type { OpeningTrainingOption } from '@/lib/openings/useOpeningTrainer'
+import type { SessionStartMode } from '@/lib/openings/session'
 
 const WEAKNESS_COPY = {
   recall: 'Move recall is behind understanding.',
@@ -64,10 +65,14 @@ function OpeningCard({
   opening,
   recommended,
   onStart,
+  startMode = 'foundations',
+  hideWeakSpots = false,
 }: {
   opening: OpeningTrainingOption
   recommended: boolean
-  onStart: (openingId: string, mode: 'weakest' | 'foundations') => void
+  onStart: (openingId: string, mode: SessionStartMode) => void
+  startMode?: SessionStartMode
+  hideWeakSpots?: boolean
 }) {
   const started = opening.stats.attempted > 0
   const family = familyForOpening(opening)
@@ -120,20 +125,20 @@ function OpeningCard({
       </div>
 
       <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
-        {started ? (
+        {started && !hideWeakSpots ? (
           <Button className="w-full" onClick={() => onStart(opening.id, 'weakest')}>
             Train weak spots
           </Button>
         ) : null}
         <Button
-          variant={started ? 'secondary' : 'primary'}
-          className={`w-full ${started ? '' : 'sm:col-span-2'}`}
-          onClick={() => onStart(opening.id, 'foundations')}
+          variant={started && !hideWeakSpots ? 'secondary' : 'primary'}
+          className={`w-full ${started && !hideWeakSpots ? '' : 'sm:col-span-2'}`}
+          onClick={() => onStart(opening.id, startMode)}
         >
-          Start from zero
+          {startMode === 'master' ? 'Open the lesson' : 'Start from zero'}
         </Button>
       </div>
-      {started ? (
+      {started && !hideWeakSpots ? (
         <p className="mt-2 font-mono text-[10px] leading-4 text-muted">
           Starting from zero reviews the earliest positions without erasing progress.
         </p>
@@ -187,7 +192,7 @@ function LearnOpeningAsk({
   downloadingKey: string | null
   downloadError: string | null
   onBack: () => void
-  onStart: (openingId: string, mode: 'weakest' | 'foundations') => void
+  onStart: (openingId: string, mode: SessionStartMode) => void
   onDownload: (hit: OpeningSearchHit) => void
   onImportPgn?: (pgn: string, side: TrainedColor) => void
   onImportStudy?: (url: string, side: TrainedColor) => void
@@ -254,18 +259,12 @@ function LearnOpeningAsk({
 
   return (
     <div className="pb-4">
-      <button
-        type="button"
-        className="inline-flex min-h-11 items-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-ink"
-        onClick={onBack}
-      >
+      <Button variant="quiet" className="px-0" onClick={onBack}>
         Back to {sideLabel} openings
-      </button>
+      </Button>
 
-      <div className="mt-4 border border-line border-l-4 border-l-accent bg-surface p-5 sm:p-7">
-        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
-          Learn a new opening · {sideLabel}
-        </p>
+      <Callout className="mt-4">
+        <Kicker tone="accent">Learn a new opening · {sideLabel}</Kicker>
         <h2 className="mt-3 max-w-[16ch] font-display text-4xl uppercase leading-[0.92] text-ink sm:text-5xl">
           What opening do you want to learn?
         </h2>
@@ -281,7 +280,7 @@ function LearnOpeningAsk({
             if (topMatch) {
               onStart(
                 topMatch.id,
-                topMatch.known && topMatch.stats.attempted > 0 ? 'weakest' : 'foundations',
+                'master',
               )
               return
             }
@@ -334,19 +333,16 @@ function LearnOpeningAsk({
             placeholder="Paste a repertoire PGN with comments and variations…"
           />
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <label className="inline-flex min-h-11 cursor-pointer items-center border border-line px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink hover:border-accent">
+            <Chip.File
+              accept=".pgn,text/plain"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (!file) return
+                void file.text().then(setPgnText)
+              }}
+            >
               Upload PGN
-              <input
-                type="file"
-                accept=".pgn,text/plain"
-                className="sr-only"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  if (!file) return
-                  void file.text().then(setPgnText)
-                }}
-              />
-            </label>
+            </Chip.File>
             <Button
               type="button"
               className="w-full sm:w-auto"
@@ -375,21 +371,16 @@ function LearnOpeningAsk({
             Import study
           </Button>
         </details>
-      </div>
+      </Callout>
 
       {query.trim().length < 2 ? (
         <div className="mt-5">
           <p className="text-sm text-muted">Tap a nickname, or start typing.</p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {FEATURED_OPENING_CHIPS.map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                className="inline-flex min-h-11 shrink-0 items-center border border-line px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink hover:border-accent hover:bg-surface-2"
-                onClick={() => setQuery(chip)}
-              >
+              <Chip key={chip} onClick={() => setQuery(chip)}>
                 {chip}
-              </button>
+              </Chip>
             ))}
           </div>
         </div>
@@ -407,7 +398,7 @@ function LearnOpeningAsk({
                       onClick={() =>
                         onStart(
                           opening.id,
-                          opening.known && opening.stats.attempted > 0 ? 'weakest' : 'foundations',
+                          'master',
                         )
                       }
                     >
@@ -491,14 +482,9 @@ function FamilyCard({
       <h3 className="mt-2 font-display text-2xl uppercase leading-none text-ink">{family.name}</h3>
       <div className="mt-3 flex flex-wrap gap-2">
         {family.examples.map((example) => (
-          <button
-            key={example}
-            type="button"
-            className="inline-flex min-h-11 items-center border border-line px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink hover:border-accent hover:bg-surface-2"
-            onClick={() => onPick(openingSearchQuery(example))}
-          >
+          <Chip key={example} onClick={() => onPick(openingSearchQuery(example))}>
             {example}
-          </button>
+          </Chip>
         ))}
       </div>
     </article>
@@ -511,6 +497,7 @@ export function OpeningChooser({
   downloading,
   downloadingKey,
   downloadError,
+  track = 'theory',
   onStart,
   onDownload,
   onImportPgn,
@@ -521,7 +508,8 @@ export function OpeningChooser({
   downloading: boolean
   downloadingKey: string | null
   downloadError: string | null
-  onStart: (openingId: string, mode: 'weakest' | 'foundations') => void
+  track?: 'theory' | 'learn'
+  onStart: (openingId: string, mode: SessionStartMode) => void
   onDownload: (hit: OpeningSearchHit, side: TrainedColor) => void
   onImportPgn?: (pgn: string, side: TrainedColor) => void
   onImportStudy?: (url: string, side: TrainedColor) => void
@@ -580,64 +568,104 @@ export function OpeningChooser({
         />
       </div>
 
-      <div className="mt-5 border border-line border-l-4 border-l-accent bg-surface p-5 sm:p-7">
-        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
-          {color === 'w' ? 'As White' : 'As Black'}
-        </p>
-        <h2 className="mt-3 max-w-[16ch] font-display text-4xl uppercase leading-[0.92] text-ink sm:text-5xl">
-          {lesson.headline}
-        </h2>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">{lesson.body}</p>
-        <ul className="mt-5 grid gap-3 md:grid-cols-2">
-          {lesson.points.map((point) => (
-            <li key={point.title} className="border border-line bg-canvas px-4 py-3">
+      <Callout className="mt-5">
+        <Kicker tone="accent">{color === 'w' ? 'As White' : 'As Black'}</Kicker>
+        {track === 'learn' ? (
+          <>
+            <h2 className="mt-3 max-w-[18ch] font-display text-4xl uppercase leading-[0.92] text-ink sm:text-5xl">
+              Learn a line people actually play
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">
+              Pick a named opening. Walk the mainline, then the replies you will see at your
+              rating. After the lesson, master it from memory — not a 150ms engine flip.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="mt-3 max-w-[16ch] font-display text-4xl uppercase leading-[0.92] text-ink sm:text-5xl">
+              {lesson.headline}
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">{lesson.body}</p>
+          </>
+        )}
+        {track === 'learn' ? (
+          <ul className="mt-5 grid gap-3 md:grid-cols-2">
+            <li className="border border-line bg-canvas px-4 py-3">
               <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
-                {point.title}
+                Frequency first
               </p>
-              <p className="mt-2 text-sm leading-6 text-muted">{point.body}</p>
-            </li>
-          ))}
-        </ul>
-        <Button className="mt-6 w-full sm:w-auto" onClick={() => askFor()}>
-          Learn a new opening
-        </Button>
-      </div>
-
-      <section className="mt-5">
-        <div className="border-b border-line pb-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">Families</p>
-          <h2 className="mt-1 font-display text-2xl uppercase leading-none text-ink">
-            Pick a name to search
-          </h2>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {OPENING_FAMILIES.map((family) => (
-            <FamilyCard key={family.id} family={family} onPick={askFor} />
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-5">
-        <div className="border-b border-line pb-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">The center</p>
-          <h2 className="mt-1 font-display text-2xl uppercase leading-none text-ink">
-            What the pawns are doing
-          </h2>
-        </div>
-        <ul className="mt-4 divide-y divide-line border border-line">
-          {CENTER_LESSONS.map((center) => (
-            <li key={center.id} className="px-4 py-4">
-              <p className="font-medium text-ink">{center.name}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
-                {center.example}
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Sidelines unlock by how often humans play them, not by engine encyclopedias.
               </p>
-              <p className="mt-2 text-sm leading-6 text-muted">{center.body}</p>
             </li>
-          ))}
-        </ul>
-      </section>
+            <li className="border border-line bg-canvas px-4 py-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
+                Then from memory
+              </p>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Play the line from move one. Reasons stay on the card — we do not drill
+                explorer-only noise.
+              </p>
+            </li>
+          </ul>
+        ) : (
+          <ul className="mt-5 grid gap-3 md:grid-cols-2">
+            {lesson.points.map((point) => (
+              <li key={point.title} className="border border-line bg-canvas px-4 py-3">
+                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
+                  {point.title}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted">{point.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {track === 'learn' ? (
+          <Button className="mt-6 w-full sm:w-auto" onClick={() => askFor()}>
+            Choose an opening
+          </Button>
+        ) : null}
+      </Callout>
 
-      {sideKnown.length > 0 ? (
+      {track === 'learn' ? (
+        <>
+          <section className="mt-5">
+            <div className="border-b border-line pb-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">Families</p>
+              <h2 className="mt-1 font-display text-2xl uppercase leading-none text-ink">
+                Pick a name to search
+              </h2>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {OPENING_FAMILIES.map((family) => (
+                <FamilyCard key={family.id} family={family} onPick={askFor} />
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-5">
+            <div className="border-b border-line pb-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">The center</p>
+              <h2 className="mt-1 font-display text-2xl uppercase leading-none text-ink">
+                What the pawns are doing
+              </h2>
+            </div>
+            <ul className="mt-4 divide-y divide-line border border-line">
+              {CENTER_LESSONS.map((center) => (
+                <li key={center.id} className="px-4 py-4">
+                  <p className="font-medium text-ink">{center.name}</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                    {center.example}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-muted">{center.body}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null}
+
+      {track === 'theory' && sideKnown.length > 0 ? (
         <OpeningGroup
           kicker={`From your games · ${color === 'w' ? 'White' : 'Black'}`}
           title="Openings you play"
@@ -652,12 +680,31 @@ export function OpeningChooser({
             />
           ))}
         </OpeningGroup>
-      ) : (
+      ) : null}
+      {track === 'theory' && sideKnown.length === 0 ? (
         <p className="mt-5 text-sm text-muted">
-          No annotated {color === 'w' ? 'White' : 'Black'} lines from your games yet. Name an
-          opening above to download a line or start a lesson.
+          No annotated {color === 'w' ? 'White' : 'Black'} lines from your games yet. Open Learn
+          to download a line, then theory drills it from your leaks.
         </p>
-      )}
+      ) : null}
+      {track === 'learn' && sideCatalog.length > 0 ? (
+        <OpeningGroup
+          kicker="Ready in this app"
+          title="Master a line"
+          count={sideCatalog.length}
+        >
+          {sideCatalog.map((opening) => (
+            <OpeningCard
+              key={opening.id}
+              opening={opening}
+              recommended={false}
+              startMode="master"
+              hideWeakSpots
+              onStart={onStart}
+            />
+          ))}
+        </OpeningGroup>
+      ) : null}
     </div>
   )
 }

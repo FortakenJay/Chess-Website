@@ -7,7 +7,8 @@ import {
   type PerformanceGrade,
 } from '@/lib/analysis/parseGameMeta'
 import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
-import { chipActive, chipIdle, rowButton } from '@/components/review/reviewUi'
+import { ActionRow, Chip } from '@/components/ui'
+import { rowButton } from '@/components/review/reviewUi'
 import { cn } from '@/lib/cn'
 
 export type ReviewGameRow = {
@@ -130,28 +131,17 @@ export function ReviewGamesList({
             Pick games to analyze. Engine runs in your browser — nothing is saved.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-          <button
-            type="button"
-            onClick={() => onFilterChange('all')}
-            className={cn(
-              'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs uppercase tracking-wider',
-              filter === 'all' ? chipActive : chipIdle,
-            )}
-          >
+        <ActionRow>
+          <Chip active={filter === 'all'} onClick={() => onFilterChange('all')}>
             All
-          </button>
-          <button
-            type="button"
+          </Chip>
+          <Chip
+            active={filter === 'underperforming'}
             onClick={() => onFilterChange('underperforming')}
-            className={cn(
-              'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs uppercase tracking-wider',
-              filter === 'underperforming' ? chipActive : chipIdle,
-            )}
           >
             Underperforming{underCount ? ` (${underCount})` : ''}
-          </button>
-        </div>
+          </Chip>
+        </ActionRow>
       </div>
 
       {progressLabel ? (

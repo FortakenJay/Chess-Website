@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Touch devices synthesize :hover on tap. Gate Tailwind hover to real pointers. */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
 @theme {
   --font-display: "Anton", "Arial Narrow", sans-serif;
   --font-sans: "Instrument Sans", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;

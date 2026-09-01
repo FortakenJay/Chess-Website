@@ -53,6 +53,8 @@ Analysis nav is one horizontally scrolling row. Do not wrap six links.
 
 Press-scale on normal buttons only — not quiet, list, or review rows.
 
+Shared primitives live in `src/components/ui`: `Button` / `Chip` / `TabBar` / `FormField` / `ActionRow` / `Callout`. New controls compose those instead of copying class strings.
+
 ## Queries
 
 Global React Query: 30s stale, no refetch on focus. Player library queries force fresh on mount/focus so Sync now is visible.

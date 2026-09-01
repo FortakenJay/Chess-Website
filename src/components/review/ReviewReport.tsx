@@ -11,7 +11,7 @@ import {
 } from '@/lib/analysis/reportStats'
 import { emptyQualityStats } from '@/lib/analysis/types'
 import { QUALITY_COLOR } from '@/lib/analysis/formatEval'
-import { btnPrimary } from '@/components/review/reviewUi'
+import { Button } from '@/components/ui'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { cn } from '@/lib/cn'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
@@ -190,13 +190,9 @@ export function ReviewReport({
       </div>
 
       <div className="shrink-0 border-t border-line p-3">
-        <button
-          type="button"
-          onClick={onStartReview}
-          className={cn(btnPrimary, 'w-full px-4 py-2.5 text-sm')}
-        >
+        <Button variant="primary" className="w-full" onClick={onStartReview}>
           Start review
-        </button>
+        </Button>
         <p className="mt-2 flex items-center justify-center gap-2 text-xs text-muted">
           Learn from your mistakes
           {mistakeFocus > 0 ? (

@@ -1,13 +1,22 @@
 import { Chess } from 'chess.js'
 import { useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { EnginePanel, ExploreActions } from '@/components/EnginePanel'
 import { productBoardStyles } from '@/lib/boardTheme'
 import { ClassificationBadge } from '@/components/ClassificationBadge'
 import { PlaySplit } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
-import { evaluateFen } from '@/lib/analyzeClient'
 import type { Classification, Motif, Phase } from '@/lib/analysis/types'
+import { useExploreLine } from '@/lib/analysis/useExploreLine'
+import { useLiveEngine } from '@/lib/analysis/useLiveEngine'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
+import {
+  attemptMatchesEngine,
+  DRILL_ANALYSIS_BUDGET,
+  loadDrillEval,
+  type DrillEngineEval,
+} from '@/lib/practice/drillEval'
+import { useDrillPrefetch } from '@/lib/practice/useDrillPrefetch'
 import { MOTIF_LABEL, PHASE_LABEL } from '@/lib/stats'
 import { useAuth } from '@/lib/auth'
 import { useSessionTitle } from '@/lib/useDocumentTitle'
@@ -19,6 +28,18 @@ type Reveal = {
   bestSan: string
   matchedBest: boolean
   matchedHistorical: boolean
+  equalSans: string[]
+}
+
+function uniqueSans(evaluation: DrillEngineEval) {
+  const seen = new Set<string>()
+  const sans: string[] = []
+  for (const move of evaluation.equals) {
+    if (seen.has(move.san)) continue
+    seen.add(move.san)
+    sans.push(move.san)
+  }
+  return sans
 }
 
 export function DrillBoard({
@@ -36,8 +57,15 @@ export function DrillBoard({
   const [thinking, setThinking] = useState(false)
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
+  const [engineOn, setEngineOn] = useState(true)
+  const [analysisRoot, setAnalysisRoot] = useState<string | null>(null)
+  const fens = positions.map((row) => row.fen_before)
+  const prefetch = useDrillPrefetch(fens, index)
 
   const position = positions[index]
+  const analyzing = Boolean(reveal) && !thinking
+  const explore = useExploreLine(analysisRoot ?? position?.fen_before ?? '', analyzing)
+  const engine = useLiveEngine(analyzing ? explore.fen : null, analyzing && engineOn)
   const drillActivity = position
     ? (position.motif && MOTIF_LABEL[position.motif as Motif]) ||
       PHASE_LABEL[position.phase as Phase] ||
@@ -45,7 +73,8 @@ export function DrillBoard({
     : undefined
   useSessionTitle({ page: 'Drill', library: username, activity: drillActivity })
   const adhoc = !position || position.id.startsWith('adhoc') || !position.san
-  const sideToMove = position?.fen_before.split(' ')[1] === 'b' ? 'Black' : 'White'
+  const displayFen = analyzing ? explore.fen : fen
+  const sideToMove = displayFen.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = sideToMove === 'Black' ? 'black' : 'white'
 
   if (!position) {
@@ -53,6 +82,7 @@ export function DrillBoard({
   }
 
   function makeMove(sourceSquare: string, targetSquare: string | null) {
+    if (analyzing) return explore.play(sourceSquare, targetSquare)
     if (!targetSquare || reveal || thinking) return false
     const board = new Chess(position.fen_before)
     const attempt = board.move({
@@ -63,12 +93,19 @@ export function DrillBoard({
     if (!attempt) return false
     setSelectedSquare(null)
     setFen(board.fen())
+    setAnalysisRoot(board.fen())
     setThinking(true)
     void revealAttempt(attempt.san, attempt.lan)
     return true
   }
 
   function onSquareClick(square: string) {
+    if (thinking && !analyzing) return
+    if (analyzing) {
+      const next = explore.onSquareClick(selectedSquare, square)
+      setSelectedSquare(next.selected)
+      return
+    }
     if (reveal || thinking) return
     const next = nextSelectedSquare(position.fen_before, selectedSquare, square)
     if (next.action === 'select') {
@@ -80,26 +117,27 @@ export function DrillBoard({
 
   async function revealAttempt(attemptSan: string, attemptLan: string) {
     try {
-      const evalResult = await evaluateFen(position.fen_before)
-      const probe = new Chess(position.fen_before)
-      let bestSan = evalResult.bestMove
-      try {
-        const played = probe.move({
-          from: evalResult.bestMove.slice(0, 2),
-          to: evalResult.bestMove.slice(2, 4),
-          promotion: evalResult.bestMove[4] ?? 'q',
+      const evaluation = await loadDrillEval(position.fen_before)
+      if (!evaluation) {
+        setReveal({
+          attemptSan,
+          bestSan: '—',
+          matchedBest: false,
+          matchedHistorical: attemptSan === position.san,
+          equalSans: [],
         })
-        if (played) bestSan = played.san
-      } catch {
-        /* keep uci */
+        setScore((s) => ({ correct: s.correct, total: s.total + 1 }))
+        return
       }
-      const matchedBest = attemptSan === bestSan || attemptLan === evalResult.bestMove
+      const matchedBest = attemptMatchesEngine(evaluation, attemptSan, attemptLan)
       const matchedHistorical = attemptSan === position.san
+      const equalSans = uniqueSans(evaluation)
       setReveal({
         attemptSan,
-        bestSan,
+        bestSan: evaluation.best.san,
         matchedBest,
         matchedHistorical,
+        equalSans,
       })
       setScore((s) => ({
         correct: s.correct + (matchedBest ? 1 : 0),
@@ -125,17 +163,26 @@ export function DrillBoard({
     setFen(nextPos.fen_before)
     setReveal(null)
     setSelectedSquare(null)
+    setAnalysisRoot(null)
   }
 
   function retry() {
     setFen(position.fen_before)
     setReveal(null)
     setSelectedSquare(null)
+    setAnalysisRoot(null)
   }
 
-  const squareStyles: Record<string, CSSProperties> =
-    reveal || thinking ? {} : legalMoveStyles(position.fen_before, selectedSquare)
-  if (reveal) {
+  const squareStyles: Record<string, CSSProperties> = legalMoveStyles(
+    displayFen,
+    selectedSquare,
+  )
+  const last = explore.line.at(-1)
+  if (last) {
+    squareStyles[last.from] = { backgroundColor: 'rgba(232, 197, 71, 0.35)' }
+    squareStyles[last.to] = { backgroundColor: 'rgba(232, 197, 71, 0.5)' }
+  }
+  if (reveal && !explore.exploring) {
     try {
       const hist = new Chess(position.fen_before)
       const played = hist.move(position.san)
@@ -155,16 +202,17 @@ export function DrillBoard({
       board={
         <Chessboard
           options={{
-            position: fen,
+            position: displayFen,
             boardOrientation: orientation,
-            allowDragging: !reveal && !thinking,
+            allowDragging: analyzing || (!reveal && !thinking),
             onPieceDrag: ({ square }) => {
-              if (square && !reveal && !thinking) setSelectedSquare(square)
+              if (square && (analyzing || (!reveal && !thinking))) setSelectedSquare(square)
             },
             onPieceDrop: ({ sourceSquare, targetSquare }) =>
               makeMove(sourceSquare, targetSquare),
             onSquareClick: ({ square }) => onSquareClick(square),
             squareStyles,
+            arrows: analyzing && engine.arrows.length ? engine.arrows : undefined,
             ...productBoardStyles,
             boardStyle: { width: '100%', height: '100%' },
           }}
@@ -182,6 +230,14 @@ export function DrillBoard({
           <div className="mt-2 font-mono text-2xl tabular">
             {score.correct}/{score.total}
           </div>
+          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+            Depth {DRILL_ANALYSIS_BUDGET.value}
+            {prefetch.ahead > 1
+              ? ` · ${prefetch.ready}/${prefetch.ahead} warmed`
+              : prefetch.currentReady
+                ? ' · ready'
+                : ' · warming'}
+          </p>
           {adhoc ? (
             <p className="mt-4 text-sm text-muted">Position from analysis. Find the engine move.</p>
           ) : (
@@ -208,7 +264,11 @@ export function DrillBoard({
           {!reveal && !thinking ? (
             <p className="text-muted">Play a move. Nothing is shown until you do.</p>
           ) : null}
-          {thinking ? <p className="font-mono text-xs text-muted">Engine…</p> : null}
+          {thinking ? (
+            <p className="font-mono text-xs text-muted">
+              Engine at depth {DRILL_ANALYSIS_BUDGET.value}…
+            </p>
+          ) : null}
           {reveal ? (
             <dl className="space-y-2 font-mono text-xs">
               <div className="flex justify-between gap-3">
@@ -221,6 +281,12 @@ export function DrillBoard({
                 <dt className="text-muted">Best move</dt>
                 <dd className="text-accent">{reveal.bestSan}</dd>
               </div>
+              {reveal.equalSans.length > 1 ? (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted">Engine-equal</dt>
+                  <dd className="text-ink">{reveal.equalSans.join(' · ')}</dd>
+                </div>
+              ) : null}
               {adhoc ? null : (
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">In that game</dt>
@@ -228,19 +294,32 @@ export function DrillBoard({
                 </div>
               )}
               <div className="pt-2 text-pretty text-ink">
-                {adhoc
-                  ? reveal.matchedBest
-                    ? 'This try matches the engine.'
-                    : `The engine wanted ${reveal.bestSan}.`
-                  : reveal.matchedBest
-                    ? reveal.matchedHistorical
-                      ? 'This try matches the engine — and it is also what you played in the game.'
-                      : `This try matches the engine. In the game you played ${position.san}.`
-                    : reveal.matchedHistorical
-                      ? `This try repeats the game move. The engine wanted ${reveal.bestSan}.`
-                      : `This try is neither the engine move (${reveal.bestSan}) nor the game move (${position.san}).`}
+                {reveal.matchedBest && reveal.attemptSan !== reveal.bestSan
+                  ? `This try is engine-equal (${reveal.attemptSan}). Principal line is ${reveal.bestSan}${adhoc ? '.' : `. In the game you played ${position.san}.`}`
+                  : adhoc
+                    ? reveal.matchedBest
+                      ? 'This try matches the engine.'
+                      : `The engine wanted ${reveal.bestSan}.`
+                    : reveal.matchedBest
+                      ? reveal.matchedHistorical
+                        ? 'This try matches the engine — and it is also what you played in the game.'
+                        : `This try matches the engine. In the game you played ${position.san}.`
+                      : reveal.matchedHistorical
+                        ? `This try repeats the game move. The engine wanted ${reveal.bestSan}.`
+                        : `This try is neither the engine move (${reveal.bestSan}) nor the game move (${position.san}).`}
               </div>
             </dl>
+          ) : null}
+          {analyzing ? (
+            <div className="mt-3 space-y-3 border-t border-line pt-3">
+              <p className="text-sm text-ink">Play on from this position. Engine arrows are analysis, not the drill score.</p>
+              <EnginePanel engine={engine} enabled={engineOn} onEnabledChange={setEngineOn} />
+              <ExploreActions
+                canUndo={explore.exploring}
+                onUndo={explore.undo}
+                onReset={explore.reset}
+              />
+            </div>
           ) : null}
         </Panel>
         <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">

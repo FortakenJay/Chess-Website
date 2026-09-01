@@ -37,6 +37,7 @@ type Pending = {
   resolve: (value: unknown) => void
   reject: (error: Error) => void
   onProgress?: (info: AnalyzeProgress) => void
+  onEvalDepth?: (depth: number) => void
   onGame?: (analysis: GameAnalysis) => void | Promise<void>
   signal?: AbortSignal
   onAbort?: () => void
@@ -178,6 +179,10 @@ function getWorker() {
         cleanup(message.requestId)
         return
       }
+      if (message.type === 'evalProgress') {
+        job.onEvalDepth?.(message.depth)
+        return
+      }
       if (message.type === 'done') {
         void (job.gameQueue ?? Promise.resolve()).then(
           () => {
@@ -270,29 +275,33 @@ export async function evaluateFen(fen: string, movetime = 150): Promise<EngineEv
 
 export async function evaluateLines(
   fen: string,
-  movetime = 250,
+  search: number | AnalysisBudget = 250,
   multipv = 3,
+  onEvalDepth?: (depth: number) => void,
 ): Promise<EngineLine[]> {
+  const budget = typeof search === 'number' ? undefined : search
+  const movetime = typeof search === 'number' ? search : undefined
   const w = getWorker()
   if (!w) {
     const engine = await getMainEngine()
-    return engine.evaluateLines(fen, movetime, multipv)
+    return engine.evaluateLines(fen, search, multipv, (info) => onEvalDepth?.(info.depth))
   }
   const requestId = nextId++
   try {
     return await new Promise<EngineLine[]>((resolve, reject) => {
       post(
-        { type: 'evalLines', requestId, fen, movetime, multipv },
+        { type: 'evalLines', requestId, fen, movetime, search: budget, multipv },
         {
           resolve: (value) => resolve(value as EngineLine[]),
           reject,
+          onEvalDepth,
         },
       )
     })
   } catch {
     workerFailed = true
     const engine = await getMainEngine()
-    return engine.evaluateLines(fen, movetime, multipv)
+    return engine.evaluateLines(fen, search, multipv, (info) => onEvalDepth?.(info.depth))
   }
 }
 

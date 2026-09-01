@@ -29,6 +29,11 @@ alwaysApply: false
 **Considered:** An “all games” combined list.
 **Why:** Italian as White and Sicilian as Black are different repertoires. The control is a two-way swap, same as the trainer.
 
+## Opening score-leak ranking
+**Chose:** Default the openings table and Overview repertoire chart to volume-weighted score shortfall (`games * max(0, 50 - winPct)`). Label ≥5 games under 48% as a WR leak. This is game-result win rate, not Stockfish.
+**Considered:** Always sorting by games played.
+**Why:** Lotus treats a high-volume losing branch as the thing to train. Error-rate alone hides a line you lose from equal positions. Do not invent evals on the card.
+
 ## Game-type normalization
 **Chose:** Normalize filters into Overall, Bullet, Blitz, Rapid, Daily, and Other, and pass the same class to peer RPCs.
 **Why:** ⚠️ NEEDS INPUT — implementation and tests establish the buckets, but no rationale was found.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MiniBoard } from '@/components/MiniBoard'
-import { Button, Panel } from '@/components/ui'
+import { Button, Callout, Kicker, Panel, TabBar, TabButton } from '@/components/ui'
 import { usePlayerData } from '@/lib/queries'
 import { useSessionTitle } from '@/lib/useDocumentTitle'
 import {
@@ -81,13 +81,9 @@ function StructureDrill({
 
   return (
     <div className="pb-4">
-      <button
-        type="button"
-        className="inline-flex min-h-11 items-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-ink"
-        onClick={onExit}
-      >
+      <Button variant="quiet" className="px-0" onClick={onExit}>
         Back to the lesson
-      </button>
+      </Button>
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <MiniBoard fen={drill.fen} />
         <Panel>
@@ -206,10 +202,8 @@ export function PawnStructureLab({
 
   return (
     <div className="pb-4">
-      <div className="border border-line border-l-4 border-l-accent bg-surface p-5 sm:p-7">
-        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
-          Pawn structures
-        </p>
+      <Callout>
+        <Kicker tone="accent">Pawn structures</Kicker>
         <h2 className="mt-3 max-w-[16ch] font-display text-4xl uppercase leading-[0.92] text-ink sm:text-5xl">
           Plans live in the pawns.
         </h2>
@@ -217,7 +211,7 @@ export function PawnStructureLab({
           Strip the pieces and the skeleton is a hashable key. Named structures come with plans for
           both sides, a legal break, and a transposition if that break lands.
         </p>
-      </div>
+      </Callout>
 
       {leaks.length > 0 ? (
         <section className="mt-5">
@@ -247,22 +241,17 @@ export function PawnStructureLab({
         </section>
       ) : null}
 
-      <div className="mt-5 flex gap-0 overflow-x-auto border-b border-line [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <TabBar label="Pawn structures" className="mt-5">
         {PAWN_STRUCTURES.map((row) => (
-          <button
+          <TabButton
             key={row.id}
-            type="button"
-            className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.06em] ${
-              row.id === selectedId
-                ? 'border-accent bg-surface-2 text-ink'
-                : 'border-transparent text-muted hover:border-line hover:text-ink'
-            }`}
+            active={row.id === selectedId}
             onClick={() => setSelectedId(row.id)}
           >
             {row.name}
-          </button>
+          </TabButton>
         ))}
-      </div>
+      </TabBar>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <div>

@@ -22,9 +22,9 @@ Provenance:
 MUST: `due_at` from `min(recall_ease, understanding_ease)`.
 MUST: reason-tag enum; prophylaxis/breaks/squares need concrete targets (`validate.ts`).
 MUST: generated commentary fails validation if a named square is off-board, an attack/defense is false, a blocked pawn break is taught as currently legal, stats are unattributed, or the stored FEN does not match the move.
-MUST: session 8 recall, MCQ on first 5 (`session.ts`).
-MUST: chooser = played lines first, color first, ask to learn; else ECO search + client `openingFromDownloadHit`; PGN/Study import merges by FEN into personal openings.
-MUST: foundations/new download → `lesson` phase; weak-spot → skip lesson.
+MUST: session 8 recall, MCQ on first 5 (`session.ts`); Learn-track **master** walks 12 / 8 in ply+frequency order.
+MUST: chooser = **Theory** (played lines, weak-spot / start-from-zero) vs **Learn** (named line, lesson, then memory). Color first; else ECO search + client `openingFromDownloadHit`; PGN/Study import merges by FEN into personal openings. Trainer also doorways **Foundations** (roadmap) and **Endgames** (leaked endings + roadmap track) plus existing structures lab.
+MUST: foundations/new download/master → `lesson` phase; weak-spot → skip lesson.
 MUST: if seed card matches name/ECO/side, use authored card not stub.
 MUST: download busy = `downloadingKey === openingHitKey(hit)`, not a global label.
 MUST: trainable = repertoire moves with ≥1 valid reason; exclude explorer-only.

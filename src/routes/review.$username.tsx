@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppShell } from '@/components/AppShell'
 import { GameReview } from '@/components/review/GameReview'
 import { ReviewGamesList, type ReviewGameRow } from '@/components/review/ReviewGamesList'
-import { ErrorText, LoadingText, PageHeader } from '@/components/ui'
+import { ActionRow, Button, Chip, ErrorText, Kicker, LoadingText, PageHeader, Panel, fieldControlClass } from '@/components/ui'
 import { analyzeGames, type AnalyzeProgress } from '@/lib/analyzeClient'
 import { parseGameMeta } from '@/lib/analysis/parseGameMeta'
 import type { GameAnalysis } from '@/lib/analysis/types'
@@ -14,8 +14,6 @@ import { useArchives, useMonthGames, useRecentGames } from '@/lib/queries'
 import { normalizeUsername } from '@/lib/username'
 import { playerHead } from '@/lib/pageTitle'
 import { useSessionTitle } from '@/lib/useDocumentTitle'
-import { btnGhost, btnPrimary, chipActive, chipIdle } from '@/components/review/reviewUi'
-import { cn } from '@/lib/cn'
 
 export const Route = createFileRoute('/review/$username')({
   head: ({ params }) => playerHead('Review', params.username),
@@ -270,9 +268,8 @@ function ReviewUsernamePage() {
             username={username}
             description="Load more games, pick specific ones, or paste a Chess.com URL / PGN. Nothing is written to the database."
             actions={
-              <button
-                type="button"
-                className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs')}
+              <Button
+                variant="ghost"
                 onClick={() => {
                   abortRef.current?.abort()
                   autoLatestRef.current = null
@@ -285,53 +282,34 @@ function ReviewUsernamePage() {
                 }}
               >
                 Refresh
-              </button>
+              </Button>
             }
           />
 
-          <div className="mt-6 grid gap-4 border border-line bg-surface p-4 lg:grid-cols-[1fr_1.2fr]">
+          <Panel className="mt-6 grid gap-4 lg:grid-cols-[1fr_1.2fr]" padding="sm">
             <div className="space-y-3">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-muted">Load games</p>
+              <Kicker>Load games</Kicker>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSource('recent')}
-                  className={cn(
-                    'inline-flex min-h-11 items-center px-3 font-mono text-xs uppercase tracking-wider',
-                    source === 'recent' ? chipActive : chipIdle,
-                  )}
-                >
+                <Chip active={source === 'recent'} onClick={() => setSource('recent')}>
                   Recent
-                </button>
-                <button
-                  type="button"
+                </Chip>
+                <Chip
+                  active={source === 'month'}
                   onClick={() => {
                     setSource('month')
                     if (!monthKey && archiveOptions[0]) setMonthKey(archiveOptions[0].key)
                   }}
-                  className={cn(
-                    'inline-flex min-h-11 items-center px-3 font-mono text-xs uppercase tracking-wider',
-                    source === 'month' ? chipActive : chipIdle,
-                  )}
                 >
                   By month
-                </button>
+                </Chip>
               </div>
 
               {source === 'recent' ? (
                 <div className="flex flex-wrap gap-2">
                   {LIMITS.map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setLimit(n)}
-                      className={cn(
-                        'inline-flex min-h-11 items-center px-3 font-mono text-xs',
-                        limit === n ? chipActive : chipIdle,
-                      )}
-                    >
+                    <Chip key={n} active={limit === n} onClick={() => setLimit(n)}>
                       Last {n}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
               ) : (
@@ -340,7 +318,7 @@ function ReviewUsernamePage() {
                   <select
                     value={monthKey}
                     onChange={(e) => setMonthKey(e.target.value)}
-                    className="min-h-11 w-full border border-line bg-canvas px-3 font-mono text-base sm:text-sm"
+                    className={`${fieldControlClass} font-mono`}
                   >
                     <option value="">Select month…</option>
                     {archiveOptions.map((opt) => (
@@ -354,100 +332,68 @@ function ReviewUsernamePage() {
             </div>
 
             <div className="space-y-3">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-muted">
-                Specific game
-              </p>
+              <Kicker>Specific game</Kicker>
               <textarea
                 value={paste}
                 onChange={(e) => setPaste(e.target.value)}
                 placeholder="Paste a Chess.com game URL or full PGN…"
                 rows={4}
-                className="w-full resize-y border border-line bg-canvas px-3 py-2 font-mono text-xs"
+                className={`${fieldControlClass} resize-y py-2 font-mono text-xs`}
               />
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[11px] text-muted">If PGN lacks your name:</span>
-                <button
-                  type="button"
-                  onClick={() => setPasteColor('white')}
-                  className={cn(
-                    'inline-flex min-h-11 items-center px-3 font-mono text-xs',
-                    pasteColor === 'white' ? chipActive : chipIdle,
-                  )}
-                >
+                <Chip active={pasteColor === 'white'} onClick={() => setPasteColor('white')}>
                   I was White
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPasteColor('black')}
-                  className={cn(
-                    'inline-flex min-h-11 items-center px-3 font-mono text-xs',
-                    pasteColor === 'black' ? chipActive : chipIdle,
-                  )}
-                >
+                </Chip>
+                <Chip active={pasteColor === 'black'} onClick={() => setPasteColor('black')}>
                   I was Black
-                </button>
-                <button
-                  type="button"
+                </Chip>
+                <Button
+                  variant="primary"
                   disabled={pastePending || !paste.trim()}
                   onClick={() => void importPaste()}
-                  className={cn(btnPrimary, 'inline-flex min-h-11 w-full items-center justify-center px-3 text-sm sm:ml-auto sm:w-auto')}
+                  className="sm:ml-auto"
                 >
                   {pastePending ? 'Importing…' : 'Import & analyze'}
-                </button>
+                </Button>
               </div>
               {pasteError ? <ErrorText className="mt-0">{pasteError}</ErrorText> : null}
             </div>
-          </div>
+          </Panel>
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button
-              type="button"
+          <ActionRow className="mt-4">
+            <Button
+              variant="primary"
               disabled={!selectedLinks.size || Boolean(analyzingLink)}
               onClick={() => void analyzeQueue([...selectedLinks])}
-              className={cn(btnPrimary, 'inline-flex min-h-11 items-center justify-center px-3 text-sm')}
             >
               Analyze selected ({selectedLinks.size})
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
               disabled={!rows.length || Boolean(analyzingLink)}
               onClick={() =>
-                void analyzeQueue(
-                  rows.filter((r) => !r.analysis).map((r) => r.meta.gameLink),
-                )
+                void analyzeQueue(rows.filter((r) => !r.analysis).map((r) => r.meta.gameLink))
               }
-              className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 text-sm')}
             >
               Analyze all unanalyzed
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
               disabled={!rows.length}
-              onClick={() =>
-                setSelectedLinks(new Set(rows.map((r) => r.meta.gameLink)))
-              }
-              className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs')}
+              onClick={() => setSelectedLinks(new Set(rows.map((r) => r.meta.gameLink)))}
             >
               Select all
-            </button>
-            <button
-              type="button"
-              disabled={!selectedLinks.size}
-              onClick={() => setSelectedLinks(new Set())}
-              className={cn(btnGhost, 'inline-flex min-h-11 items-center justify-center px-3 font-mono text-xs')}
-            >
+            </Button>
+            <Button variant="ghost" disabled={!selectedLinks.size} onClick={() => setSelectedLinks(new Set())}>
               Clear selection
-            </button>
+            </Button>
             {analyzingLink ? (
-              <button
-                type="button"
-                onClick={() => abortRef.current?.abort()}
-                className="inline-flex min-h-11 items-center justify-center border border-blunder/40 px-3 font-mono text-xs uppercase tracking-[0.06em] text-blunder-text hover:bg-blunder/10"
-              >
+              <Button variant="danger" onClick={() => abortRef.current?.abort()}>
                 Stop
-              </button>
+              </Button>
             ) : null}
-          </div>
+          </ActionRow>
 
           {loadingList ? <LoadingText>Loading games…</LoadingText> : null}
           {recentQuery.isError || monthQuery.isError ? (

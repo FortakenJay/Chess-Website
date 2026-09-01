@@ -31,7 +31,7 @@ Cross-cutting first, then the product loop, then teaching surfaces.
 | `_insights` | Results IA, peers, charts | [[Insights]] | `llm/_insights.md` |
 | `_practice` | Flagged drills | [[Practice]] | `llm/_practice.md` |
 | `_puzzles` | Catalog, rating fit | [[Puzzles]] | `llm/_puzzles.md` |
-| `_openings` | Repertoire trainer, lessons | [[Openings]] | `llm/_openings.md` |
+| `_openings` | Repertoire trainer, lessons | [[Openings]] · [[Lotus Chess]] | `llm/_openings.md` |
 | `_review` | Ephemeral game review | [[Review]] | `llm/_review.md` |
 | `_roadmap` | Study topics, structures | [[Roadmap]] | `llm/_roadmap.md` |
 | `_landing` | Logged-out marketing | [[Landing]] | `llm/_landing.md` |

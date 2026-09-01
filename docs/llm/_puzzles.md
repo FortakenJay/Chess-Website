@@ -19,5 +19,6 @@ MUST: weakness phase only if that phase has ≥ 6 analyzed moves.
 MUST: stepwise relax filters when empty.
 MUST: phase from Lichess themes else FEN-only fallback (no chess.js; share analysis thresholds).
 Opponent auto-reply delay 500ms.
+After solve/fail: play-on + engine arrows (`useLiveEngine`, default depth 30). Do not search during the auto-reply.
 
 Rule: `.cursor/rules/puzzles.mdc`.

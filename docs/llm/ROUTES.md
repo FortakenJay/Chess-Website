@@ -21,10 +21,10 @@ File routes in `src/routes/`. `$username` = Chess.com handle.
 | `/positions/$username` | `positions.$username.tsx` | Public read; filters → drill query |
 | `/drill/$username` | `drill.$username.tsx` | Public practice; attempts owner-only |
 | `/puzzles/$username` | `puzzles.$username.tsx` | Public |
-| `/trainer/$username` | `trainer.$username.tsx` | Public catalog; progress owner-only |
+| `/trainer/$username` | `trainer.$username.tsx` | Public catalog; progress owner-only. `?tab=theory\|learn\|foundations\|endgames\|structures` |
 | `/roadmap/$username` | `roadmap.$username.tsx` | `?tab=structures&structure=` |
 | `/review` | `review.tsx` / `review.index.tsx` | Ephemeral |
-| `/review/$username` | `review.$username.tsx` | Ephemeral; ~60ms movetime |
+| `/review/$username` | `review.$username.tsx` | Ephemeral; live analysis uses shared depth prefs |
 | `/analyze/$username` | `analyze.$username.tsx` | Owner sync UI |
 | `/preview` | `preview.tsx` | Marketing proof |
 | `/strategy/$username` | `strategy.$username.tsx` | Redirect → Results strategy |

@@ -8,7 +8,7 @@ aliases:
 
 # Practice
 
-Guess-before-reveal on **your** leaked positions. The engine best move and the historical move stay hidden until a legal move is committed.
+Guess-before-reveal on **your** leaked positions. The engine best move and the historical move stay hidden until a legal move is committed. **Drill these** warms Stockfish to **depth 16** on the current FEN plus the next few in the queue so the principal move does not flip (`h4` then `h3`) between attempts. Near-equal MultiPV lines count as matching best. That search is not written back onto `flagged_positions`. After the reveal you can **play on** with engine arrows (default depth 30) — that is analysis, not a rescore.
 
 ## Owns
 

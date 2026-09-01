@@ -685,7 +685,7 @@ export function OpeningRepertoireChart({
   return (
     <Frame
       title="Opening repertoire"
-      hint="Most-played lines. Error rate is blunders and mistakes in the opening."
+      hint="Lines you play a lot but score below 50%. Score is game results, not Stockfish."
       variant="panel"
     >
       <SegmentedControl
@@ -713,11 +713,12 @@ export function OpeningRepertoireChart({
                 </span>
                 <span className="shrink-0 font-mono text-[11px] tabular text-muted">
                   {row.games} {row.games === 1 ? 'game' : 'games'}
+                  {row.games >= 5 && row.winPct < 48 ? ' · WR leak' : ''}
                 </span>
               </div>
               <div className="mt-1.5 grid grid-cols-2 gap-3">
+                <OpeningMeter label="score" value={row.winPct} color={chartTheme.positive} />
                 <OpeningMeter label="errors" value={row.errorPct} color={chartTheme.negative} />
-                <OpeningMeter label="wins" value={row.winPct} color={chartTheme.positive} />
               </div>
             </li>
           ))}

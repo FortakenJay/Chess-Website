@@ -1,20 +1,8 @@
-import { cva } from 'class-variance-authority'
+import { TabBar, TabButton } from './TabBar'
 import { cn } from '@/lib/cn'
 
-export const segmentItemVariants = cva(
-  'inline-flex min-h-11 cursor-pointer items-center border-b-2 px-3 font-mono text-[11px] uppercase tracking-[0.06em] disabled:cursor-not-allowed',
-  {
-    variants: {
-      active: {
-        true: 'border-accent bg-surface-2 text-ink',
-        false: 'border-transparent text-muted hover:border-line hover:bg-surface-2 hover:text-ink',
-      },
-    },
-    defaultVariants: {
-      active: false,
-    },
-  },
-)
+/** @deprecated Use `tabItemVariants` from `TabBar`. Kept for existing imports. */
+export { tabItemVariants as segmentItemVariants } from './TabBar'
 
 export function SegmentedControl<T extends string>({
   label,
@@ -30,22 +18,16 @@ export function SegmentedControl<T extends string>({
   className?: string
 }) {
   return (
-    <div
-      className={cn('mt-4 flex flex-wrap gap-0 border-b border-line sm:mt-8', className)}
-      role="group"
-      aria-label={label}
-    >
+    <TabBar label={label} className={cn('mt-4 flex-wrap sm:mt-8', className)}>
       {options.map((option) => (
-        <button
+        <TabButton
           key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
+          active={value === option.value}
           onClick={() => onChange(option.value)}
-          className={cn(segmentItemVariants({ active: value === option.value }))}
         >
           {option.label}
-        </button>
+        </TabButton>
       ))}
-    </div>
+    </TabBar>
   )
 }

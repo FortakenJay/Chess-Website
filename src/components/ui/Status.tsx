@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { ActionRow } from './ActionRow'
 import { panelVariants } from './Panel'
 
 export const emptyStateVariants = cva('mt-6 text-sm text-muted', {
@@ -43,7 +44,7 @@ export function ErrorText({
   )
 }
 
-export function EmptyState({
+function EmptyStateRoot({
   children,
   className,
   tone,
@@ -61,3 +62,21 @@ export function EmptyState({
     </div>
   )
 }
+
+function EmptyStateTitle({ children }: { children: ReactNode }) {
+  return <p className="font-display text-xl uppercase leading-none text-ink">{children}</p>
+}
+
+function EmptyStateBody({ children }: { children: ReactNode }) {
+  return <p className="mt-2 text-pretty">{children}</p>
+}
+
+function EmptyStateActions({ children }: { children: ReactNode }) {
+  return <ActionRow className="mt-4">{children}</ActionRow>
+}
+
+export const EmptyState = Object.assign(EmptyStateRoot, {
+  Title: EmptyStateTitle,
+  Body: EmptyStateBody,
+  Actions: EmptyStateActions,
+})

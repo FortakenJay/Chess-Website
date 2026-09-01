@@ -38,3 +38,8 @@ alwaysApply: false
 ## Opponent reply timing
 **Chose:** Wait 500ms before automatically playing the puzzle reply.
 **Why:** ⚠️ NEEDS INPUT — `PuzzleBoard.tsx` sets the delay without explaining it.
+
+## Post-solve analysis
+**Chose:** After solve or fail, allow legal exploration on the same board with engine on by default, suggestion arrows, and a live `Stockfish 18 Lite · depth n/max` readout. Shared depth prefs (default 30).
+**Considered:** Locking the board after the solution; running the live engine during the 500ms opponent reply.
+**Why:** Chess.com puzzle complete → Analysis / play from position. Guess-before-reveal must stay locked until the attempt. Live depth is not the catalog rating.

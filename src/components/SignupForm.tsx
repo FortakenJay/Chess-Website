@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth'
 import { linkChessUsername } from '@/lib/profile'
 import { getBrowserClient } from '@/lib/supabase/browser'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
-import { Button, fieldControlClass, fieldLabelClass } from '@/components/ui'
+import { Button, FormField, fieldControlClass } from '@/components/ui'
 
 const MIN_PASSWORD = 8
 const MAX_PASSWORD = 72
@@ -64,21 +64,9 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={fieldLabelClass}>
-        {label}
-      </label>
+    <FormField id={id} label={label} hint={hint} error={error}>
       {children}
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-blunder-text" role="alert">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-muted">
-          {hint}
-        </p>
-      ) : null}
-    </div>
+    </FormField>
   )
 }
 
@@ -272,15 +260,16 @@ export function SignupForm() {
               fieldErrors.password ? 'signup-password-error' : 'signup-password-hint'
             }
           />
-          <button
+          <Button
             type="button"
-            className="absolute top-1/2 right-1 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-muted hover:text-ink"
+            variant="quiet"
+            className="absolute top-1/2 right-1 -translate-y-1/2 px-2"
             onClick={() => setShowPassword((value) => !value)}
             aria-pressed={showPassword}
             aria-label={showPassword ? 'Hide passwords' : 'Show passwords'}
           >
             {showPassword ? 'Hide' : 'Show'}
-          </button>
+          </Button>
         </div>
       </Field>
 
@@ -312,11 +301,7 @@ export function SignupForm() {
         </p>
       ) : null}
 
-      <Button
-        type="submit"
-        disabled={pending}
-        className="mt-1 w-full"
-      >
+      <Button type="submit" variant="primary" disabled={pending} className="mt-1 w-full">
         {pending ? 'Creating account…' : 'Create account'}
       </Button>
     </form>

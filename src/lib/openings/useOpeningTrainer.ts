@@ -510,7 +510,7 @@ export function useOpeningTrainer(username: string) {
       }
       if (!built?.name) throw new Error('Could not build that opening')
       const id = await persistBuilt(built)
-      startLesson(id, 'foundations', built.knowledge_card)
+      startLesson(id, 'master', built.knowledge_card)
       if (shouldGenerateCourse(built.knowledge_card)) {
         let jobId: string | null = null
         if (canPersist() && user) {
@@ -543,7 +543,7 @@ export function useOpeningTrainer(username: string) {
     try {
       const built = openingFromPgn(pgn, side)
       const id = await persistBuilt(built)
-      startLesson(id, 'foundations', built.knowledge_card)
+      startLesson(id, 'master', built.knowledge_card)
     } catch (err) {
       setDownloadError(err instanceof Error ? err.message : 'Could not import that PGN')
     }
@@ -631,6 +631,7 @@ export function useOpeningTrainer(username: string) {
     knownOpenings,
     newOpenings,
     selectedOpeningId,
+    selectedMode,
     trueTag,
     choices,
     score,

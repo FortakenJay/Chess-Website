@@ -7,7 +7,8 @@ export type DrillItem = {
   includeReason: boolean
 }
 
-export type TrainingMode = 'scheduled' | 'weakest' | 'foundations'
+export type TrainingMode = 'scheduled' | 'weakest' | 'foundations' | 'master'
+export type SessionStartMode = Exclude<TrainingMode, 'scheduled'>
 
 export type OpeningTrainingStats = {
   total: number
@@ -91,7 +92,7 @@ export function openingTrainingStats(
   }
 }
 
-/** 8 recall items; MCQ on the first 5 that have tags (paired after the move). */
+/** Theory/foundations: 8 recall, MCQ on the first 5. Learn/master: 12 recall, MCQ on the first 8. */
 export function buildSession(
   nodes: BuiltNode[],
   progressByNode: Map<string, NodeProgress>,
@@ -103,14 +104,14 @@ export function buildSession(
     mode?: TrainingMode
   } = {},
 ): DrillItem[] {
-  const recallN = options.recall ?? 8
-  const reasonN = options.reason ?? 5
+  const recallN = options.recall ?? (options.mode === 'master' ? 12 : 8)
+  const reasonN = options.reason ?? (options.mode === 'master' ? 8 : 5)
   const now = options.now ?? new Date()
   const mode = options.mode ?? 'scheduled'
   const pool = trainableNodes(nodes)
     .filter((node) => !options.openingId || node.opening_id === options.openingId)
     .sort((a, b) => {
-      if (mode === 'foundations') {
+      if (mode === 'foundations' || mode === 'master') {
         const ply = a.ply - b.ply
         if (ply !== 0) return ply
         return (b.frequency_weight ?? 1) - (a.frequency_weight ?? 1)

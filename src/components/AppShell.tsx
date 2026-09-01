@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { BrandLogo } from '@/components/BrandLogo'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { Button, ButtonLink, TextLink, tabItemVariants } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { useBackgroundSync } from '@/lib/backgroundSync'
 import { cn } from '@/lib/cn'
@@ -19,10 +20,7 @@ function AnalysisNav({
   className?: string
   linkClassName?: string
 }) {
-  const linkClass = cn(
-    'inline-flex min-h-11 shrink-0 cursor-pointer items-center border-b-2 border-transparent font-mono text-[11px] uppercase tracking-[0.08em] hover:border-line hover:text-ink',
-    linkClassName,
-  )
+  const linkClass = cn(tabItemVariants({ active: false, surface: 'header' }), linkClassName)
 
   return (
     <nav className={className} aria-label="Analysis">
@@ -31,7 +29,7 @@ function AnalysisNav({
         params={{ username }}
         className={linkClass}
         activeOptions={{ exact: false }}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Results
       </Link>
@@ -39,7 +37,7 @@ function AnalysisNav({
         to="/positions/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Positions
       </Link>
@@ -47,7 +45,7 @@ function AnalysisNav({
         to="/drill/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Drill
       </Link>
@@ -55,7 +53,7 @@ function AnalysisNav({
         to="/puzzles/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Puzzles
       </Link>
@@ -63,7 +61,7 @@ function AnalysisNav({
         to="/trainer/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Trainer
       </Link>
@@ -71,7 +69,7 @@ function AnalysisNav({
         to="/roadmap/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Roadmap
       </Link>
@@ -79,7 +77,7 @@ function AnalysisNav({
         to="/review/$username"
         params={{ username }}
         className={linkClass}
-        activeProps={{ className: 'border-accent text-ink' }}
+        activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
       >
         Review
       </Link>
@@ -88,7 +86,7 @@ function AnalysisNav({
           to="/analyze/$username"
           params={{ username }}
           className={linkClass}
-          activeProps={{ className: 'border-accent text-ink' }}
+          activeProps={{ className: tabItemVariants({ active: true, surface: 'header' }) }}
         >
           Sync
         </Link>
@@ -159,13 +157,13 @@ export function AppShell({
           </div>
           <div className="flex shrink-0 items-center gap-1.5 text-sm sm:gap-2">
             {syncing && linkedUsername ? (
-              <Link
+              <TextLink
                 to="/analyze/$username"
                 params={{ username: linkedUsername }}
-                className="inline-flex min-h-11 items-center font-mono text-xs text-muted hover:text-ink"
+                className="font-mono text-xs"
               >
                 Syncing {sync.done}/{sync.total || '…'}
-              </Link>
+              </TextLink>
             ) : null}
             {user && username ? (
               <span className="inline-flex items-center gap-2 font-mono text-xs text-muted">
@@ -175,23 +173,22 @@ export function AppShell({
                 </span>
               </span>
             ) : linkedUsername ? (
-              <Link
+              <TextLink
                 to="/results/$username"
                 params={{ username: linkedUsername }}
-                className="inline-flex min-h-11 items-center gap-2 font-mono text-xs text-muted hover:text-ink"
+                className="gap-2 px-0 font-mono text-xs"
               >
                 <PlayerAvatar username={linkedUsername} src={profile?.avatar_url} size={22} />
                 <span className="max-w-20 truncate sm:max-w-28" translate="no">
                   {linkedUsername}
                 </span>
-              </Link>
+              </TextLink>
             ) : null}
             {!ready ? (
               <span className="font-mono text-xs text-muted">…</span>
             ) : user ? (
-              <button
-                type="button"
-                className="inline-flex min-h-11 items-center border border-line px-3 font-mono text-xs uppercase tracking-[0.06em] text-ink hover:border-accent hover:bg-surface-2"
+              <Button
+                variant="ghost"
                 onClick={() => {
                   void (async () => {
                     await getBrowserClient().auth.signOut()
@@ -200,24 +197,16 @@ export function AppShell({
                 }}
               >
                 Sign out
-              </button>
+              </Button>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  className="inline-flex min-h-11 items-center px-3 font-mono text-xs uppercase tracking-[0.06em] text-muted hover:text-ink"
-                  activeProps={{ className: 'text-ink' }}
-                >
+                <ButtonLink to="/login" variant="quiet" activeProps={{ className: 'text-ink' }}>
                   Log in
-                </Link>
+                </ButtonLink>
                 {hideSignup ? null : (
-                  <Link
-                    to="/signup"
-                    className="control inline-flex min-h-11 items-center border border-accent bg-accent px-3 font-mono text-xs uppercase tracking-[0.06em] text-ink hover:bg-accent-low"
-                    activeProps={{ className: 'bg-accent-low text-ink' }}
-                  >
+                  <ButtonLink to="/signup" variant="primary">
                     Sign up
-                  </Link>
+                  </ButtonLink>
                 )}
               </>
             )}
@@ -258,24 +247,14 @@ export function AppShell({
               <BrandLogo size="sm" />
               <p className="mt-1 text-xs text-muted">Find the pattern. Fix the move.</p>
             </div>
-            <nav aria-label="Footer" className="flex flex-wrap items-center gap-1 text-sm text-muted">
-              <Link to="/" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
-                Home
-              </Link>
-              <Link to="/review" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
-                Free review
-              </Link>
-              <Link to="/preview" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
-                Preview
-              </Link>
+            <nav aria-label="Footer" className="flex flex-wrap items-center gap-1 text-sm">
+              <TextLink to="/">Home</TextLink>
+              <TextLink to="/review">Free review</TextLink>
+              <TextLink to="/preview">Preview</TextLink>
               {linkedUsername ? (
-                <Link
-                  to="/results/$username"
-                  params={{ username: linkedUsername }}
-                  className="inline-flex min-h-11 items-center px-2 hover:text-ink"
-                >
+                <TextLink to="/results/$username" params={{ username: linkedUsername }}>
                   Results
-                </Link>
+                </TextLink>
               ) : null}
             </nav>
           </div>

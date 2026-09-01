@@ -10,7 +10,7 @@ Job: Stockfish → aggregates + leak flags.
 
 Owns: `src/lib/analysis/**`, `analyzeClient.ts`. `ANALYSIS_VERSION = 1` in `types.ts`.
 
-Budgets: persisted 12_000 nodes MultiPV 4; Review movetime (~60ms in review route).
+Budgets: persisted 12_000 nodes MultiPV 4; interactive Review/puzzles/drills user depth (default 30, `enginePrefs`); **position-drill scoring** depth 16 MultiPV 3 (not persisted, does not bump `ANALYSIS_VERSION`). Live depth streams via worker `evalProgress`. Suggestion arrows: `suggestionArrows.ts`. Display name `ENGINE_DISPLAY_NAME`.
 
 Fallbacks: WASM worker → remember fail → ASM; no worker → main thread.
 

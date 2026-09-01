@@ -1,9 +1,12 @@
 import { Chess } from 'chess.js'
-import { useEffect, useReducer, useRef, type CSSProperties } from 'react'
+import { useEffect, useReducer, useRef, useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { EnginePanel, ExploreActions } from '@/components/EnginePanel'
 import { productBoardStyles } from '@/lib/boardTheme'
 import { PlaySplit } from '@/components/FittedBoardFrame'
 import { Button, Panel } from '@/components/ui'
+import { useExploreLine } from '@/lib/analysis/useExploreLine'
+import { useLiveEngine } from '@/lib/analysis/useLiveEngine'
 import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { playUci } from '@/lib/puzzles/normalize'
 import type { PracticePuzzle } from '@/lib/puzzles/types'
@@ -101,6 +104,10 @@ export function PuzzleBoard({
   const [state, dispatch] = useReducer(boardReducer, puzzles, initialBoard)
   const { index, ply, fen, failed, solved, replying, selectedSquare, score } = state
   const replyTimer = useRef<number | null>(null)
+  const analyzing = failed || solved
+  const [engineOn, setEngineOn] = useState(true)
+  const explore = useExploreLine(fen, analyzing)
+  const engine = useLiveEngine(analyzing ? explore.fen : null, analyzing && engineOn)
 
   const puzzle = puzzles[index]
   useSessionTitle({
@@ -110,7 +117,8 @@ export function PuzzleBoard({
       ? (puzzle.motif && MOTIF_LABEL[puzzle.motif]) || PHASE_LABEL[puzzle.phase]
       : undefined,
   })
-  const sideToMove = fen.split(' ')[1] === 'b' ? 'Black' : 'White'
+  const displayFen = analyzing ? explore.fen : fen
+  const sideToMove = displayFen.split(' ')[1] === 'b' ? 'Black' : 'White'
   const orientation = (puzzle?.color ?? 'white') === 'black' ? 'black' : 'white'
 
   useEffect(
@@ -125,6 +133,7 @@ export function PuzzleBoard({
   }
 
   function makeMove(sourceSquare: string, targetSquare: string | null) {
+    if (analyzing) return explore.play(sourceSquare, targetSquare)
     if (!targetSquare || failed || solved || replying) return false
     const expected = puzzle.solution[ply]
     if (!expected) return false
@@ -175,7 +184,12 @@ export function PuzzleBoard({
   }
 
   function onSquareClick(square: string) {
-    if (failed || solved || replying) return
+    if (replying && !analyzing) return
+    if (analyzing) {
+      const next = explore.onSquareClick(selectedSquare, square)
+      dispatch({ type: 'select', square: next.selected })
+      return
+    }
     const next = nextSelectedSquare(fen, selectedSquare, square)
     if (next.action === 'select') {
       dispatch({ type: 'select', square: next.square })
@@ -198,10 +212,16 @@ export function PuzzleBoard({
     dispatch({ type: 'reset', fen: puzzle.fen })
   }
 
-  const squareStyles: Record<string, CSSProperties> =
-    failed || solved || replying ? {} : legalMoveStyles(fen, selectedSquare)
-
-  if (failed) {
+  const squareStyles: Record<string, CSSProperties> = legalMoveStyles(
+    displayFen,
+    selectedSquare,
+  )
+  const last = explore.line.at(-1)
+  if (last) {
+    squareStyles[last.from] = { backgroundColor: 'rgba(232, 197, 71, 0.35)' }
+    squareStyles[last.to] = { backgroundColor: 'rgba(232, 197, 71, 0.5)' }
+  }
+  if (failed && !explore.exploring) {
     const expected = puzzle.solution[ply]
     if (expected && expected.length >= 4) {
       squareStyles[expected.slice(0, 2)] = { backgroundColor: 'rgba(56, 161, 105, 0.45)' }
@@ -216,11 +236,11 @@ export function PuzzleBoard({
       board={
         <Chessboard
           options={{
-            position: fen,
+            position: displayFen,
             boardOrientation: orientation,
-            allowDragging: !failed && !solved && !replying,
+            allowDragging: analyzing || (!failed && !solved && !replying),
             onPieceDrag: ({ square }) => {
-              if (square && !failed && !solved && !replying) {
+              if (square && (analyzing || (!failed && !solved && !replying))) {
                 dispatch({ type: 'select', square })
               }
             },
@@ -228,6 +248,7 @@ export function PuzzleBoard({
               makeMove(sourceSquare, targetSquare),
             onSquareClick: ({ square }) => onSquareClick(square),
             squareStyles,
+            arrows: analyzing && engine.arrows.length ? engine.arrows : undefined,
             ...productBoardStyles,
             boardStyle: { width: '100%', height: '100%' },
           }}
@@ -279,9 +300,19 @@ export function PuzzleBoard({
             </p>
           ) : null}
           {failed ? (
-            <p className="text-blunder-text">Not the solution line. Highlighted is the key move.</p>
+            <p className="text-blunder-text">Not the solution line. Highlighted is the key move. Play on to analyze.</p>
           ) : null}
-          {solved ? <p className="text-ink">Solved.</p> : null}
+          {solved ? <p className="text-ink">Solved. Play on the board and turn the engine on for arrows.</p> : null}
+          {analyzing ? (
+            <div className="mt-3 space-y-3 border-t border-line pt-3">
+              <EnginePanel engine={engine} enabled={engineOn} onEnabledChange={setEngineOn} />
+              <ExploreActions
+                canUndo={explore.exploring}
+                onUndo={explore.undo}
+                onReset={explore.reset}
+              />
+            </div>
+          ) : null}
         </Panel>
         <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">
           <Button variant="ghost" className="w-full" onClick={retry}>

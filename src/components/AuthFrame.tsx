@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Kicker, TextLink } from '@/components/ui'
 
 const MARKED_CELLS = new Set([3, 11, 18, 27, 28, 35, 36, 45, 52, 60])
 
@@ -29,9 +29,7 @@ export function AuthFrame({
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-surface to-transparent" aria-hidden />
 
           <div className="relative z-10 flex h-full flex-col">
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
-              {isLogin ? '01 / Player access' : '01 / Build your profile'}
-            </p>
+            <Kicker tone="accent">{isLogin ? 'Player access' : 'Build your profile'}</Kicker>
             <h1 className="mt-5 max-w-[10ch] font-display text-5xl uppercase leading-[0.9] tracking-[-0.025em] text-ink sm:text-7xl">
               {isLogin ? 'Return to the positions that matter.' : 'Turn repeat mistakes into a training plan.'}
             </h1>
@@ -59,21 +57,16 @@ export function AuthFrame({
         </section>
 
         <section className="flex min-w-0 flex-col justify-center bg-canvas p-6 sm:p-10">
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
-            {isLogin ? 'Welcome back' : 'New player'}
-          </p>
+          <Kicker tone="accent">{isLogin ? 'Welcome back' : 'New player'}</Kicker>
           <h2 className="mt-2 font-display text-3xl uppercase leading-none text-ink sm:text-4xl">
             {isLogin ? 'Log in' : 'Create account'}
           </h2>
           <div className="mt-7">{children}</div>
           <p className="mt-7 border-t border-line pt-5 text-sm text-muted">
             {isLogin ? 'New here? ' : 'Already have an account? '}
-            <Link
-              to={isLogin ? '/signup' : '/login'}
-              className="font-medium text-ink underline decoration-accent underline-offset-4"
-            >
+            <TextLink to={isLogin ? '/signup' : '/login'} variant="underline">
               {isLogin ? 'Create an account' : 'Log in'}
-            </Link>
+            </TextLink>
           </p>
         </section>
       </div>

@@ -4,7 +4,7 @@ import { lookupPlayer } from '@/lib/chesscom.functions'
 import { useAuth } from '@/lib/auth'
 import { linkChessUsername } from '@/lib/profile'
 import { isLikelyUsername, normalizeUsername } from '@/lib/username'
-import { Button, fieldControlClass } from '@/components/ui'
+import { Button, Callout, FormField, Kicker, fieldControlClass } from '@/components/ui'
 
 export function UsernamePrompt() {
   const { user, refreshProfile } = useAuth()
@@ -36,39 +36,31 @@ export function UsernamePrompt() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4 border border-line border-l-4 border-l-accent bg-surface p-5 sm:p-7">
-      <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">Connect account</p>
-      <h2 className="font-display text-3xl uppercase leading-none text-ink">Chess.com username</h2>
-      <p className="text-sm text-muted">
-        We will verify the username, download your games, and save the analysis in batches.
-      </p>
-      <label htmlFor="link-username" className="sr-only">
-        Chess.com username
-      </label>
-      <input
-        id="link-username"
-        name="username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        className={`${fieldControlClass} font-mono`}
-        placeholder="chess.com handle"
-        autoCapitalize="off"
-        autoCorrect="off"
-        autoComplete="off"
-        spellCheck={false}
-      />
-      {error ? (
-        <p className="text-sm text-blunder-text" role="alert">
-          {error}
+    <form onSubmit={onSubmit} className="max-w-md">
+      <Callout className="flex flex-col gap-4">
+        <Kicker tone="accent">Connect account</Kicker>
+        <h2 className="font-display text-3xl uppercase leading-none text-ink">Chess.com username</h2>
+        <p className="text-sm text-muted">
+          We will verify the username, download your games, and save the analysis in batches.
         </p>
-      ) : null}
-      <Button
-        type="submit"
-        disabled={pending}
-        className="w-full"
-      >
-        {pending ? 'Checking…' : 'Link and import games'}
-      </Button>
+        <FormField id="link-username" label="Chess.com username" error={error ?? undefined}>
+          <input
+            id="link-username"
+            name="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className={`${fieldControlClass} font-mono`}
+            placeholder="chess.com handle"
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </FormField>
+        <Button type="submit" variant="primary" disabled={pending} className="w-full">
+          {pending ? 'Checking…' : 'Link and import games'}
+        </Button>
+      </Callout>
     </form>
   )
 }

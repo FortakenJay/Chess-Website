@@ -118,13 +118,9 @@ function TopicSheet({
         className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto border-t border-line bg-surface pb-[max(1.25rem,var(--safe-bottom))] sm:inset-x-auto sm:right-0 sm:top-0 sm:bottom-0 sm:max-h-none sm:w-[min(32rem,100vw)] sm:border-l sm:border-t-0"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
-          <button
-            type="button"
-            className="inline-flex min-h-11 items-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-ink"
-            onClick={onClose}
-          >
+          <Button variant="quiet" className="px-0" onClick={onClose}>
             Close
-          </button>
+          </Button>
           <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
             {complete ? 'Done' : 'Not done'}
           </span>

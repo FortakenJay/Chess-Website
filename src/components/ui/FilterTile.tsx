@@ -29,7 +29,12 @@ export function FilterTile({
   active?: boolean
 }) {
   return (
-    <button type="button" className={cn(tileVariants({ active }), className)} {...props}>
+    <button
+      type="button"
+      aria-pressed={Boolean(active)}
+      className={cn(tileVariants({ active }), className)}
+      {...props}
+    >
       <span className="flex items-start justify-between gap-2">
         <span className="font-mono text-[11px] uppercase tracking-[0.08em]">{label}</span>
         {icon ? <span className="opacity-80">{icon}</span> : null}

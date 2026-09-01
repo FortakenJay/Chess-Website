@@ -15,7 +15,7 @@ MUST: `includePlies: true` here; false on library sync.
 MUST: list games via header parse only (no engine).
 MUST: if PGN lacks username, ask color and rewrite headers.
 MUST NOT: feed `reportStats.peerPercentile` (synthetic 5–95) into Results peers.
-Interactive budget ~60ms movetime.
-Review rows: shared `reviewUi` classes, no press-scale.
+Interactive arrows: shared engine prefs (default depth 30), not Fast/Balanced/Deep movetime. Game tape still RAM-only.
+Review rows: `reviewUi` only for move/list rows (no press-scale). Buttons and chips come from `src/components/ui`. Engine chrome is `EnginePanel`.
 
 Rule: `.cursor/rules/review.mdc`.

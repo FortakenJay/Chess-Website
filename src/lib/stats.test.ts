@@ -79,4 +79,26 @@ describe('opening repertoire', () => {
       'Sicilian Defense',
     ])
   })
+
+  it('ranks high-volume low-score lines ahead of rare high-score lines', () => {
+    const rows = [
+      ...Array.from({ length: 8 }, (_, i) =>
+        game({
+          opening_name: 'French Defense',
+          result: 'loss',
+          game_link: `https://example.com/fr-${i}`,
+        }),
+      ),
+      game({
+        opening_name: 'Italian Game',
+        result: 'win',
+        game_link: 'https://example.com/it-1',
+      }),
+    ]
+    expect(openingRepertoire(rows).map((row) => row.name)).toEqual([
+      'French Defense',
+      'Italian Game',
+    ])
+    expect(openingRepertoire(rows)[0]?.leakWeight).toBeGreaterThan(0)
+  })
 })

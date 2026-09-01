@@ -7,7 +7,7 @@ import type { PhaseAcpl, PhaseStats, QualityStats } from '@/lib/analysis/types'
 import type { Tables } from '@/lib/supabase/database.types'
 
 type ColorFilter = 'white' | 'black'
-type OpeningSort = 'games' | 'win' | 'errors'
+type OpeningSort = 'leak' | 'games' | 'win' | 'errors'
 
 type OpeningRow = {
   name: string
@@ -75,7 +75,7 @@ export function OpeningRepertoire({
     const black = games.filter((game) => game.color === 'black').length
     return black > white ? 'black' : 'white'
   })
-  const [sort, setSort] = useState<OpeningSort>('games')
+  const [sort, setSort] = useState<OpeningSort>('leak')
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState(false)
 
@@ -90,6 +90,11 @@ export function OpeningRepertoire({
       (row) => !search || row.name.toLocaleLowerCase().includes(search),
     )
     out.sort((a, b) => {
+      if (sort === 'leak') {
+        const leakA = a.games * Math.max(0, 50 - percent(a.wins, a.games))
+        const leakB = b.games * Math.max(0, 50 - percent(b.wins, b.games))
+        return leakB - leakA || b.games - a.games
+      }
       if (sort === 'win') {
         return percent(b.wins, b.games) - percent(a.wins, a.games) || b.games - a.games
       }
@@ -201,6 +206,7 @@ export function OpeningRepertoire({
           onChange={setSort}
           className="mt-2 border-b-0 pb-0 sm:mt-2"
           options={[
+            { value: 'leak', label: 'Score leaks' },
             { value: 'games', label: 'Most played' },
             { value: 'win', label: 'Best results' },
             { value: 'errors', label: 'Most errors' },

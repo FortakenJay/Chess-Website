@@ -24,8 +24,8 @@ alwaysApply: false
 **Why:** SQL and app validators enforce the same enum; tests specifically reject targetless prophylaxis (sources: migration, `tags.ts`, `validate.ts`, and `openings.test.ts`).
 
 ## Initial drill scope
-**Chose:** Ship repertoire-move recall followed by reason-tag multiple choice: eight recall items with reasons on five.
-**Why:** `session.ts` documents “8 recall items; MCQ on the first 5,” and tests lock the composition. Why other planned modes are deferred is ⚠️ NEEDS INPUT — no staged-scope document exists in the repo.
+**Chose:** Ship repertoire-move recall followed by reason-tag multiple choice: eight recall items with reasons on five for theory/foundations; Learn-track **master** uses twelve recall items with reasons on eight, still ply then frequency.
+**Why:** `session.ts` documents “8 recall items; MCQ on the first 5,” and tests lock the composition. Master is the Lotus-style walk of more of the same tree, not a second scheduler.
 
 ## Opening choice
 **Chose:** Show openings the player already plays first, filtered by White or Black. Learning something new asks which opening they want, then matches annotated catalog lines for that color. If the catalog misses, search `@chess-openings/eco.json` and download the named line into a personal opening (or an in-memory try if they are not signed in). Families and center types are teaching copy, not a dumped catalog.
@@ -33,7 +33,7 @@ alwaysApply: false
 **Why:** A dumped catalog mixed never-played lines with the player's repertoire. Color is the first repertoire choice; asking keeps the opening explicit. Refusing unknown names made “Learn a new opening” a dead search.
 
 ## Lessons before drills
-**Chose:** Foundations and newly downloaded lines open a Pawnbreak-shaped lesson (idea, both-side plans, walkable line, after-the-book jobs, traps, quizzes) before move recall. Weak-spot drills skip the lesson. After a session, the same after-the-book jobs stay on screen. Downloaded lines explain each SAN from the board (what it occupies, attacks, or blocks — e.g. Nf3 makes f2–f4 illegal). Structure copy is attached only when the line’s pawn FEN matches a named skeleton.
+**Chose:** Foundations and newly downloaded lines open a Pawnbreak-shaped lesson (idea, both-side plans, walkable line, after-the-book jobs, traps, quizzes) before move recall. The trainer splits **Theory** (openings you already play; weak-spot drills skip the lesson) from **Learn** (pick a named system, frequency-first lesson, then a longer ply-ordered **master** memory walk). Weak-spot drills skip the lesson. After a session, the same after-the-book jobs stay on screen. Downloaded lines explain each SAN from the board (what it occupies, attacks, or blocks — e.g. Nf3 makes f2–f4 illegal). Structure copy is attached only when the line’s pawn FEN matches a named skeleton.
 **Considered:** Jumping straight into recall, treating the Results openings table as the teacher, or pasting Scheveningen “f4–f5 / e6 sags” onto every ECO B Sicilian.
 **Why:** Reciting the first eight moves does not say what to do when theory ends. The Results table is stats. Authored cards (Vienna as the quality bar) carry the teaching; encyclopedia stubs must not invent a later pawn storm while a knight still sits on f3.
 

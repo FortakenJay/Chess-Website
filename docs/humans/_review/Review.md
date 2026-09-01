@@ -38,7 +38,7 @@ flowchart TB
 
 | Library sync | Review |
 | --- | --- |
-| 12k-node budget | ~60ms movetime |
+| 12k-node budget | Tape in RAM; arrows use shared depth prefs (default 30) |
 | No ply tape stored | Full tape in RAM |
 | Leak flags persisted | Nothing persisted |
 | Real peer RPCs on Results | Synthetic 5–95 percentile in `reportStats` |

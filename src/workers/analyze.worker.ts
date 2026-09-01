@@ -28,6 +28,7 @@ export type WorkerRequest =
       requestId: number
       fen: string
       movetime?: number
+      search?: AnalysisBudget
       multipv?: number
     }
   | { type: 'abort'; requestId: number }
@@ -46,6 +47,7 @@ export type WorkerResponse =
   | { type: 'done'; requestId: number }
   | { type: 'evalResult'; requestId: number; result: EngineEval }
   | { type: 'evalLinesResult'; requestId: number; result: EngineLine[] }
+  | { type: 'evalProgress'; requestId: number; depth: number }
   | { type: 'error'; requestId: number; message: string }
 
 let engine: UciEngine | null = null
@@ -86,8 +88,15 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     if (message.type === 'evalLines') {
       const result = await sf.evaluateLines(
         message.fen,
-        message.movetime ?? 250,
+        message.search ?? message.movetime ?? 250,
         message.multipv ?? 3,
+        (info) => {
+          self.postMessage({
+            type: 'evalProgress',
+            requestId,
+            depth: info.depth,
+          } satisfies WorkerResponse)
+        },
       )
       const response: WorkerResponse = { type: 'evalLinesResult', requestId, result }
       self.postMessage(response)

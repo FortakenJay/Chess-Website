@@ -15,6 +15,7 @@ MUST: RMS accuracy (opening may ACPL-fallback legacy).
 MUST: `strategy_peer_stats` / `endgame_peer_stats`; null → `—`.
 MUST NOT: opening similar-rating column.
 MUST: White vs Black opening lists (same swap as trainer).
+MUST: default openings chart/table rank by volume-weighted score leak (`games * max(0, 50-winPct)`); game WR only, no invented evals.
 MUST: time class Overall|Bullet|Blitz|Rapid|Daily|Other, passed to RPCs.
 MUST: `usableAccuracy` / `usableAcpl` exclude mate-inflated rows.
 MUST NOT: use `reportStats.peerPercentile` here.

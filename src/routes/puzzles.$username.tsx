@@ -4,9 +4,12 @@ import { PuzzleBoard } from '@/components/PuzzleBoard'
 import { PuzzleFilterTiles } from '@/components/PuzzleFilterTiles'
 import {
   Button,
+  Chip,
   EmptyState,
   ErrorText,
   FilterBar,
+  Kicker,
+  kickerVariants,
   PageHeader,
   PuzzlesFiltersSkeleton,
   BoardPageSkeleton,
@@ -64,9 +67,7 @@ function PuzzlesPage() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-4">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-            Chess.com Elo
-          </p>
+          <Kicker>Chess.com Elo</Kicker>
           <p className="mt-1 font-mono text-3xl tabular tracking-tight">{ratingLabel}</p>
           {practice.ratings ? (
             <p className="mt-1 font-mono text-xs text-muted">
@@ -78,7 +79,7 @@ function PuzzlesPage() {
           )}
         </div>
         <div className="text-right">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">Catalog</p>
+          <Kicker>Catalog</Kicker>
           <p className="mt-1 font-mono text-xl tabular">{practice.catalogTotal}</p>
           <Button
             className="mt-2"
@@ -108,24 +109,19 @@ function PuzzlesPage() {
       />
 
       <section className="mt-6">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">Motif</h2>
+        <h2 className={kickerVariants()}>Motif</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {MOTIF_OPTIONS.map((motif) => {
             const active = practice.filters.motif === motif
             const label = motif === '' ? 'All motifs' : MOTIF_LABEL[motif]
             return (
-              <button
+              <Chip
                 key={motif || 'all'}
-                type="button"
-                className={`inline-flex min-h-11 items-center border px-3 font-mono text-xs uppercase tracking-[0.12em] transition-colors ${
-                  active
-                    ? 'border-accent bg-accent-low text-ink'
-                    : 'border-line bg-surface text-ink hover:bg-surface-2'
-                }`}
+                active={active}
                 onClick={() => practice.updateFilter('motif', motif)}
               >
                 {label}
-              </button>
+              </Chip>
             )
           })}
         </div>
@@ -151,6 +147,7 @@ function PuzzlesPage() {
             labels={{ '': 'all', lichess: 'lichess', chesscom: 'chess.com' }}
           />
           <Button
+            variant="primary"
             className="ml-auto"
             disabled={practice.loading || practice.expanding}
             onClick={practice.bumpReload}
@@ -217,15 +214,15 @@ function PuzzlesPage() {
           ) : null}
           {!practice.loading && !practice.error && practice.puzzles.length === 0 ? (
             <EmptyState className="mt-8 max-w-lg">
-              <p className="text-pretty">No puzzles available for these filters right now.</p>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <EmptyState.Body>No puzzles available for these filters right now.</EmptyState.Body>
+              <EmptyState.Actions>
                 <Button onClick={() => void practice.growCatalog()} disabled={practice.expanding}>
                   {practice.expanding ? 'Downloading…' : 'Download more puzzles'}
                 </Button>
                 <Button variant="ghost" onClick={practice.clearFilters}>
                   Reset filters
                 </Button>
-              </div>
+              </EmptyState.Actions>
             </EmptyState>
           ) : null}
         </>

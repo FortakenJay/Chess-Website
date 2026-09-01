@@ -117,6 +117,7 @@ export function OpeningLesson({
   onBack,
   onPauseGeneration,
   onResumeGeneration,
+  trainLabel = 'Train the moves',
 }: {
   card: KnowledgeCard
   generation?: {
@@ -130,6 +131,7 @@ export function OpeningLesson({
   onBack: () => void
   onPauseGeneration?: () => void
   onResumeGeneration?: () => void
+  trainLabel?: string
 }) {
   const sans = useMemo(() => parseMoveOrderSans(card.move_order), [card.move_order])
   const positions = useMemo(() => positionsAlong(sans), [sans])
@@ -189,13 +191,9 @@ export function OpeningLesson({
       panel={
         <>
         <Panel padding="md">
-          <button
-            type="button"
-            className="inline-flex min-h-11 items-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-ink"
-            onClick={onBack}
-          >
+          <Button variant="quiet" className="px-0" onClick={onBack}>
             Back to openings
-          </button>
+          </Button>
           <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">Lesson</p>
           <h2 className="mt-2 font-display text-3xl uppercase leading-[0.92] text-ink [overflow-wrap:anywhere]">
             {card.name}
@@ -462,7 +460,7 @@ export function OpeningLesson({
               </Button>
             ) : (
               <Button className="mt-5 w-full" onClick={onTrain}>
-                Train the moves
+                {trainLabel}
               </Button>
             )}
           </Panel>
@@ -492,7 +490,7 @@ export function OpeningLesson({
                   middlegame jobs stay the same.
                 </p>
                 <Button className="mt-5 w-full" onClick={onTrain}>
-                  Train the moves
+                  {trainLabel}
                 </Button>
               </div>
             ) : (

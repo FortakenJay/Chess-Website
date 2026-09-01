@@ -45,5 +45,5 @@ alwaysApply: false
 **Why:** `styles.css` describes press scale as glitchy on dense/list controls; `reviewUi.ts` asks for “stable hover, no press-scale glitches.”
 
 ## Shared primitives
-**Chose:** Centralize buttons, panels, status states, filters, sections, and skeletons under `src/components/ui`.
-**Why:** ⚠️ NEEDS INPUT — the component boundary is clear, but no rationale for the primitive set was found.
+**Chose:** Centralize buttons, chips, tabs, panels, forms, filters, and empty states under `src/components/ui`, and compose page chrome from those pieces instead of restyling each route.
+**Why:** Duplicate button/chip class strings (especially Review vs the rest of the product) produced inconsistent tap targets, labels, and press behavior. One primitive set keeps the training-room look while making new surfaces reusable.
