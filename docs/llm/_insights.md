@@ -8,9 +8,10 @@ tags:
 
 Job: Results IA and aggregates.
 
-Owns: `results.$username*.tsx`, `resultsModel.ts`, `playstyle.ts`, `stats.ts`, `strategyStats.ts`, `grades.ts`, `ResultsCharts.tsx`, `InsightStats.tsx`, `OpeningRepertoire.tsx`, `StrategyInsights.tsx`, `EndgameInsights.tsx`.
+Owns: `results.$username*.tsx`, `resultsModel.ts`, `playstyle.ts`, `stats.ts`, `strategyStats.ts`, `grades.ts`, `trainingLoop.ts`, `ResultsCharts.tsx`, `InsightStats.tsx`, `TrainingLoop.tsx`, `OpeningRepertoire.tsx`, `StrategyInsights.tsx`, `EndgameInsights.tsx`.
 
 MUST: nest Overview/Openings/Strategy/Endgames under `/results/$username`; redirect legacy routes.
+MUST: Overview starts with the training loop (`TrainingLoop`) — existing drill/trainer/puzzles/review routes, no extra nav item.
 MUST: RMS accuracy (opening may ACPL-fallback legacy).
 MUST: `strategy_peer_stats` / `endgame_peer_stats`; null → `—`.
 MUST NOT: opening similar-rating column.

@@ -2,6 +2,7 @@ import { Chess } from 'chess.js'
 import { commentaryKey } from './evidence'
 import { attachEngineToCommentary, commentaryFromEvidence } from './commentaryTemplates'
 import { expandNodeFromExplorer, type ExplorerSlice } from './explorer'
+import { rankByHumanPick } from './humanPick'
 import {
   COMMENTARY_GENERATOR_VERSION,
   type BuiltNode,
@@ -117,12 +118,25 @@ export async function processCourseChunk(
     const slice = queue.slice(cursor.nodeIndex, cursor.nodeIndex + COURSE_CHUNK)
     for (const node of slice) {
       const data = await deps.fetchSlice(node.fen)
-      const replies = [...data.club, ...data.masters]
-        .sort((a, b) => b.pct - a.pct)
-        .slice(0, COURSE_REPLY_CAP)
+      const stm: TrainedSide = node.fen.split(' ')[1] === 'b' ? 'b' : 'w'
+      const merged = [...data.club, ...data.masters]
+      const replies =
+        stm === side
+          ? rankByHumanPick(
+              merged.map((row) => ({
+                san: row.san,
+                plays: row.plays,
+                pct: row.pct,
+                winPct: row.win_pct,
+              })),
+            )
+              .map((pick) => merged.find((row) => row.san === pick.san)!)
+              .filter(Boolean)
+              .slice(0, COURSE_REPLY_CAP)
+          : merged.sort((a, b) => b.pct - a.pct).slice(0, COURSE_REPLY_CAP)
       const expansion = expandNodeFromExplorer(node, replies, side, childrenOf(nodes, node.id))
-      const merged = [...(node.explorer_stats ?? []), ...expansion.stats]
-      node.explorer_stats = merged
+      const stats = [...(node.explorer_stats ?? []), ...expansion.stats]
+      node.explorer_stats = stats
       if (data.games.length && node.commentary) {
         node.commentary = {
           ...node.commentary,

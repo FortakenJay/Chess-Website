@@ -194,3 +194,11 @@ export function isLegalStudyFen(fen: string) {
     return false
   }
 }
+
+/** Piece-play conversion vs a capped engine. Pawn-skeleton diagrams stay in the lab. */
+export function convertibleStudy(id: string): RoadmapStudy | null {
+  const study = studyFor(id)
+  if (!study || study.pawnsOnly) return null
+  if (!isLegalStudyFen(study.fen)) return null
+  return study
+}

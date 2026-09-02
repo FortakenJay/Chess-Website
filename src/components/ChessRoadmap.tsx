@@ -13,7 +13,7 @@ import {
   type NodeExposure,
   type RoadmapMarks,
 } from '@/lib/roadmap/progress'
-import { studyDrillSearch, studyFor, type RoadmapStudy } from '@/lib/roadmap/study'
+import { studyDrillSearch, studyFor, convertibleStudy, type RoadmapStudy } from '@/lib/roadmap/study'
 import {
   ROADMAP_TRACKS,
   allRoadmapNodes,
@@ -193,11 +193,20 @@ function TopicSheet({
           {study ? <TopicQuiz key={node.id} study={study} /> : null}
 
           <div className="mt-5 flex flex-col gap-2">
+            {study && !study.pawnsOnly && convertibleStudy(node.id) ? (
+              <PracticeLink
+                username={username}
+                href={{ to: '/trainer/$username', search: { tab: 'endgames', study: node.id } }}
+                variant="primary"
+              >
+                Convert vs engine
+              </PracticeLink>
+            ) : null}
             {study ? (
               <PracticeLink
                 username={username}
                 href={{ to: '/drill/$username', search: studyDrillSearch(study) }}
-                variant="primary"
+                variant={study.pawnsOnly || !convertibleStudy(node.id) ? 'primary' : 'secondary'}
               >
                 Play this position
               </PracticeLink>

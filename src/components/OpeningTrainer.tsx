@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
 import { PlaySplit } from '@/components/FittedBoardFrame'
+import { EndgameConvert } from '@/components/EndgameConvert'
 import { OpeningChooser } from '@/components/OpeningChooser'
 import { OpeningLesson } from '@/components/OpeningLesson'
 import { PawnStructureLab } from '@/components/PawnStructureLab'
@@ -23,7 +23,8 @@ import type { SessionStartMode } from '@/lib/openings/session'
 import { REASON_TAG_LABEL } from '@/lib/openings/tags'
 import { humanOpeningLabel } from '@/lib/openings/nicknames'
 import { usePlayerData } from '@/lib/queries'
-import { ROADMAP_TRACKS } from '@/lib/roadmap/topics'
+import { ROADMAP_TRACKS, roadmapNodeById } from '@/lib/roadmap/topics'
+import { convertibleStudy } from '@/lib/roadmap/study'
 import { useSessionTitle } from '@/lib/useDocumentTitle'
 import type { useOpeningTrainer } from '@/lib/openings/useOpeningTrainer'
 
@@ -76,10 +77,31 @@ function FoundationsPanel({ username }: { username: string }) {
   )
 }
 
-function EndgamesPanel({ username }: { username: string }) {
+function EndgamesPanel({
+  username,
+  studyId,
+  onStudyChange,
+}: {
+  username: string
+  studyId?: string
+  onStudyChange?: (study?: string) => void
+}) {
   const player = usePlayerData(username)
   const leaked = (player.data?.positions ?? []).filter((row) => row.phase === 'endgame')
   const track = ROADMAP_TRACKS.find((row) => row.id === 'endgames')
+  const converting = studyId ? convertibleStudy(studyId) : null
+  const convertingTitle = studyId ? (roadmapNodeById(studyId)?.title ?? converting?.task) : null
+
+  if (converting) {
+    return (
+      <EndgameConvert
+        fen={converting.fen}
+        title={convertingTitle ?? converting.task}
+        onExit={() => onStudyChange?.(undefined)}
+      />
+    )
+  }
+
   return (
     <div className="pb-4">
       <Callout>
@@ -88,8 +110,8 @@ function EndgamesPanel({ username }: { username: string }) {
           Convert what you leak
         </h2>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">
-          Your flagged endings first. Then the technique track — opposition, Lucena, conversion.
-          Depth-stable drills, same board as Positions.
+          Your flagged endings first. Then convert the technique positions against a club-strength
+          engine (depth 10 — not library analysis). Playing a game still does not mark a node done.
         </p>
         <ActionRow className="mt-6">
           <ButtonLink
@@ -110,19 +132,31 @@ function EndgamesPanel({ username }: { username: string }) {
       </Callout>
       {track ? (
         <ul className="mt-5 divide-y divide-line border border-line">
-          {track.nodes.map((node) => (
-            <li key={node.id}>
-              <Link
-                to="/roadmap/$username"
-                params={{ username }}
-                search={{ node: node.id }}
-                className="flex min-h-14 w-full flex-col justify-center px-4 py-3 hover:bg-surface-2"
-              >
-                <span className="font-medium text-ink">{node.title}</span>
-                <span className="mt-1 text-sm leading-5 text-muted">{node.why}</span>
-              </Link>
-            </li>
-          ))}
+          {track.nodes.map((node) => {
+            const playable = convertibleStudy(node.id)
+            return (
+              <li key={node.id} className="px-4 py-3">
+                <p className="font-medium text-ink">{node.title}</p>
+                <p className="mt-1 text-sm leading-5 text-muted">{node.why}</p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  {playable ? (
+                    <Button className="w-full sm:w-auto" onClick={() => onStudyChange?.(node.id)}>
+                      Convert vs engine
+                    </Button>
+                  ) : null}
+                  <ButtonLink
+                    variant={playable ? 'secondary' : 'primary'}
+                    className="w-full sm:w-auto"
+                    to="/roadmap/$username"
+                    params={{ username }}
+                    search={{ node: node.id }}
+                  >
+                    Open the topic
+                  </ButtonLink>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       ) : null}
     </div>
@@ -135,40 +169,49 @@ function TrainerStudio({
   onStart,
   tab,
   structure,
+  study,
   onTabChange,
+  onStudyChange,
 }: {
   username: string
   trainer: ReturnType<typeof useOpeningTrainer>
   onStart: (openingId: string, mode: SessionStartMode) => void
   tab?: string
   structure?: string
+  study?: string
   onTabChange?: (tab: TrainerTab) => void
+  onStudyChange?: (study?: string) => void
 }) {
   const module = parseTrainerTab(tab)
+  const converting = module === 'endgames' && Boolean(study)
   useSessionTitle({
     page:
-      module === 'learn'
-        ? 'Learn'
-        : module === 'foundations'
-          ? 'Foundations'
-          : module === 'endgames'
-            ? 'Endgames'
-            : module === 'structures'
-              ? 'Structures'
-              : 'Theory',
+      converting
+        ? 'Convert'
+        : module === 'learn'
+          ? 'Learn'
+          : module === 'foundations'
+            ? 'Foundations'
+            : module === 'endgames'
+              ? 'Endgames'
+              : module === 'structures'
+                ? 'Structures'
+                : 'Theory',
     library: username,
     enabled: true,
   })
   return (
-    <div>
-      <SegmentedControl
-        label="Trainer module"
-        value={module}
-        onChange={(next) => onTabChange?.(next)}
-        className="mt-0 sm:mt-0"
-        options={TRAINER_TABS}
-      />
-      <div className="mt-5">
+    <div className={converting ? 'lg:min-h-0 lg:h-full lg:overflow-hidden' : undefined}>
+      {converting ? null : (
+        <SegmentedControl
+          label="Trainer module"
+          value={module}
+          onChange={(next) => onTabChange?.(next)}
+          className="mt-0 sm:mt-0"
+          options={TRAINER_TABS}
+        />
+      )}
+      <div className={converting ? 'h-full min-h-0' : 'mt-5'}>
         {module === 'theory' || module === 'learn' ? (
           <OpeningChooser
             track={module}
@@ -184,7 +227,9 @@ function TrainerStudio({
           />
         ) : null}
         {module === 'foundations' ? <FoundationsPanel username={username} /> : null}
-        {module === 'endgames' ? <EndgamesPanel username={username} /> : null}
+        {module === 'endgames' ? (
+          <EndgamesPanel username={username} studyId={study} onStudyChange={onStudyChange} />
+        ) : null}
         {module === 'structures' ? <PawnStructureLab username={username} initialId={structure} /> : null}
       </div>
     </div>
@@ -196,13 +241,17 @@ export function OpeningTrainer({
   username,
   tab,
   structure,
+  study,
   onTabChange,
+  onStudyChange,
 }: {
   trainer: ReturnType<typeof useOpeningTrainer>
   username: string
   tab?: string
   structure?: string
+  study?: string
   onTabChange?: (tab: TrainerTab) => void
+  onStudyChange?: (study?: string) => void
 }) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
   const [playedFen, setPlayedFen] = useState<string | null>(null)
@@ -296,7 +345,9 @@ export function OpeningTrainer({
         trainer={trainer}
         tab={tab}
         structure={structure}
+        study={study}
         onTabChange={onTabChange}
+        onStudyChange={onStudyChange}
         onStart={(openingId, mode) => {
           resetItemState()
           if (mode === 'foundations' || mode === 'master') trainer.startLesson(openingId, mode)

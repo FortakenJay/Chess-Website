@@ -2,7 +2,7 @@ import type { EndgameType, Motif, Phase } from '@/lib/analysis/types'
 import type { StructureId } from '@/lib/openings/structures'
 
 export type RoadmapHref =
-  | { to: '/trainer/$username'; search?: { tab?: 'theory' | 'learn' | 'foundations' | 'endgames' | 'structures' | 'openings'; structure?: string } }
+  | { to: '/trainer/$username'; search?: { tab?: 'theory' | 'learn' | 'foundations' | 'endgames' | 'structures' | 'openings'; structure?: string; study?: string } }
   | { to: '/puzzles/$username' }
   | { to: '/positions/$username' }
   | {

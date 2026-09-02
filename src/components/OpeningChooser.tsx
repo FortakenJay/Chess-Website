@@ -17,6 +17,7 @@ import {
   humanOpeningLabel,
 } from '@/lib/openings/nicknames'
 import { openingHitKey, type OpeningSearchHit } from '@/lib/openings/searchCatalog'
+import { learnInsteadQuery } from '@/lib/openings/openingScore'
 import type { OpeningTrainingOption } from '@/lib/openings/useOpeningTrainer'
 import type { SessionStartMode } from '@/lib/openings/session'
 
@@ -95,7 +96,7 @@ function OpeningCard({
         </div>
         {recommended ? (
           <span className="shrink-0 border border-accent px-2 py-1 font-mono text-[10px] uppercase text-accent">
-            Weakest
+            {opening.gamesPlayed >= 5 && opening.leakWeight > 0 ? 'Score leak' : 'Weakest'}
           </span>
         ) : null}
       </div>
@@ -121,6 +122,12 @@ function OpeningCard({
         </span>
         <span>{opening.stats.due} due</span>
         {opening.gamesPlayed > 0 ? <span>{opening.gamesPlayed} games</span> : null}
+        {opening.gamesPlayed >= 5 ? (
+          <span>
+            {opening.winPct}% WR
+            {opening.leakWeight > 0 ? ' · leak' : ''}
+          </span>
+        ) : null}
         {opening.stats.lapses > 0 ? <span>{opening.stats.lapses} misses</span> : null}
       </div>
 
@@ -526,7 +533,24 @@ export function OpeningChooser({
     () => catalog.filter((opening) => opening.side === color),
     [catalog, color],
   )
-  const recommendedId = sideKnown.find((opening) => opening.stats.attempted > 0)?.id ?? null
+  const recommendedId =
+    [...sideKnown]
+      .filter((opening) => opening.gamesPlayed >= 5 && opening.leakWeight > 0)
+      .sort((a, b) => b.leakWeight - a.leakWeight)[0]?.id ??
+    sideKnown.find((opening) => opening.stats.attempted > 0)?.id ??
+    null
+  const learnInstead = useMemo(() => {
+    if (track !== 'learn') return null
+    let worst: OpeningTrainingOption | null = null
+    for (const opening of sideKnown) {
+      if (opening.gamesPlayed < 5 || opening.leakWeight <= 0) continue
+      if (!worst || opening.leakWeight > worst.leakWeight) worst = opening
+    }
+    if (!worst) return null
+    const query = learnInsteadQuery(worst)
+    if (!query) return null
+    return { opening: worst, query }
+  }, [sideKnown, track])
 
   function askFor(name = '') {
     setAskQuery(name)
@@ -626,6 +650,23 @@ export function OpeningChooser({
           </Button>
         ) : null}
       </Callout>
+
+      {track === 'learn' && learnInstead ? (
+        <Callout className="mt-5">
+          <Kicker tone="accent">From your games</Kicker>
+          <h2 className="mt-3 max-w-[20ch] font-display text-3xl uppercase leading-[0.92] text-ink sm:text-4xl">
+            Your {learnInstead.opening.name} scores {learnInstead.opening.winPct}% over{' '}
+            {learnInstead.opening.gamesPlayed} games
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">
+            That is game result, not an engine eval. Learn {learnInstead.query} instead — still a
+            named line, then memory. Stats stay here, never on the knowledge card.
+          </p>
+          <Button className="mt-6 w-full sm:w-auto" onClick={() => askFor(learnInstead.query)}>
+            Learn {learnInstead.query}
+          </Button>
+        </Callout>
+      ) : null}
 
       {track === 'learn' ? (
         <>

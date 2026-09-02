@@ -21,6 +21,13 @@ import { legalMoveStyles, nextSelectedSquare } from '@/lib/legalMoves'
 import { usePlayerAvatar } from '@/lib/usePlayerAvatar'
 import { productBoardStyles } from '@/lib/boardTheme'
 import { humanOpeningLabel } from '@/lib/openings/nicknames'
+import { loadTrainerData } from '@/lib/openings/persist'
+import {
+  repertoireMissPlies,
+  repertoireMovesFromNodes,
+  repertoireSansAt,
+} from '@/lib/openings/repertoireMiss'
+import { getBrowserClient } from '@/lib/supabase/browser'
 import { useLiveEngine } from '@/lib/analysis/useLiveEngine'
 import { useSessionTitle } from '@/lib/useDocumentTitle'
 
@@ -45,6 +52,25 @@ function qualityClass(quality: MoveQuality | null | undefined) {
   }
   if (quality === 'book') return 'text-quality-book'
   return 'text-ink'
+}
+
+function useRepertoireMisses(username: string, plies: AnalyzedPly[]) {
+  const [nodes, setNodes] = useState(() => [] as ReturnType<typeof repertoireMovesFromNodes>)
+  useEffect(() => {
+    let cancelled = false
+    void loadTrainerData(getBrowserClient(), username)
+      .then((data) => {
+        if (!cancelled) setNodes(repertoireMovesFromNodes(data.nodes))
+      })
+      .catch(() => {
+        if (!cancelled) setNodes([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [username])
+  const missed = useMemo(() => repertoireMissPlies(plies, nodes), [plies, nodes])
+  return { nodes, missed }
 }
 
 function isLeakPly(ply: AnalyzedPly) {
@@ -148,6 +174,10 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
   const evalCurve = analysis.evalCurve ?? [0]
   const youAvatar = usePlayerAvatar(analysis.username)
   const oppAvatar = usePlayerAvatar(analysis.opponent)
+  const { nodes: repertoireNodes, missed: repertoireMiss } = useRepertoireMisses(
+    analysis.username,
+    plies,
+  )
   const [cursor, setCursor] = useState(0)
   const [engineEnabled, setEngineEnabled] = useState(true)
   const [explore, setExplore] = useState<ExploreMove[]>([])
@@ -175,6 +205,15 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
         body: 'Engine is scoring this line. Undo or drill the position on the board.',
       }
     }
+    if (currentPly?.isUserMove && repertoireMiss.has(currentPly.ply)) {
+      const taught = repertoireSansAt(repertoireNodes, currentPly.fenBefore)
+      return {
+        title: `Left repertoire · ${currentPly.san}`,
+        body: taught.length
+          ? `Taught here: ${taught.join(', ')}. This is a line miss, not an engine leak.`
+          : 'This left a taught branch. Engine quality is a separate marker.',
+      }
+    }
     if (!currentPly?.isUserMove) {
       return {
         title: analysis.openingName
@@ -188,7 +227,7 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
       }
     }
     return coachCopy(currentPly.quality, currentPly.san)
-  }, [analysis.openingName, currentPly, explore, exploring])
+  }, [analysis.openingName, currentPly, explore, exploring, repertoireMiss, repertoireNodes])
 
   const lastMoveStyles = useMemo(() => {
     const last = explore.at(-1)
@@ -386,6 +425,9 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                 >
                   {ply.color === 'white' ? `${ply.moveNumber}.` : ''}
                   {ply.san}
+                  {repertoireMiss.has(ply.ply) ? (
+                    <span className="ml-1 text-[10px] uppercase tracking-wider text-accent">line</span>
+                  ) : null}
                 </button>
               )
             })}
@@ -402,13 +444,25 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
       <section className="flex min-h-[22rem] flex-col overflow-y-auto overscroll-contain border border-line bg-surface lg:min-h-0">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-3 py-3 sm:px-4">
           <div className="min-w-0">
-            <p className={cn('text-base font-medium', qualityClass(currentPly?.quality))}>{coach.title}</p>
+            <p
+              className={cn(
+                'text-base font-medium',
+                currentPly && repertoireMiss.has(currentPly.ply)
+                  ? 'text-accent'
+                  : qualityClass(currentPly?.quality),
+              )}
+            >
+              {coach.title}
+            </p>
             <p className="mt-1 text-sm text-muted">{coach.body}</p>
             {exploring ? (
               <p className="mt-2 font-mono text-xs text-muted">
                 Line {explore.map((move) => move.san).join(' ')}
               </p>
-            ) : currentPly?.isUserMove && currentPly.bestSan && currentPly.quality !== 'best' ? (
+            ) : currentPly?.isUserMove &&
+              currentPly.bestSan &&
+              currentPly.quality !== 'best' &&
+              !repertoireMiss.has(currentPly.ply) ? (
               <p className="mt-2 font-mono text-xs text-accent">Best was {currentPly.bestSan}</p>
             ) : null}
           </div>
@@ -474,6 +528,11 @@ function AnalysisPanel({ analysis }: { analysis: GameAnalysis }) {
                       )}
                     >
                       {ply.san}
+                      {repertoireMiss.has(ply.ply) ? (
+                        <span className="ml-1 text-[10px] uppercase tracking-wider text-accent">
+                          line
+                        </span>
+                      ) : null}
                       {ply.isUserMove && ply.quality === 'brilliant' ? (
                         <span className="ml-1 text-[10px] opacity-90">!!</span>
                       ) : ply.quality &&

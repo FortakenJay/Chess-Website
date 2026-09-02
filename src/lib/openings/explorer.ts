@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js'
+import { pickHumanMove } from './humanPick'
 import type { BuiltNode, ExplorerReply, ModelGameRef, NodeSource } from './types'
 
 const CLUB_URL = 'https://explorer.lichess.ovh/lichess'
@@ -39,7 +40,7 @@ type ExplorerGame = {
   black?: { name?: string; rating?: number }
 }
 
-type ExplorerResponse = {
+export type ExplorerResponse = {
   white: number
   draws: number
   black: number
@@ -213,8 +214,36 @@ export async function explorerForFen(fen: string, elo: number): Promise<Explorer
 const EXTEND_MIN_GAMES = 80
 const EXTEND_MIN_SHARE = 0.12
 
-/** Walk the most-played club continuation. Does not invent reasons or write frequencies onto a card. */
-export async function extendMostPlayedSans(sans: string[], targetPly = 12): Promise<string[]> {
+export function pickExplorerContinuation(
+  data: ExplorerResponse,
+  trainedSide: 'w' | 'b',
+  stm: 'w' | 'b',
+): ExplorerMove | null {
+  const total = data.white + data.draws + data.black
+  const leader = data.moves[0]
+  if (!leader || total < EXTEND_MIN_GAMES) return null
+  const leaderPlays = leader.white + leader.draws + leader.black
+  if (leaderPlays / total < EXTEND_MIN_SHARE) return null
+  if (stm !== trainedSide) return leader
+
+  const replies = repliesFromExplorer(data, 'club', trainedSide, 'club')
+  const pick = pickHumanMove(
+    replies.map((row) => ({
+      san: row.san,
+      plays: row.plays,
+      pct: row.pct,
+      winPct: row.win_pct,
+    })),
+  )
+  return data.moves.find((move) => move.san === pick?.san) ?? leader
+}
+
+/** Walk club continuations. Our moves tie-break on amateur WR; theirs stay frequency-first. */
+export async function extendMostPlayedSans(
+  sans: string[],
+  targetPly = 12,
+  trainedSide: 'w' | 'b' = 'w',
+): Promise<string[]> {
   const board = new Chess()
   for (const san of sans) {
     const played = board.move(san)
@@ -223,11 +252,9 @@ export async function extendMostPlayedSans(sans: string[], targetPly = 12): Prom
   const ratings = [1600, 1800]
   while (board.history().length < targetPly) {
     const data = await fetchClubExplorer(board.fen(), ratings)
-    const total = data.white + data.draws + data.black
-    const best = data.moves[0]
-    if (!best || total < EXTEND_MIN_GAMES) break
-    const plays = best.white + best.draws + best.black
-    if (plays / total < EXTEND_MIN_SHARE) break
+    const stm: 'w' | 'b' = board.turn()
+    const best = pickExplorerContinuation(data, trainedSide, stm)
+    if (!best) break
     if (!board.move(best.san)) break
   }
   return board.history()

@@ -33,7 +33,7 @@ flowchart TD
   Review --> Weak
 ```
 
-That is the same loop LEAK already has in pieces (sync → flags → drill / trainer / review). Lotus packages it as one home screen and biases opening *choice* toward amateur win rate instead of engine principal variation.
+That is the same loop LEAK already has in pieces (sync → flags → drill / trainer / review). Overview packages it as **The loop** — one home that deep-links those routes. Opening *choice* still biases toward amateur win rate instead of engine principal variation.
 
 ## Feature map (theirs → ours)
 
@@ -43,9 +43,9 @@ That is the same loop LEAK already has in pieces (sync → flags → drill / tra
 | Openings — *your* repertoire | Spaced review of lines you play; “weak spots” from your games | Trainer dual-score (`recall_ease` / `understanding_ease`), Results openings | **Theory** track: only openings you play. Weak-spot drills skip the lesson. |
 | Openings — *learn a new one* | Pick a named system, walk the mainline + common sidelines, then master from memory | Download + `OpeningLesson` + foundations session (ply order + explorer frequency) | **Learn** track: Lotus-shaped copy and **master** session (longer, from move 1). Still PGN/ECO + explorer + authored/template reasons — no invented evals. |
 | Foundations | Beginner curriculum: ideas before a full repertoire | `/roadmap/$username` (tactics → openings → structures → endgames). Playing a game does not mark a node done. | Trainer **Foundations** tab links the roadmap. Do not auto-complete from games. |
-| Endgames | 60+ lessons, then convert vs a human-like engine | Roadmap endgame track + flagged `phase=endgame` drills + Results endgames | Trainer **Endgames** tab: drill leaked endings, jump to the track and Results. Play-vs-engine conversion is a later add, not a rewrite of analysis. |
-| Game reviews | Replay your games, mark where you left the taught line | `/review/$username` (ephemeral ply tape, never persisted) | Keep Review. Opening *deviation vs taught tree* is already trainer + Results; do not persist Review tapes. |
-| Personalized plan | “Your London scores badly; train this instead” | Flagged positions, Results win rates, explorer frequencies on nodes | Learn track prefers explorer frequency. Theory still schedules from `min(recall, understanding)`. |
+| Endgames | 60+ lessons, then convert vs a human-like engine | Roadmap endgame track + flagged `phase=endgame` drills + Results endgames | Trainer **Endgames** tab drills leaked endings and converts study FENs vs depth-10 Stockfish (`EndgameConvert`). |
+| Game reviews | Replay your games, mark where you left the taught line | `/review/$username` (ephemeral ply tape, never persisted) | Keep Review. Opening deviation vs `opening_nodes` is a separate `line` chip, not an engine blunder. Do not persist Review tapes. |
+| Personalized plan | “Your London scores badly; train this instead” | Flagged positions, Results win rates, explorer frequencies on nodes | Learn banners a same-family named line when a played opening has ≥5 games and a WR leak. Theory still schedules from `min(recall, understanding)`. |
 
 ## Why it feels effective
 
@@ -119,7 +119,7 @@ Keep that split. Do not persist Review ply tapes. Do not put brilliant/great/boo
 
 ## Endgames and foundations
 
-Lotus endgames work because they are a **curriculum** (KQ vs K, Lucena, then convert) plus **play**. LEAK already has the curriculum (roadmap endgame nodes with study FENs) and the personal leaks (`phase=endgame`). The import is a trainer tab that points at both. A “human-like engine” play-out can sit on top of `evaluateFen` later; it is not required to ship the IA.
+Lotus endgames work because they are a **curriculum** (KQ vs K, Lucena, then convert) plus **play**. LEAK already has the curriculum (roadmap endgame nodes with study FENs) and the personal leaks (`phase=endgame`). Conversion play-out uses a capped engine on those FENs; it is not library analysis.
 
 Foundations in Lotus are the MATH 42 instinct: do not start with the Najdorf. LEAK roadmap already starts at hanging pieces. Trainer Foundations is a doorway, not a second map.
 
@@ -152,8 +152,10 @@ Keep this list honest. Checked items are in the repo; unchecked stay out of scop
 - [x] Drill answers frozen at depth 16 + prefetch (no `h4`/`h3` flicker)
 - [x] Results openings ranked by volume-weighted score leak (game WR, not engine)
 - [x] Chess.com-style analysis mode after puzzles/drills + Review depth tuner (default 30, arrows, live engine name/depth)
-- [ ] Amateur WR tie-break for *taught* opening moves (LotusAI). Explorer frequency is the current proxy. Do not invent WR on knowledge cards.
-- [ ] Human-like engine for endgame conversion play-out
+- [x] Amateur WR tie-break for *taught* opening moves (our ply only; opponent stays frequency-first). Stats stay off knowledge cards.
+- [x] Human-like engine for endgame conversion play-out (depth 10, roadmap study FENs, `?tab=endgames&study=`)
+- [x] Review marks repertoire misses separately from engine leaks (RAM tape only)
+- [x] Overview packages the loop as one home (drill → theory/learn → puzzles → convert → review)
 - [ ] Cross-device lesson packs beyond existing `opening_packs`
 
 Interactive analysis skill: `.agents/skills/chesscom-analysis-board/SKILL.md`.

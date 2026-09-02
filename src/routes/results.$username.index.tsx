@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { lazy, Suspense, useState } from 'react'
+import { TrainingLoop } from '@/components/TrainingLoop'
 import { ResultsSkeleton, SegmentedControl } from '@/components/ui'
 import { usePlayerData } from '@/lib/queries'
 import { useResultsModel } from '@/lib/resultsModel'
@@ -40,6 +41,14 @@ function ResultsOverview() {
           label: TIMEFRAME_LABEL[value],
         }))}
       />
+      {model.filteredGames.length > 0 ? (
+        <TrainingLoop
+          username={name}
+          headline={model.headline}
+          games={model.filteredGames}
+          positions={model.filteredPositions}
+        />
+      ) : null}
       <Suspense fallback={<ResultsSkeleton className="mt-6" />}>
         <ResultsCharts model={model} timeframe={timeframe} />
       </Suspense>

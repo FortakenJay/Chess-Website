@@ -14,14 +14,14 @@ File routes in `src/routes/`. `$username` = Chess.com handle.
 | `/signup` | `signup.tsx` | Public; validates handle before signup |
 | `/auth/callback` | `auth.callback.tsx` | PKCE |
 | `/results/$username` | `results.$username.tsx` | Public read |
-| `/results/$username/` | `results.$username.index.tsx` | Overview |
+| `/results/$username/` | `results.$username.index.tsx` | Overview: training loop, then charts |
 | `/results/$username/openings` | `results.$username.openings.tsx` | White/Black lists, no peer column |
 | `/results/$username/strategy` | `results.$username.strategy.tsx` | Peer RPC |
 | `/results/$username/endgames` | `results.$username.endgames.tsx` | Peer RPC |
 | `/positions/$username` | `positions.$username.tsx` | Public read; filters → drill query |
 | `/drill/$username` | `drill.$username.tsx` | Public practice; attempts owner-only |
 | `/puzzles/$username` | `puzzles.$username.tsx` | Public |
-| `/trainer/$username` | `trainer.$username.tsx` | Public catalog; progress owner-only. `?tab=theory\|learn\|foundations\|endgames\|structures` |
+| `/trainer/$username` | `trainer.$username.tsx` | Public catalog; progress owner-only. `?tab=theory\|learn\|foundations\|endgames\|structures` `&study=` endgame convert |
 | `/roadmap/$username` | `roadmap.$username.tsx` | `?tab=structures&structure=` |
 | `/review` | `review.tsx` / `review.index.tsx` | Ephemeral |
 | `/review/$username` | `review.$username.tsx` | Ephemeral; live analysis uses shared depth prefs |

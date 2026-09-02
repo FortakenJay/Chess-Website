@@ -23,14 +23,14 @@ MUST: `due_at` from `min(recall_ease, understanding_ease)`.
 MUST: reason-tag enum; prophylaxis/breaks/squares need concrete targets (`validate.ts`).
 MUST: generated commentary fails validation if a named square is off-board, an attack/defense is false, a blocked pawn break is taught as currently legal, stats are unattributed, or the stored FEN does not match the move.
 MUST: session 8 recall, MCQ on first 5 (`session.ts`); Learn-track **master** walks 12 / 8 in ply+frequency order.
-MUST: chooser = **Theory** (played lines, weak-spot / start-from-zero) vs **Learn** (named line, lesson, then memory). Color first; else ECO search + client `openingFromDownloadHit`; PGN/Study import merges by FEN into personal openings. Trainer also doorways **Foundations** (roadmap) and **Endgames** (leaked endings + roadmap track) plus existing structures lab.
+MUST: chooser = **Theory** (played lines, ranked by volume-weighted WR leak then dual-score; weak-spot / start-from-zero) vs **Learn** (named line, lesson, then memory). Learn may banner “your X scores badly → learn Z” from game WR, never from invented evals. Color first; else ECO search + client `openingFromDownloadHit`; PGN/Study import merges by FEN into personal openings. Trainer also doorways **Foundations** (roadmap) and **Endgames** (leaked endings + convert vs depth-10 engine on study FENs) plus existing structures lab.
 MUST: foundations/new download/master → `lesson` phase; weak-spot → skip lesson.
 MUST: if seed card matches name/ECO/side, use authored card not stub.
 MUST: download busy = `downloadingKey === openingHitKey(hit)`, not a global label.
 MUST: trainable = repertoire moves with ≥1 valid reason; exclude explorer-only.
-MUST: explorer replies ≥1.5% in ±100 rating; wait a full minute on HTTP 429; keep club and masters evidence separate.
+MUST: explorer replies ≥1.5% in ±100 rating; wait a full minute on HTTP 429; keep club and masters evidence separate. Taught **our** continuations tie-break on amateur WR when frequencies cluster (`humanPick.ts`); opponent replies stay frequency-first. Do not write WR onto knowledge-card prose.
 MUST: course generation is chunked and resumable (`opening_generation_jobs`). Show stages (Starter ready / Collecting common replies / Checking moves / Building middlegame plans / Ready). Do not promise a wall-clock duration.
-MUST: shared packs cache by normalized opening + side + rating band + `COMMENTARY_GENERATOR_VERSION`. Personal progress/comments stay private.
+MUST: shared packs cache by normalized opening + side + rating band + `COMMENTARY_GENERATOR_VERSION`. Personal progress/comments stay private. Do not invent a second pack table.
 MUST: structure id = pawn-only FEN; games tag name/ECO; flags tag FEN.
 Vienna = teaching quality bar.
 

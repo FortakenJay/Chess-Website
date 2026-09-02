@@ -1,7 +1,7 @@
 import { Chess } from 'chess.js'
 import { describe, expect, it } from 'vitest'
 import { ROADMAP_TRACKS } from './topics'
-import { isLegalStudyFen, studyDrillSearch, studyFor } from './study'
+import { convertibleStudy, isLegalStudyFen, studyDrillSearch, studyFor } from './study'
 
 describe('roadmap study positions', () => {
   it('gives every strategy and endgame node a legal playable position', () => {
@@ -24,5 +24,10 @@ describe('roadmap study positions', () => {
     const lucena = studyFor('lucena')!
     expect(studyDrillSearch(lucena).fens?.split(';')).toHaveLength(2)
     expect(studyDrillSearch(studyFor('open-center')!)).toMatchObject({ fen: expect.any(String) })
+  })
+
+  it('offers conversion only on piece-play studies, not pawn skeletons', () => {
+    expect(convertibleStudy('opposition')?.fen).toBeTruthy()
+    expect(convertibleStudy('closed-center')).toBeNull()
   })
 })

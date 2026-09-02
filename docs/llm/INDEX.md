@@ -31,7 +31,7 @@ Human vault: `docs/humans/`. Cursor constraints: `.cursor/rules/*.mdc`. If vault
 | `_sync.md` | `src/lib/sync/**` `backgroundSync.tsx` `api/sync-user.ts` `analyze.$username.tsx` |
 | `_analysis.md` | `src/lib/analysis/**` `analyzeClient.ts` |
 | `_persistence.md` | `src/lib/supabase/**` `persist.ts` `playerCache.ts` `supabase/migrations/**` |
-| `_insights.md` | `src/routes/results*` `resultsModel.ts` `playstyle.ts` `stats.ts` `grades.ts` `*Insights.tsx` |
+| `_insights.md` | `src/routes/results*` `resultsModel.ts` `playstyle.ts` `stats.ts` `grades.ts` `trainingLoop.ts` `TrainingLoop.tsx` `*Insights.tsx` |
 | `_practice.md` | `DrillBoard.tsx` `PositionsTable.tsx` `drill.$username.tsx` `positions.$username.tsx` |
 | `_puzzles.md` | `src/lib/puzzles/**` `PuzzleBoard.tsx` `puzzles.$username.tsx` |
 | `_openings.md` | `src/lib/openings/**` `Opening*.tsx` `PawnStructureLab.tsx` `trainer.$username.tsx` |
@@ -41,4 +41,4 @@ Human vault: `docs/humans/`. Cursor constraints: `.cursor/rules/*.mdc`. If vault
 
 ## Product in one paragraph
 
-LEAK analyzes a Chess.com library in the browser (Stockfish WASM), stores game aggregates + leak-tier positions (not PGN, not review tapes), and trains via guess-before-reveal drills, Elo puzzles, and an opening trainer that splits moves / explorer / explanations.
+LEAK analyzes a Chess.com library in the browser (Stockfish WASM), stores game aggregates + leak-tier positions (not PGN, not review tapes), and trains via guess-before-reveal drills, Elo puzzles, and an opening trainer that splits moves / explorer / explanations. Linked users land on Results Overview, which packages that walk as ordered next actions into the existing routes.

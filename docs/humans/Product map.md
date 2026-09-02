@@ -17,18 +17,23 @@ flowchart TB
     B --> C[Keep leak positions]
     C --> D[Guess before reveal]
     D --> E[See the same leak in Results]
+    E --> D
   end
 
   subgraph teach [Teaching]
     F[Puzzles at your Elo]
     G[Openings + pawn structures]
     H[Roadmap topics]
+    I[Review a game — RAM tape]
   end
 
-  C --> F
-  C --> G
+  E --> F
+  E --> G
   E --> H
+  E --> I
 ```
+
+Overview packages that walk as **The loop** (`TrainingLoop`): drill the leak → train or learn the opening → puzzles → convert endings → review. Same routes, one home. Linked users land here.
 
 ## Surfaces
 

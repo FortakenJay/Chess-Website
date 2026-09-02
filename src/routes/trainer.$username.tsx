@@ -10,6 +10,7 @@ import { playerHead } from '@/lib/pageTitle'
 type TrainerSearch = {
   tab?: TrainerTab | 'openings'
   structure?: string
+  study?: string
 }
 
 const HEADER: Record<TrainerTab, { title: string; description: string }> = {
@@ -27,7 +28,8 @@ const HEADER: Record<TrainerTab, { title: string; description: string }> = {
   },
   endgames: {
     title: 'Endgames',
-    description: 'Your leaked endings, then the technique track.',
+    description:
+      'Your leaked endings, then convert technique positions vs a club-strength engine. Playing a game does not mark a node done.',
   },
   structures: {
     title: 'Structures',
@@ -43,6 +45,7 @@ export const Route = createFileRoute('/trainer/$username')({
     return {
       tab: search.tab === 'openings' ? 'theory' : tab,
       structure: typeof search.structure === 'string' ? search.structure : undefined,
+      study: typeof search.study === 'string' ? search.study : undefined,
     }
   },
   component: TrainerPage,
@@ -50,13 +53,18 @@ export const Route = createFileRoute('/trainer/$username')({
 
 function TrainerPage() {
   const { username } = Route.useParams()
-  const { tab, structure } = Route.useSearch()
+  const { tab, structure, study } = Route.useSearch()
   const navigate = Route.useNavigate()
   const name = normalizeUsername(username)
   const { ready } = useAuth()
   const trainer = useOpeningTrainer(name)
-  const boardMode = trainer.phase === 'recall' || trainer.phase === 'reason' || trainer.phase === 'lesson'
   const module = parseTrainerTab(tab)
+  const converting = module === 'endgames' && Boolean(study)
+  const boardMode =
+    trainer.phase === 'recall' ||
+    trainer.phase === 'reason' ||
+    trainer.phase === 'lesson' ||
+    converting
   const header = HEADER[module]
 
   return (
@@ -85,12 +93,23 @@ function TrainerPage() {
               username={name}
               tab={tab}
               structure={structure}
+              study={study}
               onTabChange={(next) => {
                 void navigate({
                   search: (prev) => ({
                     ...prev,
                     tab: next,
                     structure: next === 'structures' ? prev.structure : undefined,
+                    study: next === 'endgames' ? prev.study : undefined,
+                  }),
+                })
+              }}
+              onStudyChange={(next) => {
+                void navigate({
+                  search: (prev) => ({
+                    ...prev,
+                    tab: 'endgames',
+                    study: next,
                   }),
                 })
               }}

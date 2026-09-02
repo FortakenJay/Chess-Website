@@ -69,14 +69,15 @@ Paths from repo root. Prefer the listed file over hunting.
 
 | Path | Role |
 | --- | --- |
-| `src/lib/resultsModel.ts` `playstyle.ts` `stats.ts` `strategyStats.ts` `grades.ts` | Insights |
-| `src/components/ResultsCharts.tsx` `InsightStats.tsx` | Charts |
+| `src/lib/resultsModel.ts` `playstyle.ts` `stats.ts` `strategyStats.ts` `grades.ts` `trainingLoop.ts` | Insights + Overview loop |
+| `src/components/ResultsCharts.tsx` `InsightStats.tsx` `TrainingLoop.tsx` | Charts + packaged next actions |
 | `src/components/DrillBoard.tsx` | Practice + post-reveal analysis mode |
 | `src/components/PuzzleBoard.tsx` | Catalog puzzles + post-solve analysis |
 | `src/lib/puzzles/` | Catalog load/cache/weakness |
-| `src/lib/openings/` | Trainer, search, lessons, structures |
+| `src/lib/openings/` | Trainer, search, lessons, structures, WR tie-break (`humanPick.ts`) |
+| `src/components/EndgameConvert.tsx` | Club-strength conversion vs depth-10 engine |
+| `src/lib/openings/repertoireMiss.ts` | Review line-miss vs taught tree |
 | `src/lib/practice/` | Drill depth cache + prefetch |
-| `src/lib/roadmap/` | Topics + study FENs |
 | `src/lib/roadmap/` | Topics + study FENs |
 | `src/components/review/` | Ephemeral review UI |
 | `src/components/landing/` | Marketing |

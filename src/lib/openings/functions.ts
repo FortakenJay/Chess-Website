@@ -18,16 +18,17 @@ export const searchOpeningCatalog = createServerFn({ method: 'GET' })
   })
 
 export const extendOpeningLine = createServerFn({ method: 'GET' })
-  .validator((data: { moves: string }) => {
+  .validator((data: { moves: string; side?: 'w' | 'b' }) => {
     const moves = typeof data?.moves === 'string' ? data.moves.trim() : ''
     if (!moves || moves.length > 400) throw new Error('Invalid move list')
-    return { moves }
+    const side = data?.side === 'b' ? 'b' : 'w'
+    return { moves, side }
   })
   .handler(async ({ data }) => {
     const sans = parseMoveOrderSans(data.moves)
     if (!sans.length) return []
     const { extendMostPlayedSans } = await import('./explorer')
-    return (await extendMostPlayedSans(sans, 12)).slice(0, MAX_TEACHING_PLY)
+    return (await extendMostPlayedSans(sans, 12, data.side)).slice(0, MAX_TEACHING_PLY)
   })
 
 export const fetchExplorerSlice = createServerFn({ method: 'GET' })

@@ -11,6 +11,7 @@ import {
   type TrainingMode,
 } from '@/lib/openings/session'
 import { openingPlayedCount } from '@/lib/openings/matchPlayed'
+import { openingScoreStats } from '@/lib/openings/openingScore'
 import {
   insertGenerationJob,
   loadProgress,
@@ -77,6 +78,8 @@ export type OpeningTrainingOption = {
   centerType: string | null
   theoryLoad: number
   gamesPlayed: number
+  winPct: number
+  leakWeight: number
   known: boolean
   stats: OpeningTrainingStats
 }
@@ -211,6 +214,7 @@ export function useOpeningTrainer(username: string) {
         .map((opening) => {
           const stats = openingTrainingStats(nodes, progressMap, opening.id)
           const gamesPlayed = openingPlayedCount(opening, games)
+          const score = openingScoreStats(opening, games, opening.side === 'b' ? 'b' : 'w')
           return {
             id: opening.id,
             name: opening.name,
@@ -220,6 +224,8 @@ export function useOpeningTrainer(username: string) {
             centerType: opening.center_type,
             theoryLoad: opening.theory_load,
             gamesPlayed,
+            winPct: score.winPct,
+            leakWeight: score.leakWeight,
             known: gamesPlayed > 0 || stats.attempted > 0,
             stats,
           }
@@ -228,6 +234,7 @@ export function useOpeningTrainer(username: string) {
         .sort((a, b) => {
           if (a.known !== b.known) return a.known ? -1 : 1
           if (a.known && b.known) {
+            if (b.leakWeight !== a.leakWeight) return b.leakWeight - a.leakWeight
             const aStarted = a.stats.attempted > 0
             const bStarted = b.stats.attempted > 0
             if (aStarted !== bStarted) return aStarted ? -1 : 1
@@ -493,7 +500,7 @@ export function useOpeningTrainer(username: string) {
         const sans = parseMoveOrderSans(moves)
         if (sans.length < 10) {
           try {
-            const extended = await extendOpeningLine({ data: { moves } })
+            const extended = await extendOpeningLine({ data: { moves, side } })
             if (Array.isArray(extended) && extended.length) {
               moves = formatMoveOrder(extended.slice(0, MAX_TEACHING_PLY))
             }

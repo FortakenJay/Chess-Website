@@ -34,6 +34,11 @@ alwaysApply: false
 **Considered:** A 60ms movetime budget for Review arrows; Fast/Balanced/Deep selects.
 **Why:** Chess.com Analysis Board exposes max depth and suggestion arrows. Movetime flipped lines and hid how deep the engine was. Tape generation stays a separate in-memory pass.
 
+## Repertoire miss vs engine leak
+**Chose:** After the in-memory tape exists, mark user plies that left a taught `opening_nodes` reply with a separate `line` chip. Unknown FENs are not misses. Do not merge this into blunder/mistake quality.
+**Considered:** Treating every non-engine-best opening move as a repertoire miss.
+**Why:** Lotus reviews punish leaving *their* tree. LEAK only marks positions that are actually in the user's repertoire. Engine quality stays the Stockfish tape.
+
 ## Review control motion
 **Chose:** Use shared `Button` / `Chip` / `IconButton` primitives, and keep `reviewUi` only for dense move/list rows that must skip press scaling.
 **Considered:** Global button press scaling on every review control.

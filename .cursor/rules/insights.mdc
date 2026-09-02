@@ -5,6 +5,11 @@ alwaysApply: false
 
 # Insights & results — decisions
 
+## Training loop home
+**Chose:** Put the product loop on Results Overview as ordered next actions (guess-the-leak drill, repertoire or learn, puzzles, endgame convert, ephemeral review). Keep one top-level Results nav item.
+**Considered:** A new `/loop` route or Lotus-style five-tab home that replaces AppShell.
+**Why:** Linked users already land on Overview. The pieces existed; the packaging did not. Charts stay below as evidence.
+
 ## Information architecture
 **Chose:** Nest Overview, Openings, Strategy, and Endgames under `/results/$username`; keep one top-level Results link and redirect legacy routes.
 **Why:** ⚠️ NEEDS INPUT — routes and `ResultsSectionNav` establish this structure, but no rationale was found.
