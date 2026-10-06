@@ -2,7 +2,7 @@
 
 A training site around a Chess.com account, not a playing site. Chess.com hosts the games. LEAK scores them, keeps the moves that drop your win chance, and makes you play the position before it shows the engine line.
 
-Live: [chess-website-six.vercel.app](https://chess.jihbinluo.com)
+Live: [https://chess.jihbinluo.com](https://chess.jihbinluo.com)
 
 ![LEAK landing page](docs/media/landing.jpg)
 
