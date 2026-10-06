@@ -32,3 +32,9 @@ tmp
 
 public/engine/*.js
 public/engine/*.wasm
+
+# Local agent tooling and generated graphs. Not part of the app.
+.agents/
+.cursor/
+graphify-out/
+skills-lock.json
